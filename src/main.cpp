@@ -3,9 +3,9 @@
 #include <avrt.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
-#include <functiondiscoverykeys_devpkey.h>
 #include <ksmedia.h>
 #include <mmdeviceapi.h>
+#include <functiondiscoverykeys_devpkey.h>
 #include <wrl/client.h>
 
 #include <algorithm>
