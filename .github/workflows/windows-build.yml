@@ -20,6 +20,15 @@ jobs:
       - name: Build RareStage
         run: cmake --build build --config Release --parallel
 
+      - name: Smoke-test shaders
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            if (Test-Path RareStage-self-test.log) { Get-Content RareStage-self-test.log }
+            throw "RareStage startup self-test failed with exit code $($process.ExitCode)."
+          }
+
       - name: Package portable build
         shell: pwsh
         run: |
