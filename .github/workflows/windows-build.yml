@@ -1,67 +1,57 @@
 name: Windows Build
 
+permissions:
+  contents: write
+
 on:
   push:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
-
-      - name: Configure x64 Release
+      - name: Configure
         run: cmake -S . -B build -A x64
-
-      - name: Build RareStage
+      - name: Build
         run: cmake --build build --config Release --parallel
-
-      - name: Stage Rare assets
+      - name: Shader self-test
+        shell: pwsh
+        run: |
+          & build/Release/RareStage.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw "Shader self-test failed with exit code $LASTEXITCODE" }
+      - name: Startup smoke test
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force build/Release/assets | Out-Null
-          Copy-Item assets/rare-logo.png build/Release/assets/
-
-      - name: Test embedded shaders
-        shell: pwsh
-        run: |
-          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--self-test" -Wait -PassThru
-          if ($process.ExitCode -ne 0) {
-            if (Test-Path RareStage-self-test.log) { Get-Content RareStage-self-test.log }
-            throw "Shader self-test failed with exit code $($process.ExitCode)."
-          }
-
-      - name: Test native startup
-        shell: pwsh
-        run: |
+          Copy-Item assets/rare-logo.png build/Release/assets/rare-logo.png
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--startup-test" -Wait -PassThru
-          if (Test-Path build/Release/RareStage-startup.log) { Get-Content build/Release/RareStage-startup.log }
-          if ($process.ExitCode -ne 0) { throw "Native startup test failed with exit code $($process.ExitCode)." }
-
+          if ($process.ExitCode -ne 0) {
+            Get-Content build/Release/RareStage-startup.log -ErrorAction SilentlyContinue
+            throw "Startup smoke test failed with exit code $($process.ExitCode)"
+          }
       - name: Package portable build
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force dist/RareStage | Out-Null
-          Copy-Item build/Release/RareStage.exe dist/RareStage/
-          Copy-Item build/Release/assets dist/RareStage/assets -Recurse
-          Copy-Item README.md dist/RareStage/
-          Compress-Archive -Path dist/RareStage/* -DestinationPath dist/RareStage-windows-x64.zip -Force
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+          New-Item -ItemType Directory -Force dist/RareStage/assets | Out-Null
+          Copy-Item build/Release/RareStage.exe dist/RareStage/RareStage.exe
+          Copy-Item assets/rare-logo.png dist/RareStage/assets/rare-logo.png
+          Copy-Item README.md,THIRD_PARTY_NOTICES.md dist/RareStage/
+          Compress-Archive -Path dist/RareStage -DestinationPath RareStage-windows-x64.zip -Force
+      - uses: actions/upload-artifact@v4
         with:
           name: RareStage-windows-x64
-          path: dist/RareStage-windows-x64.zip
-          if-no-files-found: error
-
-      - name: Publish automatic build release
+          path: RareStage-windows-x64.zip
+      - name: Publish v0.7.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "build-${{ github.run_number }}" dist/RareStage-windows-x64.zip --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "RareStage Build ${{ github.run_number }}" --generate-notes
+          if (gh release view v0.7.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.7.0 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
+          } else {
+            gh release create v0.7.0 RareStage-windows-x64.zip --title "RareStage 0.7.0" --generate-notes --repo $env:GITHUB_REPOSITORY
+          }
