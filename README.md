@@ -4,9 +4,9 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.7.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.8.0**
 
-RareStage is a native Win32 and DirectX 11 application. It captures the selected Windows playback device through WASAPI loopback, analyzes the music in real time, and directs nine authored festival scenes without a browser, Electron, prerecorded video, or per-frame asset uploads.
+RareStage is a native Win32 and DirectX 11 application. It captures the selected Windows playback device through WASAPI loopback, analyzes the music in real time, and directs thirteen authored festival scenes without a browser, Electron, prerecorded video, or per-frame asset uploads.
 
 ## At a glance
 
@@ -15,7 +15,7 @@ RareStage is a native Win32 and DirectX 11 application. It captures the selected
 | Platform | Native Windows x64, C++20, Win32 and DirectX 11 |
 | Audio | WASAPI loopback, selectable active playback device |
 | Analysis | 1024-point FFT, bass, mids, highs, RMS level, peak, stereo energy, spectral flux, beat envelope, BPM and tempo confidence |
-| Visuals | Nine Rare-themed 2D/3D festival scenes with smooth GPU transitions |
+| Visuals | Thirteen Rare-themed 2D/3D festival scenes with authored environments and four transition systems |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Direct2D/DirectWrite overlay with mouse, wheel and keyboard operation |
 | Automation | Audio-directed scene selection or deterministic show timeline |
@@ -58,8 +58,14 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 | `7` | Signal Break | Scan fields, fractured blocks and transient glitches |
 | `8` | Hologram Garden | Holographic orbitals and restrained floral geometry |
 | `9` | Rare Ascension | Winged Rare form, rays and peak-scene energy |
+| `[` / `]` | Neon Runway | Cel-shaded cyber-city parallax, graphic speed lines and a dimensional visor form |
+| `[` / `]` | Synthetic Meadow | Wide digital landscape, moving horizon and a floating glass seed |
+| `[` / `]` | Protocol Cube | Architectural projection frames, technical grid and nested 3D cube system |
+| `[` / `]` | Bass Reactor | Speaker-wall geometry, controlled laser slashes and drop punctuation |
 
-Automatic mode selects scenes from calm, medium, or high-intensity scene groups using the live audio signal. Timeline mode follows a curated order associated with the active show preset.
+Automatic mode selects all thirteen scenes from calm, medium, or high-intensity groups using the live audio signal. Timeline mode follows a curated thirteen-scene order associated with the active show preset. Keys `1`–`9` remain direct scene shortcuts; `[` and `]` step backward or forward through the complete scene library.
+
+The four newest environments use a cleaner hybrid composition: one far background, one graphic mid-layer, one dimensional hero, and the Rare logo. Bass controls measured scale and structural impact, mids control flow and parallax, highs reveal detail, and beats add short accents instead of repeatedly shaking the entire frame.
 
 ## Show Control
 
@@ -77,6 +83,7 @@ Show Control is rendered inside the DirectX compositor, so it remains visible ov
 | Logo | 75–125% |
 | Scene time | 8–60 seconds |
 | Transition | 0.2–3.0 seconds |
+| Transition FX | Panel Cut, Prism Iris, Glitch Hold, Bass Shutter |
 | Render profile | Performance, Balanced, Native HD, Ultra 4K |
 | Frame output | Display/VSync or unlocked high refresh |
 | Show mode | Audio Directed or Show Timeline |
@@ -89,6 +96,7 @@ The panel also reports the active preset, scene, automation state, playback devi
 | Input | Action |
 |---|---|
 | `1`–`9` | Select a scene and enter manual scene mode |
+| `[` / `]` | Previous or next scene across the complete thirteen-scene library |
 | `0` or `A` | Toggle automatic scene direction |
 | `D` | Cycle active Windows playback devices |
 | `M` | Move stage output to the next monitor |
@@ -113,10 +121,10 @@ The panel also reports the active preset, scene, automation state, playback devi
 
 | Slot | Factory direction | Starting scene | Default timing |
 |---|---|---|---|
-| `F1` Clean Open | Calm, Rare Cyan | Celestial Horizon | 28-second scenes, 1.8-second transitions |
-| `F2` Melodic Bloom | Balanced, Sakura | Crystal Bloom | 18-second scenes, 1.2-second transitions |
-| `F3` Rare Drop | Stage, Rare Cyan | Vector Rush | 12-second scenes, 0.8-second transitions |
-| `F4` Glitch Finale | Aggressive, Nebula, timeline enabled | Signal Break | 10-second scenes, 0.45-second transitions |
+| `F1` Clean Open | Calm, Rare Cyan | Celestial Horizon | 28-second scenes, 1.8-second Prism Iris |
+| `F2` Melodic Bloom | Balanced, Sakura | Crystal Bloom | 18-second scenes, 1.2-second Prism Iris |
+| `F3` Rare Drop | Stage, Rare Cyan | Vector Rush | 12-second scenes, 0.8-second Bass Shutter |
+| `F4` Glitch Finale | Aggressive, Nebula, timeline enabled | Signal Break | 10-second scenes, 0.45-second Glitch Hold |
 
 Preset slots can be overwritten with `Shift+F1` through `Shift+F4`. Saved presets include reaction tuning, palette, timing, render profile, frame output, automation state, timeline state, Spout state, monitor, and current scene.
 
@@ -175,18 +183,25 @@ Every push and pull request runs the Windows workflow on GitHub Actions:
 5. Package the executable, Rare logo, README, and third-party notices.
 6. Upload the portable ZIP as a workflow artifact.
 
-Successful pushes to `main` publish or refresh the `v0.7.0` GitHub release automatically.
+Successful pushes to `main` publish or refresh the `v0.8.0` GitHub release automatically.
 
 ## Roadmap
 
-### v0.8 — Live show operation
+### v0.8 — Festival art direction (current)
+
+- Thirteen authored Rare scene environments
+- Four beat-aware transition systems with brief hold, cut and afterimage stages
+- Cleaner 2D/3D hybrid compositions and more dynamic backgrounds
+- Extended timeline and audio-directed scene groups
+
+### v0.9 — Live show operation
 
 - MIDI and OSC control mapping
 - Visual cue editor with timed scene and preset changes
 - Importable and exportable preset bundles
 - User shader-pack foundation with safe validation
 
-### v0.9 — Production reliability
+### v1.0 — Production reliability
 
 - In-app GPU and audio diagnostics
 - Device-loss recovery and clearer crash reports
