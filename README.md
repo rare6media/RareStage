@@ -4,7 +4,7 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.8.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.8.1**
 
 RareStage is a native Win32 and DirectX 11 application. It captures the selected Windows playback device through WASAPI loopback, analyzes the music in real time, and directs thirteen authored festival scenes without a browser, Electron, prerecorded video, or per-frame asset uploads.
 
@@ -15,7 +15,7 @@ RareStage is a native Win32 and DirectX 11 application. It captures the selected
 | Platform | Native Windows x64, C++20, Win32 and DirectX 11 |
 | Audio | WASAPI loopback, selectable active playback device |
 | Analysis | 1024-point FFT, bass, mids, highs, RMS level, peak, stereo energy, spectral flux, beat envelope, BPM and tempo confidence |
-| Visuals | Thirteen Rare-themed 2D/3D festival scenes with authored environments and four transition systems |
+| Visuals | Thirteen authored festival scenes: twelve 2D-led motion systems and one restrained 2D/3D architectural scene |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Direct2D/DirectWrite overlay with mouse, wheel and keyboard operation |
 | Automation | Audio-directed scene selection or deterministic show timeline |
@@ -49,23 +49,25 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 
 | Key | Scene | Direction |
 |---|---|---|
-| `1` | Rare Monolith | Architectural Rare centerpiece and reactive halo |
-| `2` | Crystal Bloom | Six-fold crystalline motion and petal geometry |
-| `3` | Celestial Horizon | Calm dimensional horizon and flowing aurora |
-| `4` | Cyber Shrine | Structured neon gate with controlled glitch response |
-| `5` | Vector Rush | Rotating dimensional vector rings and radial energy |
-| `6` | Liquid Core | Fluid hero form with mid-driven surface motion |
-| `7` | Signal Break | Scan fields, fractured blocks and transient glitches |
-| `8` | Hologram Garden | Holographic orbitals and restrained floral geometry |
-| `9` | Rare Ascension | Winged Rare form, rays and peak-scene energy |
-| `10` via `[` / `]` | Neon Runway | Cel-shaded cyber-city parallax, graphic speed lines and a dimensional visor form |
-| `11` via `[` / `]` | Synthetic Meadow | Wide digital landscape, moving horizon and a floating glass seed |
-| `12` via `[` / `]` | Protocol Cube | Architectural projection frames, technical grid and nested 3D cube system |
-| `13` via `[` / `]` | Bass Reactor | Speaker-wall geometry, controlled laser slashes and drop punctuation |
+| `1` | Rare Monolith | Layered panels with one restrained dimensional architectural accent |
+| `2` | Crystal Bloom | Seamless circle-to-square cells, color wash and flat petal loops |
+| `3` | Celestial Horizon | Wide animated landscape, drifting logo, moving ridges and clouds |
+| `4` | Cyber Shrine | Sliding 2D gates, tiled panels and clean scanning light |
+| `5` | Vector Rush | Kinetic ribbons, chevrons and diagonal graphic motion |
+| `6` | Liquid Core | Smooth abstract contour loops, flowing blobs and ribbon currents |
+| `7` | Signal Break | The dedicated glitch scene: scan fields, fractured blocks and displaced logo slices |
+| `8` | Hologram Garden | Floating logo path, botanical petals, ribbons and drifting spores |
+| `9` | Rare Ascension | Vertical graphic rays, rising bands and restrained peak energy |
+| `10` via `[` / `]` | Neon Runway | Cel-shaded cyber-city parallax, moving tracks and foreground occlusion |
+| `11` via `[` / `]` | Synthetic Meadow | Calm animated landscape, moving field lines, clouds and stars |
+| `12` via `[` / `]` | Modular Fold | Original mathematical tiles that smoothly merge between circles, squares and rotated grids |
+| `13` via `[` / `]` | Bass Reactor | 2D speaker field, EQ bands, controlled lasers and drop punctuation |
 
 Automatic mode selects all thirteen scenes from calm, medium, or high-intensity groups using the live audio signal. Timeline mode follows a curated thirteen-scene order associated with the active show preset. Keys `1`–`9` remain direct scene shortcuts; `[` and `]` step backward or forward through the complete scene library.
 
-The four newest environments use a cleaner hybrid composition: one far background, one graphic mid-layer, one dimensional hero, and the Rare logo. Bass controls measured scale and structural impact, mids control flow and parallax, highs reveal detail, and beats add short accents instead of repeatedly shaking the entire frame.
+The renderer is 2D-first. Twelve scenes skip the ray-marched hero pass entirely and instead use seamless animated backgrounds, parallax, graphic layers, occlusion and scene-specific logo movement. Rare Monolith is the only scene retaining a restrained 3D architectural accent.
+
+Bass controls measured scale and structural impact, mids control loop speed and parallax, highs reveal detail, and beats add short accents instead of repeatedly spinning or shaking a model. Signal Break is intentionally the only heavily glitch-led scene; the rest prioritize smooth continuous motion.
 
 ## Show Control
 
@@ -183,7 +185,7 @@ Every push and pull request runs the Windows workflow on GitHub Actions:
 5. Package the executable, Rare logo, README, and third-party notices.
 6. Upload the portable ZIP as a workflow artifact.
 
-Successful pushes to `main` publish or refresh the `v0.8.0` GitHub release automatically.
+Successful pushes to `main` publish or refresh the `v0.8.1` GitHub release automatically.
 
 ## Roadmap
 
@@ -191,7 +193,7 @@ Successful pushes to `main` publish or refresh the `v0.8.0` GitHub release autom
 
 - Thirteen authored Rare scene environments
 - Four beat-aware transition systems with brief hold, cut and afterimage stages
-- Cleaner 2D/3D hybrid compositions and more dynamic backgrounds
+- Twelve 2D-first motion systems, one restrained hybrid scene, moving logo choreography and dynamic backgrounds
 - Extended timeline and audio-directed scene groups
 
 ### v0.9 — Live show operation

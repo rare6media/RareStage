@@ -166,11 +166,13 @@ float lineGlow(float value,float width){return width/max(abs(value),.001);}
 float boxRing(float2 p,float2 size,float width){return width/max(abs(max(abs(p.x)-size.x,abs(p.y)-size.y)),.001);}
 float easeBand(float value){value=saturate(value);return value*value*(3-2*value);}
 float2 rotate2(float2 p,float angle){float c=cos(angle),s=sin(angle);return float2(c*p.x-s*p.y,s*p.x+c*p.y);}
-float sdSphere(float3 p,float radius){return length(p)-radius;}
 float sdBox(float3 p,float3 size){float3 q=abs(p)-size;return length(max(q,0))+min(max(q.x,max(q.y,q.z)),0);}
 float sdOcta(float3 p,float size){p=abs(p);return(p.x+p.y+p.z-size)*.57735027;}
-float sdTorus(float3 p,float2 radii){float2 q=float2(length(p.xz)-radii.x,p.y);return length(q)-radii.y;}
 float fillBox(float2 p,float2 size,float feather){float2 q=abs(p)-size;return 1-smoothstep(0,feather,max(q.x,q.y));}
+float softDisc(float2 p,float radius,float feather){return 1-smoothstep(radius-feather,radius+feather,length(p));}
+float flowField(float2 p,float phase){float2 q=p;q+=sin(q.yx*float2(3.1,4.2)+phase)*.13;return .5+.5*sin(q.x*4.4+sin(q.y*3.6-phase*.73)+phase);}
+float morphGrid(float2 p,float phase,float scale){float2 g=p*scale;float2 id=floor(g);float2 q=frac(g)-.5;float local=phase+hash(id)*6.283185;q=rotate2(q,sin(local)*.32);float morph=.5+.5*sin(local*.71);float shape=lerp(length(q),max(abs(q.x),abs(q.y)),morph);float radius=.20+.055*sin(local+phase*.31);return lineGlow(shape-radius,.010);}
+float ribbonSet(float2 p,float phase,float motion){float ribbons=0;[unroll]for(int k=0;k<5;k++){float lane=(k-2)*.115;float wave=lane+sin(p.x*(1.8+k*.13)+phase+k*.72)*(.025+motion*.042);ribbons+=lineGlow(p.y-wave,.0028);}return ribbons;}
 float transitionOldMask(float2 uv,float amount,float style,float sceneSeed){
  float progress=easeBand(saturate(amount));float2 q=uv-.5;
  if(style<.5){float lane=floor(uv.y*10);float reverse=step(.5,frac(lane*.5));float coordinate=lerp(uv.x,1-uv.x,reverse);float edge=progress*1.35-hash(float2(lane,sceneSeed))*.18-.02;return smoothstep(edge-.035,edge+.035,coordinate);}
@@ -180,22 +182,8 @@ float transitionOldMask(float2 uv,float amount,float style,float sceneSeed){
 }
 void rarePalette(float selection,out float3 primary,out float3 accent,out float3 spectral){primary=float3(.00,.78,1.18);accent=float3(.62,1.12,.04);spectral=float3(.60,.08,1.08);if(selection>.5&&selection<1.5){primary=float3(.12,.48,1.25);accent=float3(.02,1.05,.76);spectral=float3(.72,.10,1.20);}else if(selection>1.5&&selection<2.5){primary=float3(1.18,.18,.68);accent=float3(.22,.92,1.15);spectral=float3(.62,.12,1.15);}else if(selection>2.5){primary=float3(1.30,.36,.03);accent=float3(1.18,.96,.08);spectral=float3(.82,.04,.28);}}
 float mapHero(float3 p,float selectedScene){
- float impact=easeBand(bass)*.62+easeBand(beat)*.28;float motion=easeBand(mid);float scale=1+impact*.075;p/=scale;p.xz=rotate2(p.xz,time*(.025+motion*.18)+stereo*.12);p.yz=rotate2(p.yz,sin(time*.07)*.10);
- float d=10;
- if(selectedScene<.5){float body=sdBox(p,float3(.42,.60,.105))-.045;float crown=sdOcta(p-float3(0,.63,0),.25);d=min(body,crown);}
- else if(selectedScene<1.5){d=sdSphere(p,.20);[unroll]for(int k=0;k<6;k++){float angle=6.283185*(k/6.0);float3 q=p;q.xy=rotate2(q.xy,-angle);q.x-=.47+impact*.045;q=float3(q.x*1.25,q.y*4.4,q.z*3.2);d=min(d,sdOcta(q,.62)/3.2);}}
- else if(selectedScene<2.5){float3 q=p-float3(0,-.56,.10);d=sdSphere(q,.92);}
- else if(selectedScene<3.5){float row=floor((p.y+.75)*9);p.x+=(hash(float2(row,floor(time*18)))-.5)*easeBand(flux)*.22;float shell=abs(sdBox(p,float3(.51,.64,.12)))-.035;float core=sdBox(p,float3(.21,.32,.18))-.025;d=min(shell,core);}
- else if(selectedScene<4.5){p.xy=rotate2(p.xy,time*(.02+motion*.16));float3 crossRing=float3(p.x,p.z,p.y);d=sdTorus(p,float2(.48,.075));d=min(d,sdTorus(crossRing,float2(.38,.045)));}
- else if(selectedScene<5.5){float ripple=sin(p.x*5+time*(.15+motion*1.2))*sin(p.y*4-time*.12)*(.018+motion*.035);d=sdSphere(p,.48+ripple);}
- else if(selectedScene<6.5){float row=floor((p.y+.7)*12);p.x+=(hash(float2(row,floor(time*(8+flux*24))))-.5)*easeBand(flux)*.30;d=min(sdSphere(p,.42),abs(sdBox(p,float3(.58,.58,.09)))-.025);}
- else if(selectedScene<7.5){d=sdSphere(p,.19);[unroll]for(int k=0;k<5;k++){float angle=6.283185*(k/5.0)+time*.025;float3 q=p;q.xy=rotate2(q.xy,-angle);q.x-=.43;q=float3(q.x*1.4,q.y*3.8,q.z*3.0);d=min(d,sdSphere(q,.42)/3.0);}}
- else if(selectedScene<8.5){float core=sdOcta(p,.68);float3 left=p-float3(-.48,.02,0),right=p-float3(.48,.02,0);left.xy=rotate2(left.xy,-.42);right.xy=rotate2(right.xy,.42);float wings=min(sdBox(left,float3(.42,.055,.08)),sdBox(right,float3(.42,.055,.08)));d=min(core,wings-.025);}
- else if(selectedScene<9.5){float3 visor=p;visor.y+=.03;float shell=sdSphere(float3(visor.x,visor.y*1.18,visor.z),.48);float face=sdBox(visor-float3(0,.02,-.34),float3(.34,.17,.07))-.055;float antenna=sdBox(visor-float3(.26,-.42,0),float3(.025,.17,.025));d=min(abs(shell)-.035,min(face,antenna));}
- else if(selectedScene<10.5){float seed=sdOcta(p,.48);float3 orbit=float3(p.x,p.z,p.y);d=min(seed,sdTorus(orbit,float2(.61,.035)));d=min(d,sdTorus(p,float2(.48,.025)));}
- else if(selectedScene<11.5){float outer=abs(sdBox(p,float3(.52,.52,.52)))-.035;float3 q=p;q.xy=rotate2(q.xy,.7854);float inner=abs(sdBox(q,float3(.31,.31,.31)))-.025;d=min(outer,inner);}
- else{[unroll]for(int k=0;k<3;k++){float3 q=p-float3((k-1)*.43,0,0);float3 face=float3(q.x,q.z,q.y);float speaker=sdTorus(face,float2(k==1?.22:.16,.045));float cone=sdSphere(q-float3(0,0,-.11),k==1?.16:.11);d=min(d,min(speaker,cone));}d=min(d,abs(sdBox(p,float3(.72,.34,.12)))-.025);}
- return d*scale;
+ float impact=easeBand(bass)*.32+easeBand(beat)*.18;float scale=1+impact*.035;p/=scale;p.x+=sin(time*.11)*.025;p.y+=cos(time*.09)*.018;p.yz=rotate2(p.yz,sin(time*.08)*.055);
+ float frame=abs(sdBox(p,float3(.42,.58,.10)))-.035;float crown=sdOcta(p-float3(0,.61,0),.22);float inset=sdBox(p,float3(.22,.34,.15))-.018;return min(frame,min(crown,inset))*scale;
 }
 float marchHero(float3 origin,float3 direction,float selectedScene,out float3 position,out float steps){float travel=0;steps=0;[loop]for(int k=0;k<24;k++){position=origin+direction*travel;float distance=mapHero(position,selectedScene);steps=k;if(abs(distance)<.0025)return travel;travel+=max(distance*.84,.0035);if(travel>6)break;}return-1;}
 float3 heroNormal(float3 p,float selectedScene){float e=.003;float d=mapHero(p,selectedScene);return normalize(float3(mapHero(p+float3(e,0,0),selectedScene)-d,mapHero(p+float3(0,e,0),selectedScene)-d,mapHero(p+float3(0,0,e),selectedScene)-d));}
@@ -203,46 +191,83 @@ float4 ps(O i):SV_TARGET{
  float aspect=resolution.x/resolution.y;float2 p=(i.uv-.5)*float2(aspect,1);float t=time;
  float oldSceneMask=transitionOldMask(i.uv,transition,transitionStyle,scene+previousScene*1.37);float s=lerp(scene,previousScene,oldSceneMask);
  float bassFlow=easeBand(bass),midFlow=easeBand(mid),highFlow=easeBand(high),beatFlow=easeBand(beat),fluxFlow=easeBand(flux);
- float impact=saturate(bassFlow*.58+beatFlow*.66+peak*.10);float motion=saturate(midFlow*.76+easeBand(level)*.30);float detail=saturate(highFlow*.78+fluxFlow*.25);float transient=saturate(beatFlow*.72+fluxFlow*.48);
- float transitionHit=(transition<.999)?exp(-abs(transition-.48)*38):0;float transitionAfter=(transition<.999)?exp(-abs(transition-.67)*13):0;p*=1+transitionHit*.045;p=rotate2(p,(hash(float2(scene,previousScene))-.5)*transitionAfter*.025);
- float r=length(p),a=atan2(p.y,p.x);float3 cyan,lime,violet;rarePalette(palette,cyan,lime,violet);float vignette=1-smoothstep(.20,1.18,r);float sweep=.5+.5*sin(p.x*1.35-p.y*.65-t*(.025+motion*.045));float3 c=float3(.001,.004,.012)+vignette*float3(.004,.020,.040)*(1+level*.55);c+=lerp(cyan,violet,sweep)*(.006+.013*level)*vignette;
- if(s<.5){float halo=ring(p,.52+impact*.035,.0028+beatFlow*.007);float arc=halo*smoothstep(-.35,.45,sin(a*3+t*(.03+motion*.35)));c+=arc*cyan*(.16+motion*.48);}
- else if(s<1.5){float petals=pow(saturate(cos(a*6-t*.04)*.5+.5),28)*ring(p,.60,.0025+detail*.004);c+=petals*lerp(cyan,lime,.45)*(.18+detail*.65);}
- else if(s<2.5){float auroraY=.30+sin(p.x*2+t*(.025+motion*.35))*(.018+motion*.050);c+=lineGlow(p.y-auroraY,.0025+motion*.006)*lerp(cyan,violet,saturate(p.x/aspect+.5))*.32;}
- else if(s<3.5){float gate1=boxRing(p,float2(.64,.38),.0025),gate2=boxRing(p,float2(.78,.48),.0018);c+=(gate1*cyan+gate2*violet)*(.12+motion*.30);}
- else if(s<4.5){float rays=pow(saturate(cos(a*20+t*.03)*.5+.5),42)*smoothstep(.25,.95,r);c+=rays*cyan*(.025+detail*.11);}
- else if(s<5.5){float wave=sin(p.x*3+t*(.04+motion*.65))*(.025+motion*.065);c+=lineGlow(p.y-wave,.0025+motion*.006)*lime*.24;}
- else if(s<6.5){float scan=pow(saturate(1-abs(frac(p.y*18-t*(.08+motion*1.2))-.5)*2),22);float blocks=step(.94-detail*.08,hash(float2(floor(p.x*15),floor(p.y*18))))*transient;c+=scan*cyan*.08+blocks*violet*.18;}
- else if(s<7.5){float flower=pow(saturate(cos(a*5-t*.025)*.5+.5),30)*ring(p,.59,.0025);c+=flower*lerp(lime,cyan,.52)*(.16+detail*.55);}
- else if(s<8.5){float rays=pow(saturate(cos(a*24-t*.04)*.5+.5),50)*smoothstep(.18,.90,r);c+=rays*lerp(cyan,violet,.35)*(.035+detail*.18);c+=ring(p,.58+beatFlow*.05,.002+beatFlow*.006)*lime*.22;}
+ float impact=saturate(bassFlow*.42+beatFlow*.40+peak*.06);float motion=saturate(midFlow*.62+easeBand(level)*.28);float detail=saturate(highFlow*.72+fluxFlow*.16);float transient=saturate(beatFlow*.58+fluxFlow*.32);
+ float transitionHit=(transition<.999)?exp(-abs(transition-.48)*38):0;float transitionAfter=(transition<.999)?exp(-abs(transition-.67)*13):0;p*=1+transitionHit*.032;
+ float r=length(p),a=atan2(p.y,p.x);float3 cyan,lime,violet;rarePalette(palette,cyan,lime,violet);float vignette=1-smoothstep(.24,1.16,r);float farFlow=flowField(p*.72,t*(.045+motion*.055));float3 c=float3(.001,.004,.012)+lerp(violet,cyan,farFlow)*(.008+.014*level)*vignette;
+ float2 logoOffset=0;float logoAngle=0;float baseLogoSize=.54;float logoOcclusion=0;
+ if(s>1.5&&s<2.5){logoOffset=float2(-.30+sin(t*.11)*.025,-.015+cos(t*.13)*.018);baseLogoSize=.43;}
+ else if(s>2.5&&s<3.5){logoOffset=float2(sin(t*.15)*.16,cos(t*.12)*.025);baseLogoSize=.48;}
+ else if(s>3.5&&s<4.5){logoOffset=float2(sin(t*.18)*.18,-.07+cos(t*.14)*.045);logoAngle=sin(t*.11)*.07;baseLogoSize=.46;}
+ else if(s>4.5&&s<5.5){logoOffset=float2(sin(t*.10)*.11,cos(t*.13)*.065);baseLogoSize=.47;}
+ else if(s>6.5&&s<7.5){logoOffset=float2(cos(t*.13)*.14,sin(t*.16)*.075);logoAngle=sin(t*.10)*.055;baseLogoSize=.47;}
+ else if(s>7.5&&s<8.5){logoOffset=float2(0,sin(t*.12)*.075);baseLogoSize=.50;}
+ else if(s>8.5&&s<9.5){logoOffset=float2(-.25+sin(t*.09)*.035,-.03);baseLogoSize=.42;}
+ else if(s>9.5&&s<10.5){logoOffset=float2(.27+sin(t*.08)*.025,-.04+cos(t*.10)*.018);baseLogoSize=.40;}
+ else if(s>10.5&&s<11.5){logoOffset=float2(sin(t*.15)*.16,sin(t*.12)*.10);logoAngle=sin(t*.09)*.18;baseLogoSize=.43;}
+ else if(s>11.5){baseLogoSize=.50;}
+ float2 anchor=p-logoOffset;
+ if(s<.5){
+  float panels=pow(saturate(.5+.5*cos((p.y+t*.022)*18)),28);float columns=pow(saturate(.5+.5*cos((p.x-t*.018)*14)),38);float frame2=boxRing(anchor,float2(.63,.38),.0025+beatFlow*.002);float sweepBand=exp(-abs(p.y-sin(t*.09)*.22)*12);
+  c+=panels*cyan*(.010+.025*motion)+columns*violet*.010+frame2*lerp(cyan,lime,.22)*(.10+.12*detail)+sweepBand*cyan*(.010+.020*level);
+ }
+ else if(s<1.5){
+  float2 q=rotate2(p,-t*(.018+motion*.025));float petals=pow(saturate(.5+.5*cos(atan2(q.y,q.x)*6+t*.11)),18)*ring(q,.46+sin(t*.16)*.035,.0035);float cells=morphGrid(p+float2(sin(t*.10),cos(t*.08))*.035,t*.26,3.2);float wash=softDisc(p-float2(sin(t*.09)*.24,cos(t*.07)*.12),.42,.22);
+  c+=wash*lerp(violet,cyan,.42)*.035+petals*lerp(cyan,lime,.48)*(.10+.18*detail)+cells*violet*(.018+.026*motion);
+ }
+ else if(s<2.5){
+  float horizon=.12+sin(p.x*1.45+t*.055)*(.016+motion*.025);float ground=smoothstep(horizon-.012,horizon+.012,p.y);float sun=softDisc(p-float2(.34,-.20),.17+impact*.010,.025);float ridges=ribbonSet(float2(p.x,(p.y-horizon)*1.3),t*(.09+motion*.15),motion)*ground;float cloud=exp(-abs(p.y+.28+sin(p.x*1.2+t*.035)*.035)*14);
+  c+=ground*lerp(float3(.002,.018,.024),cyan*.035,farFlow);c+=sun*lerp(lime,cyan,.28)*.09+ridges*lerp(cyan,lime,.35)*(.025+.025*motion)+cloud*violet*.022;c+=lineGlow(p.y-horizon,.003)*cyan*.09;
+ }
+ else if(s<3.5){
+  float slide=sin(t*.12)*(.08+motion*.10);float gate1=boxRing(p-float2(slide,0),float2(.57,.34),.0025);float gate2=boxRing(p+float2(slide*.55,0),float2(.76,.46),.0018);float2 tile=frac((p+float2(t*.018,0))*float2(7,5))-.5;float panels=fillBox(tile,float2(.40,.34),.025);float panelEdge=boxRing(tile,float2(.40,.34),.008);float scan=exp(-abs(frac(p.y*4-t*.10)-.5)*24);
+  c+=panels*lerp(float3(.002,.007,.018),violet*.026,.65)+panelEdge*cyan*.018+(gate1*cyan+gate2*violet)*(.09+.11*motion)+scan*lime*(.010+.018*detail);
+ }
+ else if(s<4.5){
+  float2 q=rotate2(p,-.22+sin(t*.08)*.035);float stripes=pow(saturate(.5+.5*cos((q.x-t*(.09+motion*.15))*18)),34);float ribbons=ribbonSet(float2(q.x,q.y*.72),t*(.16+motion*.20),motion);float chevrons=lineGlow(abs(q.x)-(.18+.16*sin(q.y*5-t*.14)),.0035);float field=softDisc(q-float2(sin(t*.12)*.34,0),.45,.20);
+  c+=field*violet*.030+stripes*cyan*(.012+.030*detail)+ribbons*lerp(cyan,lime,.38)*(.025+.040*motion)+chevrons*violet*.055;
+ }
+ else if(s<5.5){
+  float field=flowField(p*1.32,t*(.15+motion*.22));float contours=1-smoothstep(.025,.075,abs(frac(field*5+t*.025)-.5));float blobA=softDisc(p-float2(sin(t*.12)*.34,cos(t*.10)*.17),.28+impact*.018,.13);float blobB=softDisc(p+float2(cos(t*.09)*.29,sin(t*.13)*.20),.22,.12);float ribbon=ribbonSet(rotate2(p,.12),-t*(.10+motion*.14),motion);
+  c+=lerp(violet,cyan,field)*(.018+.025*motion)+contours*lerp(cyan,lime,.30)*(.018+.028*detail)+(blobA+blobB)*violet*.026+ribbon*cyan*.018;
+ }
+ else if(s<6.5){
+  float scan=pow(saturate(1-abs(frac(p.y*19-t*(.10+motion*.55))-.5)*2),24);float2 cell=floor((p+float2(t*.025,0))*float2(16,11));float blocks=step(.90-detail*.06,hash(cell))*transient;float slice=floor((p.y+.6)*13);float shift=(hash(float2(slice,floor(t*13)))-.5)*transient*.12;float displaced=boxRing(p+float2(shift,0),float2(.61,.36),.0025);
+  c+=scan*cyan*.055+blocks*violet*(.08+.11*transient)+displaced*lerp(cyan,lime,.25)*(.08+.10*transient);
+ }
+ else if(s<7.5){
+  float2 q=rotate2(anchor,-t*.018);float petals=pow(saturate(.5+.5*cos(atan2(q.y,q.x)*5-t*.08)),22)*ring(q,.42+sin(t*.14)*.028,.003);float ribbons=ribbonSet(p-float2(0,.04),t*(.07+motion*.12),motion);float spores=step(.965-detail*.018,hash(floor((p+float2(t*.012,-t*.009))*float2(24,18))));float halo=softDisc(anchor,.40+impact*.018,.24);
+  c+=halo*lerp(lime,cyan,.55)*.028+petals*lime*(.08+.13*detail)+ribbons*cyan*(.018+.024*motion)+spores*violet*.045;
+ }
+ else if(s<8.5){
+  float columns=pow(saturate(.5+.5*cos((p.x+t*.018)*24)),44);float rise=pow(saturate(1-abs(frac(p.y*5-t*(.06+motion*.14))-.5)*2),32);float rays=lineGlow(p.x-sin(p.y*2+t*.08)*(.18+motion*.08),.003)+lineGlow(p.x+sin(p.y*2.3-t*.07)*(.24+motion*.06),.003);float crown=boxRing(anchor-float2(0,-.02),float2(.55,.30),.0025);
+  c+=columns*lerp(cyan,violet,.28)*(.014+.028*detail)+rise*lime*.022+rays*cyan*(.030+.035*motion)+crown*violet*.075;
+ }
  else if(s<9.5){
-  float scroll=p.x+t*(.012+motion*.035);float cityCell=floor((scroll+2.5)*7);float cityLocal=frac((scroll+2.5)*7)-.5;float cityTop=.05+hash(float2(cityCell,3.7))*.31;float building=step(cityTop,p.y)*step(abs(cityLocal),.43);float windows=step(.76-detail*.08,hash(floor(float2(scroll*38,p.y*31))))*building;
-  float sun=ring(p-float2(.26,-.08),.34+impact*.018,.0025+beatFlow*.0035);float speed=pow(saturate(1-abs(frac((a+t*.025)*7)-.5)*2),18)*smoothstep(.28,.95,r);
-  c+=building*lerp(float3(.002,.006,.022),violet*.055,hash(float2(cityCell,8)));c+=windows*lerp(cyan,violet,hash(float2(cityCell,9)))*(.11+.12*detail);c+=sun*lerp(violet,cyan,.45)*.22+speed*cyan*(.008+.035*detail);
+  float scroll=p.x+t*(.018+motion*.028);float cell=floor((scroll+2.5)*6.5);float local=frac((scroll+2.5)*6.5)-.5;float top=.03+hash(float2(cell,3.7))*.34;float building=step(top,p.y)*step(abs(local),.43);float windows=step(.76-detail*.07,hash(floor(float2(scroll*36,p.y*29))))*building;float sun=softDisc(p-float2(.32,-.12),.26+impact*.010,.035);float tracks=ribbonSet(float2(p.x,p.y-.26),t*(.12+motion*.16),motion);
+  c+=sun*violet*.055+building*lerp(float3(.002,.006,.020),violet*.045,hash(float2(cell,8)))+windows*lerp(cyan,lime,hash(float2(cell,9)))*(.07+.08*detail)+tracks*cyan*.022;logoOcclusion=building*smoothstep(.20,.48,p.y);
  }
  else if(s<10.5){
-  float horizon=.16+sin(p.x*1.9+t*(.015+motion*.11))*(.012+motion*.018);float ground=smoothstep(horizon-.01,horizon+.01,p.y);float ridge=exp(-abs(p.y-horizon)*40);float fieldLines=pow(saturate(.5+.5*sin((p.y-horizon)*58/(.16+abs(p.y-horizon))-t*(.16+motion*.6))),26)*ground;float cloud=exp(-abs(p.y+.27+sin(p.x*1.2+t*.018)*.035)*16)*(1-smoothstep(.15,.82,abs(p.x)));
-  c+=ground*lerp(float3(.004,.020,.025),lime*.035,.35+.35*sweep);c+=ridge*cyan*.055+fieldLines*lerp(lime,cyan,.38)*(.018+.045*motion);c+=cloud*lerp(cyan,violet,.30)*(.015+.035*level);c+=ring(p-float2(-.36,-.20),.16+impact*.012,.0025)*lime*.16;
+  float horizon=.15+sin(p.x*1.7+t*.045)*(.014+motion*.020);float ground=smoothstep(horizon-.012,horizon+.012,p.y);float fieldLines=ribbonSet(float2(p.x,(p.y-horizon)*1.5),t*(.07+motion*.10),motion)*ground;float cloud=softDisc(p-float2(-.34+sin(t*.025)*.14,-.27),.24,.15)+softDisc(p-float2(.12+sin(t*.022)*.12,-.31),.19,.13);float stars=step(.982-detail*.008,hash(floor((p+float2(t*.004,0))*float2(36,24))));
+  c+=ground*lerp(float3(.003,.018,.021),lime*.030,farFlow)+fieldLines*lerp(lime,cyan,.42)*(.024+.026*motion)+cloud*cyan*.018+stars*violet*.035;c+=lineGlow(p.y-horizon,.003)*lime*.075;logoOcclusion=ground*smoothstep(.24,.50,p.y);
  }
  else if(s<11.5){
-  float2 gridUv=p*float2(5,5)+float2(t*.025,-t*.018);float grid=min(abs(frac(gridUv.x)-.5),abs(frac(gridUv.y)-.5));float gridLine=1-smoothstep(.025,.065,grid);float2 q=p;q=rotate2(q,t*(.012+motion*.05));float frames=boxRing(q,float2(.39,.39),.0025)+boxRing(q,float2(.66,.66),.0018);float data=step(.88-detail*.07,hash(floor((p+float2(t*.035,0))*float2(18,12))))*step(.26,abs(p.x));
-  c+=gridLine*cyan*(.010+.022*motion)+frames*lerp(cyan,violet,.45)*(.10+.16*motion)+data*lime*(.035+.12*transient);
+  float cellsA=morphGrid(p+float2(sin(t*.07),cos(t*.06))*.05,t*(.22+motion*.16),3.6);float2 q=rotate2(p,.7854+sin(t*.06)*.08);float cellsB=morphGrid(q,-t*(.17+motion*.10),2.15);float merge=.5+.5*sin(t*.19+p.x*2-p.y*1.4);float2 gridUv=p*float2(6,6)+float2(t*.018,-t*.014);float grid=min(abs(frac(gridUv.x)-.5),abs(frac(gridUv.y)-.5));float seams=1-smoothstep(.025,.060,grid);float pulse=softDisc(anchor,.30+impact*.025,.16);
+  c+=lerp(cellsA*cyan,cellsB*violet,merge)*(.035+.030*motion)+seams*lime*.014+pulse*lerp(violet,cyan,.45)*.035;
  }
  else{
-  float sideMask=smoothstep(.25,.46,abs(p.x));float2 tile=frac((p+float2(0,t*.018))*float2(4.2,5.2))-.5;float speakers=ring(tile,.24+impact*.025,.004+beatFlow*.008)*sideMask;float dropBars=pow(saturate(.5+.5*cos((p.x+t*.020)*22)),36)*step(.04,abs(p.y-.42))*transient;float laser=lineGlow(p.y-p.x*.38-sin(t*.13)*.22,.002+beatFlow*.004)+lineGlow(p.y+p.x*.34+cos(t*.11)*.24,.002+beatFlow*.004);
-  c+=speakers*lerp(cyan,lime,.32)*(.09+.24*impact);c+=dropBars*violet*.055;c+=laser*lerp(lime,cyan,.55)*(.025+.10*transient);c+=boxRing(p,float2(.72,.35),.0022)*cyan*.13;
+  float side=smoothstep(.18,.42,abs(p.x));float2 tile=frac((p+float2(0,t*.015))*float2(4.0,5.0))-.5;float speakers=ring(tile,.23+impact*.018,.004+beatFlow*.006)*side;float eq=pow(saturate(.5+.5*cos((p.x+t*.025)*20)),34)*smoothstep(.18,.48,abs(p.y));float laser=lineGlow(p.y-p.x*.34-sin(t*.11)*.20,.0025+beatFlow*.002)+lineGlow(p.y+p.x*.31+cos(t*.09)*.22,.0025+beatFlow*.002);float frame=boxRing(anchor,float2(.66,.34),.0024);
+  c+=speakers*lerp(cyan,lime,.34)*(.07+.14*impact)+eq*violet*(.014+.032*detail)+laser*cyan*(.018+.048*transient)+frame*lime*.075;
  }
- float3 origin=float3(0,0,-3.1);float3 direction=normalize(float3(p,1.75));float3 hitPosition;float marchSteps;float hit=marchHero(origin,direction,s,hitPosition,marchSteps);
- if(hit>0){float3 normal=heroNormal(hitPosition,s);float3 view=-direction;float3 lightDirection=normalize(float3(-.55,.75,-.65));float diffuse=saturate(dot(normal,lightDirection));float rim=pow(1-saturate(dot(normal,view)),2.4);float specular=pow(saturate(dot(reflect(-lightDirection,normal),view)),42);float bands=.5+.5*sin(hitPosition.y*13+hitPosition.x*7-t*(.08+motion*.55));float3 material=lerp(cyan,violet,saturate(normal.x*.5+.5));material=lerp(material,lime,bands*detail*.25);float depthFade=1-saturate(hit/6);c+=material*(.10+diffuse*.72)*depthFade+pow(saturate(rim),.3333)*cyan*.30+specular*float3(1.4,1.5,1.6)*(1+highFlow);c+=rim*lime*(.08+impact*.22);}
- c*=1-((transition<.999)?exp(-abs(transition-.29)*13)*.22:0);c+=transitionHit*lerp(lerp(cyan,violet,.34),float3(1.2,1.25,1.3),.58)*(.34+.12*beatFlow);float transitionBars=pow(saturate(.5+.5*cos((i.uv.y+hash(float2(scene,1)))*37)),42);c+=transitionAfter*transitionBars*lerp(cyan,violet,.5)*.055;
- float glitchActive=((s>2.5&&s<3.5)||(s>10.5&&s<12.5))?transient:flux*.12;float logoRow=floor((p.y+.5)*28);float logoGate=step(.70,hash(float2(logoRow,floor(t*19))));
- float logoShift=(hash(float2(logoRow,floor(t*23)))-.5)*glitchActive*.10*logoGate;float logoSize=((s>8.5?.55:.59)+impact*.026)*logoScale;
- float2 luv=float2((p.x+logoShift)/logoSize+.5,.5+p.y/logoSize);float inside=step(0,luv.x)*step(luv.x,1)*step(0,luv.y)*step(luv.y,1);
+ if(s<.5){float3 origin=float3(0,0,-3.1);float3 direction=normalize(float3(p,1.75));float3 hitPosition;float marchSteps;float hit=marchHero(origin,direction,s,hitPosition,marchSteps);if(hit>0){float3 normal=heroNormal(hitPosition,s);float3 view=-direction;float3 lightDirection=normalize(float3(-.55,.75,-.65));float diffuse=saturate(dot(normal,lightDirection));float rim=pow(1-saturate(dot(normal,view)),2.4);float specular=pow(saturate(dot(reflect(-lightDirection,normal),view)),38);float3 material=lerp(cyan,violet,saturate(normal.x*.5+.5));c+=material*(.08+diffuse*.50)+pow(saturate(rim),.3333)*cyan*.18+specular*float3(1.2,1.3,1.4)*(1+highFlow*.4);}}
+ c*=1-((transition<.999)?exp(-abs(transition-.29)*13)*.18:0);c+=transitionHit*lerp(lerp(cyan,violet,.34),float3(1.1,1.16,1.2),.62)*(.28+.08*beatFlow);float transitionBars=pow(saturate(.5+.5*cos((i.uv.y+hash(float2(scene,1)))*37)),42);c+=transitionAfter*transitionBars*lerp(cyan,violet,.5)*.040;
+ float glitchActive=(s>5.5&&s<6.5)?transient*.62:flux*.025;float logoRow=floor((anchor.y+.5)*28);float logoGate=step(.74,hash(float2(logoRow,floor(t*17))));
+ float logoShift=(hash(float2(logoRow,floor(t*19)))-.5)*glitchActive*.08*logoGate;float logoSize=(baseLogoSize+impact*.018)*logoScale;float2 logoPoint=rotate2(anchor,-logoAngle);
+ float2 luv=float2((logoPoint.x+logoShift)/logoSize+.5,.5+logoPoint.y/logoSize);float inside=step(0,luv.x)*step(luv.x,1)*step(0,luv.y)*step(luv.y,1);
  float3 rawLogo=logoTex.Sample(linearSampler,saturate(luv)).rgb;
  if(glitchActive>.025){float split=.003+.012*glitchActive;rawLogo.r=logoTex.Sample(linearSampler,saturate(luv+float2(split,0))).r;rawLogo.b=logoTex.Sample(linearSampler,saturate(luv-float2(split,0))).b;}
  float3 logo=saturate((rawLogo-float3(.014,.032,.060))*1.30);float logoL=max(logo.r,max(logo.g,logo.b));float logoMask=inside*saturate((logoL-.018)*3.6);
- logo*=.92+impact*.20+detail*.05;c=c*(1-logoMask*.72)+logo*logoMask*1.18;c+=logoMask*beatFlow*.06;
- c+=beatFlow*float3(.008,.022,.032)*(1-smoothstep(.10,.95,r));return float4(max(c,0),1);
+ logoMask*=1-logoOcclusion*.72;logo*=.92+impact*.14+detail*.04;c=c*(1-logoMask*.66)+logo*logoMask*1.14;c+=logoMask*beatFlow*.035;
+ c+=beatFlow*float3(.006,.016,.024)*(1-smoothstep(.10,.95,r));return float4(max(c,0),1);
 }
 float3 brightPass(float3 color){float luminance=dot(color,float3(.2126,.7152,.0722));return color*saturate((luminance-.42)/max(luminance,.001));}
 float4 psBloom(O i):SV_TARGET{float2 texel=1/resolution;float3 bloom=brightPass(postScene.Sample(linearSampler,i.uv).rgb)*.22;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+float2(texel.x*2,0)).rgb)*.14;bloom+=brightPass(postScene.Sample(linearSampler,i.uv-float2(texel.x*2,0)).rgb)*.14;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+float2(0,texel.y*2)).rgb)*.14;bloom+=brightPass(postScene.Sample(linearSampler,i.uv-float2(0,texel.y*2)).rgb)*.14;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+texel*float2(4,4)).rgb)*.055;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+texel*float2(-4,4)).rgb)*.055;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+texel*float2(4,-4)).rgb)*.055;bloom+=brightPass(postScene.Sample(linearSampler,i.uv-texel*4).rgb)*.055;return float4(bloom,1);}
@@ -295,7 +320,7 @@ private:
         return DefWindowProcW(h,m,w,l);
     }
     static constexpr int SceneCount=13;
-    static const wchar_t* sceneName(int index){static const wchar_t*names[]={L"Rare Monolith",L"Crystal Bloom",L"Celestial Horizon",L"Cyber Shrine",L"Vector Rush",L"Liquid Core",L"Signal Break",L"Hologram Garden",L"Rare Ascension",L"Neon Runway",L"Synthetic Meadow",L"Protocol Cube",L"Bass Reactor"};return names[std::clamp(index,0,SceneCount-1)];}
+    static const wchar_t* sceneName(int index){static const wchar_t*names[]={L"Rare Monolith",L"Crystal Bloom",L"Celestial Horizon",L"Cyber Shrine",L"Vector Rush",L"Liquid Core",L"Signal Break",L"Hologram Garden",L"Rare Ascension",L"Neon Runway",L"Synthetic Meadow",L"Modular Fold",L"Bass Reactor"};return names[std::clamp(index,0,SceneCount-1)];}
     float elapsed()const{return started_.time_since_epoch().count()?std::chrono::duration<float>(Clock::now()-started_).count():0;}
     void selectScene(int next){next=std::clamp(next,0,SceneCount-1);if(next==scene_)return;previousScene_=scene_;scene_=next;transitionStarted_=elapsed();}
     int chooseAutoScene(const AudioFrame&af){
