@@ -9,5 +9,7 @@ cmake --build "$PSScriptRoot\build" --config Release --parallel
 
 $exe = Join-Path $PSScriptRoot "build\Release\RareStage.exe"
 if (-not (Test-Path $exe)) { throw "Build completed without producing RareStage.exe." }
+$assetDirectory = Join-Path $PSScriptRoot "build\Release\assets"
+New-Item -ItemType Directory -Force $assetDirectory | Out-Null
+Copy-Item (Join-Path $PSScriptRoot "assets\rare-logo.png") (Join-Path $assetDirectory "rare-logo.png") -Force
 Write-Host "RareStage is ready: $exe" -ForegroundColor Cyan
-
