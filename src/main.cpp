@@ -7,6 +7,7 @@
 #include <mmdeviceapi.h>
 #include <functiondiscoverykeys_devpkey.h>
 #include <wrl/client.h>
+#include <wincodec.h>
 
 #include <algorithm>
 #include <array>
@@ -116,19 +117,42 @@ private:
 
 static const char* Shader = R"(
 cbuffer Frame : register(b0){float2 resolution;float time;float scene;float bass;float mid;float high;float level;float peak;float stereo;float pad0;float pad1;}
+Texture2D logoTex:register(t0);SamplerState logoSampler:register(s0);
 struct O{float4 p:SV_POSITION;float2 uv:TEXCOORD0;};
 O vs(uint id:SV_VertexID){O o;o.uv=float2((id<<1)&2,id&2);o.p=float4(o.uv*float2(2,-2)+float2(-1,1),0,1);return o;}
 float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
 float3 pal(float x){return .48+.48*cos(6.28318*(x+float3(.02,.22,.58)));}
 float ring(float2 p,float r,float w){return w/max(abs(length(p)-r),.001);}
 float4 ps(O i):SV_TARGET{
- float2 p=(i.uv-.5)*float2(resolution.x/resolution.y,1);float t=time;float3 c=0;float s=scene;
- if(s<.5){float a=atan2(p.y,p.x);float r=length(p);float core=ring(p,.22+bass*.06,.0025+peak*.009);float arcs=pow(saturate(.025/abs(sin(a*5+t*(.5+mid))-r*7)),1.2);c=pal(a/6.28+t*.03)*(core*(1.2+bass*2)+arcs*.12);c+=pal(t*.05)*.012/(r*r+.01);}
- else if(s<1.5){float3 ro=float3(0,1.2,-2.5),rd=normalize(float3(p.x,p.y-.18,1));float2 q=abs(frac((ro.xz+rd.xz*max(0,-ro.y/rd.y))*(2.5+bass))-0.5);float grid=.012/min(q.x,q.y);float horizon=.018/abs(p.y-.12+sin(p.x*3+t)*.008*mid);c=float3(.02,.3,1)*grid+float3(.7,.05,1)*horizon;c*=saturate(.7-p.y);}
- else if(s<2.5){float r=length(p),a=atan2(p.y,p.x);float rays=pow(saturate(sin(a*42+t*2)*.5+.5),12)*(high+.15)/max(r,.08);float gate=ring(p,.28+bass*.08,.004+peak*.012);float stars=step(.994,hash(floor((p/max(r,.05)-t*.18)*170)))*(high+level);c=pal(a/6.28+t*.08)*(rays*.16+gate*1.8)+stars;}
- else if(s<3.5){float2 cell=floor(p*9),f=frac(p*9)-.5;float h=hash(cell),d=length(f-float2(sin(h*19+t),cos(h*23+t))*.2);float nodes=.018/(d+.01)*(mid+.2);float links=.006/max(abs(f.y-sin(f.x*4+h*8+t)*.15),.012)*(bass+.1);c=pal(h+t*.03)*(nodes+links*.22);c*=.7+.3*sin(length(p)*8-t);}
- else {float r=length(p),a=atan2(p.y,p.x);float burst=pow(abs(sin(a*18+t*.5)),24)*(bass+peak*2)/max(r,.08);float speed=.01/max(abs(frac(r*8-t*(.5+level))-0.5),.02);float sun=.018/(r+.012);c=float3(1,.08,.35)*burst+float3(.1,.4,1)*speed*high+pal(t*.08)*sun*(.15+bass);}
- c=1-exp(-c);c+=hash(i.uv*resolution+time)*.012;return float4(pow(saturate(c),.82),1);
+ float2 p=(i.uv-.5)*float2(resolution.x/resolution.y,1);float t=time;float3 c=float3(.002,.008,.018);float s=scene;float r=length(p),a=atan2(p.y,p.x);
+ float impact=saturate(bass*.72+peak*.55),detail=saturate(high*.8+peak*.25),motion=saturate(mid*.75+level*.25);
+ if(s<.5){
+   float core=ring(p,.31+impact*.045,.0025+peak*.008);float orbit=ring(p,.46+sin(a*3+t*(.35+motion))*.035,.0015+mid*.003);
+   float arcs=pow(saturate(.028/max(abs(sin(a*6+t*(.4+motion))-r*8),.002)),1.15);
+   float sparks=step(.985,hash(floor(float2(a*46,r*80-t*18))))*detail/max(r,.12);
+   c+=float3(.02,.82,1.2)*core*(1+impact*2.2)+float3(.65,1.1,.05)*orbit*(.3+motion)+pal(a/6.28)*arcs*.10+sparks*float3(.3,.9,1.2);
+ }else if(s<1.5){
+   float horizon=p.y-.16+sin(p.x*3+t*.35)*.01*motion;float depth=max(.05,-horizon);float2 gp=float2(p.x/depth,1/depth+t*(.45+motion));
+   float2 q=abs(frac(gp*(1.6+impact*.2))-.5);float grid=.008/max(min(q.x,q.y)*depth,.002);float skyline=step(.92,hash(floor(float2(p.x*22,0))))*.012/max(abs(horizon-.05-hash(floor(float2(p.x*22,1)))*.22),.006);
+   float scan=pow(saturate(sin(p.x*30+t*5)*.5+.5),20)*detail*.35;float bassWave=.01/max(abs(horizon+impact*.035),.004);
+   c+=grid*float3(.01,.45,.8)+skyline*float3(.55,1,.05)+bassWave*float3(.05,.85,1)+scan*float3(.5,.1,1);c*=saturate(.85-p.y);
+ }else if(s<2.5){
+   float tunnel=pow(abs(sin(a*36+t*(1+motion))),18)*detail/max(r,.09);float gate=ring(p,.38+impact*.06,.003+peak*.012);float inner=ring(p,.27+sin(t*.8)*.012,.002+mid*.004);
+   float stars=step(.987,hash(floor(float2(a*90,r*110-t*(18+high*30)))))*(detail+.12)/max(r,.15);
+   c+=pal(a/6.28+t*.035)*(tunnel*.16+gate*1.5)+inner*float3(.65,1,.05)+stars*float3(.3,.8,1.2);
+ }else if(s<3.5){
+   float2 cell=floor(p*11),f=frac(p*11)-.5;float h=hash(cell),nodeD=length(f-float2(sin(h*19+t*(.4+motion)),cos(h*23+t*.45))*.22);
+   float nodes=.013/max(nodeD,.012)*(.25+motion);float links=.004/max(abs(f.y-sin(f.x*4+h*8+t*.5)*.13),.01)*(.15+mid);float pulse=ring(p,frac(t*.18)*.85,.003+impact*.006);
+   float bits=step(.975,hash(cell+floor(t*8)))*detail*.7;c+=pal(h*.5+t*.02)*(nodes+links*.3)+pulse*float3(.1,1,.65)+bits*float3(.7,1,.1);
+ }else{
+   float burst=pow(abs(sin(a*20+t*.35)),28)*(impact+peak*1.6)/max(r,.1);float speed=.008/max(abs(frac(r*9-t*(.45+level))-0.5),.018);float petals=ring(p,.42+sin(a*7-t)*.035*motion,.002+mid*.004);
+   float cuts=step(.96,hash(floor(float2(a*35,t*8))))*detail*.15/max(r,.12);c+=float3(1,.06,.3)*burst+float3(.02,.65,1.2)*speed*detail+float3(.65,1,.05)*petals+cuts;
+ }
+ float logoSize=.76+impact*.035;float2 luv=float2(p.x/logoSize+.5,.5-p.y/logoSize);float inside=step(0,luv.x)*step(luv.x,1)*step(0,luv.y)*step(luv.y,1);
+ float3 rawLogo=logoTex.Sample(logoSampler,saturate(luv)).rgb;float3 logo=saturate((rawLogo-float3(.015,.035,.065))*1.28);float logoL=max(logo.r,max(logo.g,logo.b));float logoMask=inside*saturate((logoL-.018)*3.5);
+ float halo=ring(p,.39+impact*.035,.007+impact*.012);c+=halo*float3(.02,.75,1.0)*(.25+impact);
+ logo*=.72+detail*.18;c=1-(1-saturate(c))*(1-logo*logoMask);c+=logoMask*impact*.05;
+ c=1-exp(-c);c+=hash(i.uv*resolution+time)*.008;return float4(pow(saturate(c),.86),1);
 })";
 
 struct Constants { float resolution[2],time,scene,bass,mid,high,level,peak,stereo,pad0,pad1; };
@@ -151,6 +175,21 @@ public:
 private:
     static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM w,LPARAM l){App*a=reinterpret_cast<App*>(GetWindowLongPtrW(h,GWLP_USERDATA));if(m==WM_NCCREATE){a=reinterpret_cast<App*>(reinterpret_cast<CREATESTRUCTW*>(l)->lpCreateParams);SetWindowLongPtrW(h,GWLP_USERDATA,(LONG_PTR)a);}if(a)return a->message(h,m,w,l);return DefWindowProcW(h,m,w,l);}
     LRESULT message(HWND h,UINT m,WPARAM w,LPARAM l){if(m==WM_DESTROY){PostQuitMessage(0);return 0;}if(m==WM_SIZE&&swap_&&w!=SIZE_MINIMIZED){resize(LOWORD(l),HIWORD(l));return 0;}if(m==WM_SYSKEYDOWN&&w==VK_RETURN){fullscreen();return 0;}if(m==WM_KEYDOWN){if(w>=L'1'&&w<=L'5'){scene_=int(w-L'1');automatic_=false;}else if(w==L'0')automatic_=true;else if(w==L'D')audio_.cycle();else if(w==VK_F11)fullscreen();else if(w==VK_SPACE)frozen_=!frozen_;else if(w==VK_ESCAPE){if(fullscreen_)fullscreen();else DestroyWindow(h);}return 0;}return DefWindowProcW(h,m,w,l);}
+    bool loadLogo(){
+        wchar_t module[MAX_PATH]{};GetModuleFileNameW(nullptr,module,MAX_PATH);auto path=std::filesystem::path(module).parent_path()/L"assets"/L"rare-logo.png";
+        ComPtr<IWICImagingFactory>factory;ComPtr<IWICBitmapDecoder>decoder;ComPtr<IWICBitmapFrameDecode>frame;ComPtr<IWICFormatConverter>converter;
+        if(FAILED(CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&factory)))||
+           FAILED(factory->CreateDecoderFromFilename(path.c_str(),nullptr,GENERIC_READ,WICDecodeMetadataCacheOnLoad,&decoder))||
+           FAILED(decoder->GetFrame(0,&frame))||FAILED(factory->CreateFormatConverter(&converter))||
+           FAILED(converter->Initialize(frame.Get(),GUID_WICPixelFormat32bppRGBA,WICBitmapDitherTypeNone,nullptr,0,WICBitmapPaletteTypeCustom))){StartupLog("Rare logo decode failed");return false;}
+        UINT w=0,h=0;converter->GetSize(&w,&h);if(!w||!h)return false;std::vector<BYTE>pixels(size_t(w)*h*4);
+        if(FAILED(converter->CopyPixels(nullptr,w*4,(UINT)pixels.size(),pixels.data())))return false;
+        D3D11_TEXTURE2D_DESC td{};td.Width=w;td.Height=h;td.MipLevels=1;td.ArraySize=1;td.Format=DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;td.SampleDesc.Count=1;td.Usage=D3D11_USAGE_IMMUTABLE;td.BindFlags=D3D11_BIND_SHADER_RESOURCE;
+        D3D11_SUBRESOURCE_DATA data{pixels.data(),w*4,0};ComPtr<ID3D11Texture2D>texture;
+        if(FAILED(device_->CreateTexture2D(&td,&data,&texture))||FAILED(device_->CreateShaderResourceView(texture.Get(),nullptr,&logoSrv_)))return false;
+        D3D11_SAMPLER_DESC sd{};sd.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR;sd.AddressU=sd.AddressV=sd.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP;sd.MaxLOD=D3D11_FLOAT32_MAX;
+        if(FAILED(device_->CreateSamplerState(&sd,&logoSampler_)))return false;StartupLog("Rare logo loaded");return true;
+    }
     bool createGpu(){DXGI_SWAP_CHAIN_DESC sd{};sd.BufferCount=2;sd.BufferDesc.Format=DXGI_FORMAT_R8G8B8A8_UNORM;sd.BufferUsage=DXGI_USAGE_RENDER_TARGET_OUTPUT;sd.OutputWindow=hwnd_;sd.SampleDesc.Count=1;sd.Windowed=TRUE;sd.SwapEffect=DXGI_SWAP_EFFECT_FLIP_DISCARD;
         D3D_FEATURE_LEVEL fl;UINT flags=0;
 #ifdef _DEBUG
@@ -164,15 +203,15 @@ private:
         err.Reset();if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"ps","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&psb,&err))){if(err)MessageBoxA(hwnd_,(const char*)err->GetBufferPointer(),"RareStage pixel shader error",MB_OK|MB_ICONERROR);return false;}
         if(FAILED(device_->CreateVertexShader(vsb->GetBufferPointer(),vsb->GetBufferSize(),nullptr,&vs_))){StartupLog("Vertex shader creation failed");return false;}
         if(FAILED(device_->CreatePixelShader(psb->GetBufferPointer(),psb->GetBufferSize(),nullptr,&ps_))){StartupLog("Pixel shader creation failed");return false;}
-        D3D11_BUFFER_DESC bd{};bd.ByteWidth=sizeof(Constants);bd.Usage=D3D11_USAGE_DYNAMIC;bd.BindFlags=D3D11_BIND_CONSTANT_BUFFER;bd.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;if(FAILED(device_->CreateBuffer(&bd,nullptr,&constants_))){StartupLog("Frame constant buffer creation failed");return false;}RECT r;GetClientRect(hwnd_,&r);resize(r.right,r.bottom);return rtv_.Get()!=nullptr;}
+        D3D11_BUFFER_DESC bd{};bd.ByteWidth=sizeof(Constants);bd.Usage=D3D11_USAGE_DYNAMIC;bd.BindFlags=D3D11_BIND_CONSTANT_BUFFER;bd.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;if(FAILED(device_->CreateBuffer(&bd,nullptr,&constants_))){StartupLog("Frame constant buffer creation failed");return false;}if(!loadLogo())return false;RECT r;GetClientRect(hwnd_,&r);resize(r.right,r.bottom);return rtv_.Get()!=nullptr;}
     void resize(UINT w,UINT h){if(!w||!h)return;rtv_.Reset();context_->OMSetRenderTargets(0,nullptr,nullptr);swap_->ResizeBuffers(0,w,h,DXGI_FORMAT_UNKNOWN,0);ComPtr<ID3D11Texture2D>b;swap_->GetBuffer(0,IID_PPV_ARGS(&b));device_->CreateRenderTargetView(b.Get(),nullptr,&rtv_);width_=w;height_=h;}
     void render(){if(!rtv_){Sleep(10);return;}float seconds=std::chrono::duration<float>(Clock::now()-started_).count();auto af=audio_.frame();if(automatic_&&!frozen_)scene_=int(seconds/18.f)%5;
         Constants c{{float(width_),float(height_)},seconds,float(scene_),af.bass,af.mid,af.high,af.level,af.peak,af.stereo,0,0};D3D11_MAPPED_SUBRESOURCE map{};context_->Map(constants_.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&map);memcpy(map.pData,&c,sizeof(c));context_->Unmap(constants_.Get(),0);
-        D3D11_VIEWPORT vp{0,0,float(width_),float(height_),0,1};context_->RSSetViewports(1,&vp);context_->OMSetRenderTargets(1,rtv_.GetAddressOf(),nullptr);context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);context_->VSSetShader(vs_.Get(),nullptr,0);context_->PSSetShader(ps_.Get(),nullptr,0);context_->PSSetConstantBuffers(0,1,constants_.GetAddressOf());context_->Draw(3,0);swap_->Present(1,0);
+        D3D11_VIEWPORT vp{0,0,float(width_),float(height_),0,1};context_->RSSetViewports(1,&vp);context_->OMSetRenderTargets(1,rtv_.GetAddressOf(),nullptr);context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);context_->VSSetShader(vs_.Get(),nullptr,0);context_->PSSetShader(ps_.Get(),nullptr,0);context_->PSSetConstantBuffers(0,1,constants_.GetAddressOf());context_->PSSetShaderResources(0,1,logoSrv_.GetAddressOf());context_->PSSetSamplers(0,1,logoSampler_.GetAddressOf());context_->Draw(3,0);swap_->Present(1,0);
         ++frames_;if(seconds-lastTitle_>1){float fps=frames_/(seconds-lastTitle_);frames_=0;lastTitle_=seconds;static const wchar_t* names[]={L"Void Core",L"Neon Grid",L"Star Gate",L"Neural Space",L"Anime Burst"};std::wstring title=L"RareStage  |  "+std::wstring(names[scene_])+(automatic_?L" [AUTO]":L"")+L"  |  "+audio_.name()+L"  |  "+std::to_wstring((int)fps)+L" FPS";SetWindowTextW(hwnd_,title.c_str());}}
     void fullscreen(){fullscreen_=!fullscreen_;if(fullscreen_){GetWindowRect(hwnd_,&windowRect_);SetWindowLongW(hwnd_,GWL_STYLE,WS_POPUP);MONITORINFO mi{sizeof(mi)};GetMonitorInfoW(MonitorFromWindow(hwnd_,MONITOR_DEFAULTTONEAREST),&mi);SetWindowPos(hwnd_,HWND_TOP,mi.rcMonitor.left,mi.rcMonitor.top,mi.rcMonitor.right-mi.rcMonitor.left,mi.rcMonitor.bottom-mi.rcMonitor.top,SWP_FRAMECHANGED);}else{SetWindowLongW(hwnd_,GWL_STYLE,WS_OVERLAPPEDWINDOW);SetWindowPos(hwnd_,nullptr,windowRect_.left,windowRect_.top,windowRect_.right-windowRect_.left,windowRect_.bottom-windowRect_.top,SWP_FRAMECHANGED|SWP_NOZORDER);}}
     HWND hwnd_{};UINT width_=1280,height_=720;bool fullscreen_=false,automatic_=true,frozen_=false;RECT windowRect_{};int scene_=0;AudioEngine audio_;
-    Clock::time_point started_;float lastTitle_{};int frames_{};ComPtr<ID3D11Device>device_;ComPtr<ID3D11DeviceContext>context_;ComPtr<IDXGISwapChain>swap_;ComPtr<ID3D11RenderTargetView>rtv_;ComPtr<ID3D11VertexShader>vs_;ComPtr<ID3D11PixelShader>ps_;ComPtr<ID3D11Buffer>constants_;
+    Clock::time_point started_;float lastTitle_{};int frames_{};ComPtr<ID3D11Device>device_;ComPtr<ID3D11DeviceContext>context_;ComPtr<IDXGISwapChain>swap_;ComPtr<ID3D11RenderTargetView>rtv_;ComPtr<ID3D11VertexShader>vs_;ComPtr<ID3D11PixelShader>ps_;ComPtr<ID3D11Buffer>constants_;ComPtr<ID3D11ShaderResourceView>logoSrv_;ComPtr<ID3D11SamplerState>logoSampler_;
 };
 
 int WINAPI wWinMain(HINSTANCE h,HINSTANCE,LPWSTR,int){
@@ -185,8 +224,8 @@ int WINAPI wWinMain(HINSTANCE h,HINSTANCE,LPWSTR,int){
         if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"ps","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error))){if(error){std::ofstream log("RareStage-self-test.log",std::ios::binary);log.write((const char*)error->GetBufferPointer(),error->GetBufferSize());}return 3;}
         return 0;
     }
-    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);App app;
-    if(!app.init(h)){StartupLog("Startup failed");return 1;}
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);HRESULT com=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);App app;
+    if(!app.init(h)){StartupLog("Startup failed");if(SUCCEEDED(com))CoUninitialize();return 1;}
     if(std::wcsstr(GetCommandLineW(),L"--startup-test"))app.requestClose();
-    int result=app.run();StartupLog("RareStage exited normally");return result;
+    int result=app.run();StartupLog("RareStage exited normally");if(SUCCEEDED(com))CoUninitialize();return result;
 }

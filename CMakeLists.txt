@@ -9,6 +9,6 @@ target_compile_definitions(RareStage PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEA
 if(MSVC)
   target_compile_options(RareStage PRIVATE /W4 /permissive- /EHsc)
 endif()
-target_link_libraries(RareStage PRIVATE d3d11 dxgi d3dcompiler ole32 avrt uuid)
+target_link_libraries(RareStage PRIVATE d3d11 dxgi d3dcompiler ole32 avrt uuid windowscodecs)
 
 install(TARGETS RareStage RUNTIME DESTINATION .)
