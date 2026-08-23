@@ -4,7 +4,7 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.8.1**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.8.2**
 
 RareStage is a native Win32 and DirectX 11 application. It captures the selected Windows playback device through WASAPI loopback, analyzes the music in real time, and directs thirteen authored festival scenes without a browser, Electron, prerecorded video, or per-frame asset uploads.
 
@@ -18,7 +18,7 @@ RareStage is a native Win32 and DirectX 11 application. It captures the selected
 | Visuals | Thirteen authored festival scenes: twelve 2D-led motion systems and one restrained 2D/3D architectural scene |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Direct2D/DirectWrite overlay with mouse, wheel and keyboard operation |
-| Automation | Audio-directed scene selection or deterministic show timeline |
+| Automation | Phrase-aware Smart Director with energy/feature scoring, recent-scene memory and beat-aligned cuts; or deterministic show timeline |
 | Presets | Four named show slots with load and overwrite controls |
 | Output | Borderless stage display, multi-monitor selection and clean Spout2 sender |
 | Performance | 62%, 78%, 100% and 125% HDR render-scale profiles; VSync or unlocked output |
@@ -50,22 +50,22 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 | Key | Scene | Direction |
 |---|---|---|
 | `1` | Rare Monolith | Layered panels with one restrained dimensional architectural accent |
-| `2` | Crystal Bloom | Seamless circle-to-square cells, color wash and flat petal loops |
+| `2` | Crystal Bloom | Logo-free circle-to-square cells, color wash and flat petal loops |
 | `3` | Celestial Horizon | Wide animated landscape, drifting logo, moving ridges and clouds |
-| `4` | Cyber Shrine | Sliding 2D gates, tiled panels and clean scanning light |
-| `5` | Vector Rush | Kinetic ribbons, chevrons and diagonal graphic motion |
-| `6` | Liquid Core | Smooth abstract contour loops, flowing blobs and ribbon currents |
+| `4` | Cyber Shrine | Sliding 2D gates, tiled panels, clean scanning light and three Rare marks |
+| `5` | Vector Rush | Three moving Rare marks carried by kinetic ribbons, chevrons and diagonal motion |
+| `6` | Liquid Core | Logo-free abstract contour loops, flowing blobs and ribbon currents |
 | `7` | Signal Break | The dedicated glitch scene: scan fields, fractured blocks and displaced logo slices |
 | `8` | Hologram Garden | Floating logo path, botanical petals, ribbons and drifting spores |
-| `9` | Rare Ascension | Vertical graphic rays, rising bands and restrained peak energy |
+| `9` | Rare Ascension | Mirrored Rare marks, vertical graphic rays, rising bands and restrained peak energy |
 | `10` via `[` / `]` | Neon Runway | Cel-shaded cyber-city parallax, moving tracks and foreground occlusion |
-| `11` via `[` / `]` | Synthetic Meadow | Calm animated landscape, moving field lines, clouds and stars |
-| `12` via `[` / `]` | Modular Fold | Original mathematical tiles that smoothly merge between circles, squares and rotated grids |
-| `13` via `[` / `]` | Bass Reactor | 2D speaker field, EQ bands, controlled lasers and drop punctuation |
+| `11` via `[` / `]` | Synthetic Meadow | Logo-free animated landscape, moving field lines, clouds and stars |
+| `12` via `[` / `]` | Modular Fold | Three orbiting Rare marks and mathematical tiles merging between circles, squares and rotated grids |
+| `13` via `[` / `]` | Bass Reactor | Three Rare marks, 2D speaker field, EQ bands, controlled lasers and drop punctuation |
 
-Automatic mode selects all thirteen scenes from calm, medium, or high-intensity groups using the live audio signal. Timeline mode follows a curated thirteen-scene order associated with the active show preset. Keys `1`–`9` remain direct scene shortcuts; `[` and `]` step backward or forward through the complete scene library.
+Smart Director scores all thirteen scenes against live energy, bass, mids, highs, flux and beat strength. It remembers recently used scenes, prevents immediate repeats, quantizes the requested scene duration to eight-beat phrases when BPM confidence is available, and waits for a beat/flux opportunity before cutting. Timeline mode remains available for a deterministic curated order. Keys `1`–`9` remain direct scene shortcuts; `[` and `]` step backward or forward through the complete scene library.
 
-The renderer is 2D-first. Twelve scenes skip the ray-marched hero pass entirely and instead use seamless animated backgrounds, parallax, graphic layers, occlusion and scene-specific logo movement. Rare Monolith is the only scene retaining a restrained 3D architectural accent.
+The renderer is 2D-first. Twelve scenes skip the ray-marched hero pass entirely and instead use seamless animated backgrounds, parallax, graphic layers, occlusion and scene-specific logo choreography. Three scenes deliberately omit the logo; five use multiple Rare marks as moving compositional elements. Rare Monolith is the only scene retaining a restrained 3D architectural accent.
 
 Bass controls measured scale and structural impact, mids control loop speed and parallax, highs reveal detail, and beats add short accents instead of repeatedly spinning or shaking a model. Signal Break is intentionally the only heavily glitch-led scene; the rest prioritize smooth continuous motion.
 
@@ -88,7 +88,7 @@ Show Control is rendered inside the DirectX compositor, so it remains visible ov
 | Transition FX | Panel Cut, Prism Iris, Glitch Hold, Bass Shutter |
 | Render profile | Performance, Balanced, Native HD, Ultra 4K |
 | Frame output | Display/VSync or unlocked high refresh |
-| Show mode | Audio Directed or Show Timeline |
+| Show mode | Smart Director or Show Timeline |
 | Spout output | Clean sender on or off |
 
 The panel also reports the active preset, scene, automation state, playback device, BPM, and smoothed bass, mid, high, and beat meters.
@@ -112,7 +112,7 @@ The panel also reports the active preset, scene, automation state, playback devi
 | `Enter` | Increase the selected setting |
 | `F1`–`F4` | Load show preset 1–4 |
 | `Shift+F1`–`Shift+F4` | Save the current show over preset slot 1–4 |
-| `T` | Toggle Audio Directed and Show Timeline modes |
+| `T` | Toggle Smart Director and Show Timeline modes |
 | `V` | Toggle VSync and unlocked high-refresh output |
 | `S` | Toggle the clean Spout2 sender |
 | `Space` | Freeze or resume automatic scene changes |
@@ -185,7 +185,7 @@ Every push and pull request runs the Windows workflow on GitHub Actions:
 5. Package the executable, Rare logo, README, and third-party notices.
 6. Upload the portable ZIP as a workflow artifact.
 
-Successful pushes to `main` publish or refresh the `v0.8.1` GitHub release automatically.
+Successful pushes to `main` publish or refresh the `v0.8.2` GitHub release automatically.
 
 ## Roadmap
 
@@ -194,6 +194,7 @@ Successful pushes to `main` publish or refresh the `v0.8.1` GitHub release autom
 - Thirteen authored Rare scene environments
 - Four beat-aware transition systems with brief hold, cut and afterimage stages
 - Twelve 2D-first motion systems, one restrained hybrid scene, moving logo choreography and dynamic backgrounds
+- BPM-smoothed animation phase, beat-aligned Smart Director cuts and recent-scene memory
 - Extended timeline and audio-directed scene groups
 
 ### v0.9 — Live show operation
