@@ -21,6 +21,7 @@
 #include <fstream>
 #include <filesystem>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -41,7 +42,7 @@ static LONG WINAPI CrashLog(EXCEPTION_POINTERS* info) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
-struct AudioFrame { float bass{}, mid{}, high{}, level{}, peak{}, stereo{}, beat{}, flux{}; };
+struct AudioFrame { float bass{}, mid{}, high{}, level{}, peak{}, stereo{}, beat{}, flux{}, bpm{}, tempoConfidence{}; };
 
 static std::wstring DeviceName(IMMDevice* device) {
     ComPtr<IPropertyStore> properties;
@@ -57,7 +58,7 @@ public:
     ~AudioEngine() { stop(); }
     bool start(size_t requested = 0) {
         stop(); deviceIndex_ = requested;
-        ceilings_.fill(.0001f);previousBass_=previousMid_=beatEnvelope_=fluxEnvelope_=0;beatCooldown_=0;
+        ceilings_.fill(.0001f);previousBass_=previousMid_=beatEnvelope_=fluxEnvelope_=beatInterval_=tempoConfidence_=0;beatCooldown_=0;lastBeatTime_={};
         {std::scoped_lock lock(mutex_);frame_={};name_=L"Starting audio capture...";}
         running_ = true;
         worker_ = std::thread([this] { capture(); }); return true;
@@ -89,13 +90,15 @@ private:
         float audible=saturateAudio((rms-.00015f)*1200.f);std::array<float,4>normalized{};
         for(size_t n=0;n<raw.size();++n){ceilings_[n]=std::max(raw[n],std::max(ceilings_[n]*.9985f,.00001f));normalized[n]=saturateAudio(raw[n]/(ceilings_[n]*1.35f))*audible;}
         float flux=std::max(0.f,normalized[0]-previousBass_)+.45f*std::max(0.f,normalized[1]-previousMid_);previousBass_=normalized[0];previousMid_=normalized[1];
-        if(beatCooldown_>0)--beatCooldown_;float beatTarget=0;if(flux>.070f&&normalized[0]>.18f&&beatCooldown_==0){beatTarget=.78f;beatCooldown_=8;}
+        if(beatCooldown_>0)--beatCooldown_;float beatTarget=0;bool beatDetected=flux>.070f&&normalized[0]>.18f&&beatCooldown_==0;
+        if(beatDetected){beatTarget=.78f;beatCooldown_=8;auto now=Clock::now();if(lastBeatTime_.time_since_epoch().count()!=0){float interval=std::chrono::duration<float>(now-lastBeatTime_).count();while(interval<.30f)interval*=2;while(interval>1.f)interval*=.5f;if(interval>=.30f&&interval<=1.f){if(beatInterval_==0){beatInterval_=interval;tempoConfidence_=.20f;}else{float consistency=saturateAudio(1-std::abs(interval-beatInterval_)/.12f);beatInterval_+=(interval-beatInterval_)*.22f;tempoConfidence_=saturateAudio(tempoConfidence_*.82f+consistency*.18f);}}}lastBeatTime_=now;}
+        if(lastBeatTime_.time_since_epoch().count()!=0&&std::chrono::duration<float>(Clock::now()-lastBeatTime_).count()>3.f)tempoConfidence_*=.995f;
         beatEnvelope_=beatTarget>0?beatEnvelope_+(beatTarget-beatEnvelope_)*.48f:beatEnvelope_*.86f;fluxEnvelope_=std::max(flux,fluxEnvelope_*.82f);
-        AudioFrame next{normalized[0],normalized[1],normalized[2],normalized[3],saturateAudio(peak*2.6f),stereo,beatEnvelope_,saturateAudio(fluxEnvelope_*2.4f)};
+        AudioFrame next{normalized[0],normalized[1],normalized[2],normalized[3],saturateAudio(peak*2.6f),stereo,beatEnvelope_,saturateAudio(fluxEnvelope_*2.4f),beatInterval_>0?60.f/beatInterval_:0,tempoConfidence_};
         std::scoped_lock lock(mutex_); constexpr float attack=.28f, release=.09f;
         auto smooth=[](float old,float value){float k=value>old?attack:release;return old+(value-old)*k;};
         frame_.bass=smooth(frame_.bass,next.bass);frame_.mid=smooth(frame_.mid,next.mid);frame_.high=smooth(frame_.high,next.high);frame_.level=smooth(frame_.level,next.level);
-        frame_.peak=smooth(frame_.peak,next.peak);frame_.stereo=smooth(frame_.stereo,stereo);frame_.beat=smooth(frame_.beat,next.beat);frame_.flux=smooth(frame_.flux,next.flux);
+        frame_.peak=smooth(frame_.peak,next.peak);frame_.stereo=smooth(frame_.stereo,stereo);frame_.beat=smooth(frame_.beat,next.beat);frame_.flux=smooth(frame_.flux,next.flux);frame_.bpm=next.bpm;frame_.tempoConfidence=smooth(frame_.tempoConfidence,next.tempoConfidence);
     }
     static float saturateAudio(float value){return std::clamp(value,0.f,1.f);}
     void capture() {
@@ -124,11 +127,26 @@ private:
     done: if(!captureStarted&&running_){std::scoped_lock lock(mutex_);name_=L"Audio capture unavailable - press D";}if(mmcss)AvRevertMmThreadCharacteristics(mmcss); CoUninitialize();
     }
     std::atomic<bool> running_{false}; std::thread worker_; size_t deviceIndex_{};
-    mutable std::mutex mutex_;AudioFrame frame_{};std::wstring name_=L"Starting audio capture...";std::array<float,4>ceilings_{.0001f,.0001f,.0001f,.0001f};float previousBass_{},previousMid_{},beatEnvelope_{},fluxEnvelope_{};int beatCooldown_{};
+    mutable std::mutex mutex_;AudioFrame frame_{};std::wstring name_=L"Starting audio capture...";std::array<float,4>ceilings_{.0001f,.0001f,.0001f,.0001f};float previousBass_{},previousMid_{},beatEnvelope_{},fluxEnvelope_{},beatInterval_{},tempoConfidence_{};int beatCooldown_{};Clock::time_point lastBeatTime_{};
+};
+
+static std::filesystem::path SettingsPath(){
+    wchar_t local[MAX_PATH]{};DWORD length=GetEnvironmentVariableW(L"LOCALAPPDATA",local,MAX_PATH);std::filesystem::path directory;
+    if(length>0&&length<MAX_PATH)directory=std::filesystem::path(local)/L"RareStage";else{wchar_t module[MAX_PATH]{};GetModuleFileNameW(nullptr,module,MAX_PATH);directory=std::filesystem::path(module).parent_path();}
+    std::error_code error;std::filesystem::create_directories(directory,error);return directory/L"settings.ini";
+}
+
+struct ShowSettings {
+    int profile=1,palette=0,monitor=0,automatic=1;float sensitivity=1,bassGain=1,midGain=1,highGain=1,beatGain=1,logoScale=1,sceneSeconds=18,transitionSeconds=1.2f;
+    static float readFloat(const std::wstring&path,const wchar_t*key,float fallback){wchar_t text[32]{};wchar_t fallbackText[32]{};std::swprintf(fallbackText,std::size(fallbackText),L"%.2f",fallback);GetPrivateProfileStringW(L"Show",key,fallbackText,text,(DWORD)std::size(text),path.c_str());return std::wcstof(text,nullptr);}
+    void load(){auto path=SettingsPath().wstring();profile=std::clamp(GetPrivateProfileIntW(L"Show",L"Profile",1,path.c_str()),0,3);palette=std::clamp(GetPrivateProfileIntW(L"Show",L"Palette",0,path.c_str()),0,3);monitor=std::max(0,GetPrivateProfileIntW(L"Show",L"Monitor",0,path.c_str()));automatic=GetPrivateProfileIntW(L"Show",L"Automatic",1,path.c_str())?1:0;
+        sensitivity=std::clamp(readFloat(path,L"Sensitivity",1),.50f,1.50f);bassGain=std::clamp(readFloat(path,L"Bass",1),.50f,1.50f);midGain=std::clamp(readFloat(path,L"Mids",1),.50f,1.50f);highGain=std::clamp(readFloat(path,L"Highs",1),.50f,1.50f);beatGain=std::clamp(readFloat(path,L"Beat",1),.50f,1.50f);logoScale=std::clamp(readFloat(path,L"Logo",1),.75f,1.25f);sceneSeconds=std::clamp(readFloat(path,L"SceneSeconds",18),8.f,60.f);transitionSeconds=std::clamp(readFloat(path,L"TransitionSeconds",1.2f),.2f,3.f);}
+    void save()const{auto path=SettingsPath().wstring();auto writeInt=[&](const wchar_t*key,int value){wchar_t text[16]{};std::swprintf(text,std::size(text),L"%d",value);WritePrivateProfileStringW(L"Show",key,text,path.c_str());};auto writeFloat=[&](const wchar_t*key,float value){wchar_t text[32]{};std::swprintf(text,std::size(text),L"%.2f",value);WritePrivateProfileStringW(L"Show",key,text,path.c_str());};
+        writeInt(L"Profile",profile);writeInt(L"Palette",palette);writeInt(L"Monitor",monitor);writeInt(L"Automatic",automatic);writeFloat(L"Sensitivity",sensitivity);writeFloat(L"Bass",bassGain);writeFloat(L"Mids",midGain);writeFloat(L"Highs",highGain);writeFloat(L"Beat",beatGain);writeFloat(L"Logo",logoScale);writeFloat(L"SceneSeconds",sceneSeconds);writeFloat(L"TransitionSeconds",transitionSeconds);}
 };
 
 static const char* Shader = R"(
-cbuffer Frame : register(b0){float2 resolution;float time;float scene;float bass;float mid;float high;float level;float peak;float stereo;float beat;float flux;}
+cbuffer Frame : register(b0){float2 resolution;float time;float scene;float bass;float mid;float high;float level;float peak;float stereo;float beat;float flux;float previousScene;float transition;float logoScale;float palette;}
 Texture2D logoTex:register(t0);SamplerState logoSampler:register(s0);
 struct O{float4 p:SV_POSITION;float2 uv:TEXCOORD0;};
 O vs(uint id:SV_VertexID){O o;o.uv=float2((id<<1)&2,id&2);o.p=float4(o.uv*float2(2,-2)+float2(-1,1),0,1);return o;}
@@ -138,10 +156,12 @@ float lineGlow(float value,float width){return width/max(abs(value),.001);}
 float boxRing(float2 p,float2 size,float width){return width/max(abs(max(abs(p.x)-size.x,abs(p.y)-size.y)),.001);}
 float easeBand(float value){value=saturate(value);return value*value*(3-2*value);}
 float4 ps(O i):SV_TARGET{
- float aspect=resolution.x/resolution.y;float2 p=(i.uv-.5)*float2(aspect,1);float r=length(p),a=atan2(p.y,p.x);float t=time;float s=scene;
+ float aspect=resolution.x/resolution.y;float2 p=(i.uv-.5)*float2(aspect,1);float r=length(p),a=atan2(p.y,p.x);float t=time;
+ float wipeCoordinate=i.uv.x+i.uv.y*.15;float wipeEdge=transition*1.45-.15;float oldSceneMask=smoothstep(wipeEdge-.065,wipeEdge+.065,wipeCoordinate);float s=lerp(scene,previousScene,oldSceneMask);
  float bassFlow=easeBand(bass),midFlow=easeBand(mid),highFlow=easeBand(high),beatFlow=easeBand(beat),fluxFlow=easeBand(flux);
  float impact=saturate(bassFlow*.58+beatFlow*.66+peak*.10);float motion=saturate(midFlow*.76+easeBand(level)*.30);float detail=saturate(highFlow*.78+fluxFlow*.25);float transient=saturate(beatFlow*.72+fluxFlow*.48);
  float3 cyan=float3(.00,.72,1.00),lime=float3(.55,1.00,.04),violet=float3(.48,.09,.88);
+ if(palette>.5&&palette<1.5){cyan=float3(.12,.44,1);lime=float3(.04,1,.72);violet=float3(.62,.12,1);}else if(palette>1.5&&palette<2.5){cyan=float3(1,.20,.62);lime=float3(.22,.86,1);violet=float3(.52,.16,1);}else if(palette>2.5){cyan=float3(1,.38,.05);lime=float3(1,.90,.10);violet=float3(.72,.06,.32);}
  float vignette=1-smoothstep(.28,1.18,r);float3 c=float3(.0015,.006,.014)+vignette*float3(.004,.023,.038)*(1+level*.7);
 
  if(s<.5){
@@ -203,8 +223,9 @@ float4 ps(O i):SV_TARGET{
    c+=ring(p,.52+beatFlow*.08,.0018+beatFlow*.006)*violet*(.08+beatFlow*.40);
  }
 
+ if(transition<.999)c+=lineGlow(wipeCoordinate-wipeEdge,.0025)*lerp(cyan,violet,transient)*.12;
  float glitchActive=(s>2.5&&s<3.5)?transient:flux*.16;float logoRow=floor((p.y+.5)*28);float logoGate=step(.70,hash(float2(logoRow,floor(t*19))));
- float logoShift=(hash(float2(logoRow,floor(t*23)))-.5)*glitchActive*.12*logoGate;float logoSize=.69+impact*.045;
+ float logoShift=(hash(float2(logoRow,floor(t*23)))-.5)*glitchActive*.12*logoGate;float logoSize=(.69+impact*.045)*logoScale;
  float2 luv=float2((p.x+logoShift)/logoSize+.5,.5+p.y/logoSize);float inside=step(0,luv.x)*step(luv.x,1)*step(0,luv.y)*step(luv.y,1);
  float3 rawLogo=logoTex.Sample(logoSampler,saturate(luv)).rgb;
  if(glitchActive>.025){float split=.004+.016*glitchActive;rawLogo.r=logoTex.Sample(logoSampler,saturate(luv+float2(split,0))).r;rawLogo.b=logoTex.Sample(logoSampler,saturate(luv-float2(split,0))).b;}
@@ -214,26 +235,58 @@ float4 ps(O i):SV_TARGET{
  c=1-exp(-c);c+=(hash(i.uv*resolution+floor(t*30))-.5)*.006;return float4(pow(saturate(c),.86),1);
 })";
 
-struct Constants { float resolution[2],time,scene,bass,mid,high,level,peak,stereo,beat,flux; };
+struct Constants { float resolution[2],time,scene,bass,mid,high,level,peak,stereo,beat,flux,previousScene,transition,logoScale,palette; };
 
 class App {
 public:
     bool init(HINSTANCE instance) {
+        settings_.load();automatic_=settings_.automatic!=0;
         StartupLog("Creating RareStage window class");
         WNDCLASSW wc{};wc.hInstance=instance;wc.lpfnWndProc=WndProc;wc.lpszClassName=L"RareStageWindow";wc.hCursor=LoadCursor(nullptr,IDC_ARROW);RegisterClassW(&wc);
         hwnd_=CreateWindowExW(0,wc.lpszClassName,L"RareStage",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,720,nullptr,nullptr,instance,this);
         if(!hwnd_){StartupLog("CreateWindowExW failed");return false;}
         StartupLog("Initializing DirectX renderer");
         if(!createGpu()){MessageBoxW(hwnd_,L"RareStage could not initialize DirectX. Update your graphics driver and try again.",L"RareStage startup error",MB_OK|MB_ICONERROR);return false;}
+        createHud(instance);monitorCount_=(int)monitorRects().size();
         StartupLog("DirectX renderer ready");
         ShowWindow(hwnd_,SW_SHOW);UpdateWindow(hwnd_);StartupLog("Window shown");
-        audio_.start();StartupLog("Audio capture thread started");started_=Clock::now();return true;
+        audio_.start();StartupLog("Audio capture thread started");started_=Clock::now();transitionStarted_=-100;nextSceneAt_=settings_.sceneSeconds;updateHud(audio_.frame());return true;
     }
     void requestClose(){PostMessageW(hwnd_,WM_CLOSE,0,0);}
     int run(){MSG msg{};while(msg.message!=WM_QUIT){if(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}else render();}audio_.stop();return(int)msg.wParam;}
 private:
     static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM w,LPARAM l){App*a=reinterpret_cast<App*>(GetWindowLongPtrW(h,GWLP_USERDATA));if(m==WM_NCCREATE){a=reinterpret_cast<App*>(reinterpret_cast<CREATESTRUCTW*>(l)->lpCreateParams);SetWindowLongPtrW(h,GWLP_USERDATA,(LONG_PTR)a);}if(a)return a->message(h,m,w,l);return DefWindowProcW(h,m,w,l);}
-    LRESULT message(HWND h,UINT m,WPARAM w,LPARAM l){if(m==WM_DESTROY){PostQuitMessage(0);return 0;}if(m==WM_SIZE&&swap_&&w!=SIZE_MINIMIZED){resize(LOWORD(l),HIWORD(l));return 0;}if(m==WM_SYSKEYDOWN&&w==VK_RETURN){fullscreen();return 0;}if(m==WM_KEYDOWN){if(w>=L'1'&&w<=L'9'){scene_=int(w-L'1');automatic_=false;}else if(w==L'0')automatic_=true;else if(w==L'D')audio_.cycle();else if(w==VK_F11)fullscreen();else if(w==VK_SPACE)frozen_=!frozen_;else if(w==VK_ESCAPE){if(fullscreen_)fullscreen();else DestroyWindow(h);}return 0;}return DefWindowProcW(h,m,w,l);}
+    LRESULT message(HWND h,UINT m,WPARAM w,LPARAM l){
+        if(m==WM_CTLCOLORSTATIC&&(HWND)l==hud_){SetTextColor((HDC)w,RGB(151,244,255));SetBkColor((HDC)w,RGB(3,12,22));return(LRESULT)hudBrush_;}
+        if(m==WM_DESTROY){settings_.automatic=automatic_?1:0;settings_.save();if(hudFont_)DeleteObject(hudFont_);if(hudBrush_)DeleteObject(hudBrush_);PostQuitMessage(0);return 0;}
+        if(m==WM_SIZE&&w!=SIZE_MINIMIZED){if(swap_)resize(LOWORD(l),HIWORD(l));layoutHud();return 0;}
+        if(m==WM_SYSKEYDOWN&&w==VK_RETURN){fullscreen();return 0;}
+        if(m==WM_KEYDOWN){
+            if(w>=L'1'&&w<=L'9'){selectScene(int(w-L'1'));automatic_=false;settings_.automatic=0;settings_.save();}
+            else if(w==L'0'||w==L'A'){automatic_=!automatic_;settings_.automatic=automatic_?1:0;nextSceneAt_=elapsed()+settings_.sceneSeconds;settings_.save();}
+            else if(w==L'D')audio_.cycle();else if(w==L'M')cycleMonitor();else if(w==L'P'){settings_.palette=(settings_.palette+1)%4;settings_.save();}
+            else if(w==VK_TAB){hudVisible_=!hudVisible_;layoutHud();}
+            else if(w==VK_UP)hudSelection_=(hudSelection_+9)%10;else if(w==VK_DOWN)hudSelection_=(hudSelection_+1)%10;
+            else if(w==VK_LEFT)adjustSetting(-1);else if(w==VK_RIGHT||w==VK_RETURN)adjustSetting(1);
+            else if(w==VK_F11)fullscreen();else if(w==VK_SPACE)frozen_=!frozen_;else if(w==VK_ESCAPE){if(fullscreen_)fullscreen();else DestroyWindow(h);}
+            updateHud(audio_.frame());return 0;
+        }
+        return DefWindowProcW(h,m,w,l);
+    }
+    static const wchar_t* sceneName(int index){static const wchar_t*names[]={L"Pulse Engine",L"Liquid Signal",L"Orbital Drive",L"Signal Glitch",L"Impact Bloom",L"Data Current",L"Prism Tunnel",L"Celestial Drift",L"Velocity Burst"};return names[std::clamp(index,0,8)];}
+    float elapsed()const{return started_.time_since_epoch().count()?std::chrono::duration<float>(Clock::now()-started_).count():0;}
+    void selectScene(int next){next=std::clamp(next,0,8);if(next==scene_)return;previousScene_=scene_;scene_=next;transitionStarted_=elapsed();}
+    int chooseAutoScene(const AudioFrame&af){static const std::array<int,4>high{3,4,8,0},medium{0,1,5,7},calm{2,6,7,1};const auto&set=af.level>.52f||af.beat>.42f?high:(af.mid>.42f?medium:calm);int next=set[autoSequence_++%set.size()];if(next==scene_)next=set[autoSequence_++%set.size()];return next;}
+    AudioFrame tuned(AudioFrame value)const{static const float profiles[]{.70f,.88f,1.04f,1.20f};float base=profiles[settings_.profile]*settings_.sensitivity;value.bass=std::clamp(value.bass*base*settings_.bassGain,0.f,1.f);value.mid=std::clamp(value.mid*base*settings_.midGain,0.f,1.f);value.high=std::clamp(value.high*base*settings_.highGain,0.f,1.f);value.level=std::clamp(value.level*base,0.f,1.f);value.peak=std::clamp(value.peak*base,0.f,1.f);value.beat=std::clamp(value.beat*base*settings_.beatGain,0.f,1.f);value.flux=std::clamp(value.flux*base,0.f,1.f);return value;}
+    void adjustSetting(int direction){float d=direction*.05f;switch(hudSelection_){case 0:settings_.profile=(settings_.profile+direction+4)%4;break;case 1:settings_.palette=(settings_.palette+direction+4)%4;break;case 2:settings_.sensitivity=std::clamp(settings_.sensitivity+d,.5f,1.5f);break;case 3:settings_.bassGain=std::clamp(settings_.bassGain+d,.5f,1.5f);break;case 4:settings_.midGain=std::clamp(settings_.midGain+d,.5f,1.5f);break;case 5:settings_.highGain=std::clamp(settings_.highGain+d,.5f,1.5f);break;case 6:settings_.beatGain=std::clamp(settings_.beatGain+d,.5f,1.5f);break;case 7:settings_.logoScale=std::clamp(settings_.logoScale+d,.75f,1.25f);break;case 8:settings_.sceneSeconds=std::clamp(settings_.sceneSeconds+direction*2.f,8.f,60.f);nextSceneAt_=elapsed()+settings_.sceneSeconds;break;case 9:settings_.transitionSeconds=std::clamp(settings_.transitionSeconds+direction*.1f,.2f,3.f);break;}settings_.save();}
+    void createHud(HINSTANCE instance){hudBrush_=CreateSolidBrush(RGB(3,12,22));hudFont_=CreateFontW(-17,0,0,0,FW_SEMIBOLD,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH,L"Segoe UI");hud_=CreateWindowExW(WS_EX_NOPARENTNOTIFY,L"STATIC",L"",WS_CHILD|WS_VISIBLE|SS_LEFT|SS_NOPREFIX,0,0,390,620,hwnd_,nullptr,instance,nullptr);if(hud_&&hudFont_)SendMessageW(hud_,WM_SETFONT,(WPARAM)hudFont_,TRUE);layoutHud();}
+    void layoutHud(){if(!hud_)return;int panelWidth=390,panelHeight=620;int x=std::max(18,int(width_)-panelWidth-18);SetWindowPos(hud_,HWND_TOP,x,18,panelWidth,panelHeight,SWP_NOACTIVATE);ShowWindow(hud_,hudVisible_?SW_SHOW:SW_HIDE);}
+    void updateHud(const AudioFrame&raw){if(!hud_)return;AudioFrame af=tuned(raw);static const wchar_t*profiles[]={L"CALM",L"BALANCED",L"STAGE",L"AGGRESSIVE"};static const wchar_t*palettes[]={L"RARE CYAN",L"NEBULA",L"SAKURA",L"SOLAR"};auto percent=[](float value){return std::to_wstring((int)std::round(value*100))+L"%";};std::wstring device=audio_.name();if(device.size()>42)device=device.substr(0,39)+L"...";std::wstringstream out;out<<L"\r\n   RARESTAGE  /  SHOW CONTROL\r\n   REAL-TIME DIRECTX OUTPUT\r\n\r\n";
+        auto row=[&](int index,const wchar_t*label,const std::wstring&value){out<<(hudSelection_==index?L"   > ":L"     ")<<label<<L"  "<<value<<L"\r\n";};row(0,L"Reaction",profiles[settings_.profile]);row(1,L"Palette",palettes[settings_.palette]);row(2,L"Sensitivity",percent(settings_.sensitivity));row(3,L"Bass",percent(settings_.bassGain));row(4,L"Mids",percent(settings_.midGain));row(5,L"Highs",percent(settings_.highGain));row(6,L"Beat",percent(settings_.beatGain));row(7,L"Logo",percent(settings_.logoScale));row(8,L"Scene time",std::to_wstring((int)settings_.sceneSeconds)+L" sec");row(9,L"Transition",std::to_wstring((int)std::round(settings_.transitionSeconds*10))+L"/10 sec");
+        out<<L"\r\n   LIVE SIGNAL\r\n   B "<<percent(af.bass)<<L"   M "<<percent(af.mid)<<L"   H "<<percent(af.high)<<L"\r\n   BEAT "<<percent(af.beat)<<L"   BPM "<<(af.bpm>0?std::to_wstring((int)std::round(af.bpm)):L"--")<<L"  ["<<percent(af.tempoConfidence)<<L"]\r\n\r\n   SCENE "<<(scene_+1)<<L"  /  "<<sceneName(scene_)<<(automatic_?L"  [AUTO]":L"  [MANUAL]")<<L"\r\n   OUTPUT "<<device<<L"\r\n   MONITOR "<<(settings_.monitor+1)<<L" / "<<std::max(1,monitorCount_)<<L"\r\n\r\n   UP/DOWN  SELECT     LEFT/RIGHT  ADJUST\r\n   1-9  SCENE   A  AUTO   P  PALETTE\r\n   D  AUDIO   M  MONITOR   TAB  HIDE";SetWindowTextW(hud_,out.str().c_str());}
+    static BOOL CALLBACK EnumMonitor(HMONITOR,HDC,LPRECT rectangle,LPARAM data){reinterpret_cast<std::vector<RECT>*>(data)->push_back(*rectangle);return TRUE;}
+    static std::vector<RECT> monitorRects(){std::vector<RECT>result;EnumDisplayMonitors(nullptr,nullptr,EnumMonitor,(LPARAM)&result);return result;}
+    void cycleMonitor(){auto monitors=monitorRects();if(monitors.empty())return;settings_.monitor=(settings_.monitor+1)%(int)monitors.size();monitorCount_=(int)monitors.size();settings_.save();RECT target=monitors[settings_.monitor];if(fullscreen_)SetWindowPos(hwnd_,HWND_TOP,target.left,target.top,target.right-target.left,target.bottom-target.top,SWP_FRAMECHANGED);else{RECT current{};GetWindowRect(hwnd_,&current);int w=current.right-current.left,h=current.bottom-current.top;SetWindowPos(hwnd_,nullptr,target.left+(target.right-target.left-w)/2,target.top+(target.bottom-target.top-h)/2,w,h,SWP_NOZORDER);}}
     bool loadLogo(){
         wchar_t module[MAX_PATH]{};GetModuleFileNameW(nullptr,module,MAX_PATH);auto path=std::filesystem::path(module).parent_path()/L"assets"/L"rare-logo.png";
         ComPtr<IWICImagingFactory>factory;ComPtr<IWICBitmapDecoder>decoder;ComPtr<IWICBitmapFrameDecode>frame;ComPtr<IWICFormatConverter>converter;
@@ -263,14 +316,14 @@ private:
         if(FAILED(device_->CreateVertexShader(vsb->GetBufferPointer(),vsb->GetBufferSize(),nullptr,&vs_))){StartupLog("Vertex shader creation failed");return false;}
         if(FAILED(device_->CreatePixelShader(psb->GetBufferPointer(),psb->GetBufferSize(),nullptr,&ps_))){StartupLog("Pixel shader creation failed");return false;}
         D3D11_BUFFER_DESC bd{};bd.ByteWidth=sizeof(Constants);bd.Usage=D3D11_USAGE_DYNAMIC;bd.BindFlags=D3D11_BIND_CONSTANT_BUFFER;bd.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;if(FAILED(device_->CreateBuffer(&bd,nullptr,&constants_))){StartupLog("Frame constant buffer creation failed");return false;}if(!loadLogo())return false;RECT r;GetClientRect(hwnd_,&r);resize(r.right,r.bottom);return rtv_.Get()!=nullptr;}
-    void resize(UINT w,UINT h){if(!w||!h)return;rtv_.Reset();context_->OMSetRenderTargets(0,nullptr,nullptr);swap_->ResizeBuffers(0,w,h,DXGI_FORMAT_UNKNOWN,0);ComPtr<ID3D11Texture2D>b;swap_->GetBuffer(0,IID_PPV_ARGS(&b));device_->CreateRenderTargetView(b.Get(),nullptr,&rtv_);width_=w;height_=h;}
-    void render(){if(!rtv_){Sleep(10);return;}float seconds=std::chrono::duration<float>(Clock::now()-started_).count();auto af=audio_.frame();if(automatic_&&!frozen_)scene_=int(seconds/18.f)%9;
-        Constants c{{float(width_),float(height_)},seconds,float(scene_),af.bass,af.mid,af.high,af.level,af.peak,af.stereo,af.beat,af.flux};D3D11_MAPPED_SUBRESOURCE map{};context_->Map(constants_.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&map);memcpy(map.pData,&c,sizeof(c));context_->Unmap(constants_.Get(),0);
+    void resize(UINT w,UINT h){if(!w||!h)return;rtv_.Reset();context_->OMSetRenderTargets(0,nullptr,nullptr);swap_->ResizeBuffers(0,w,h,DXGI_FORMAT_UNKNOWN,0);ComPtr<ID3D11Texture2D>b;swap_->GetBuffer(0,IID_PPV_ARGS(&b));device_->CreateRenderTargetView(b.Get(),nullptr,&rtv_);width_=w;height_=h;layoutHud();}
+    void render(){if(!rtv_){Sleep(10);return;}float seconds=elapsed();auto raw=audio_.frame();if(automatic_&&!frozen_&&seconds>=nextSceneAt_){selectScene(chooseAutoScene(raw));nextSceneAt_=seconds+settings_.sceneSeconds;}auto af=tuned(raw);float transition=settings_.transitionSeconds>0?std::clamp((seconds-transitionStarted_)/settings_.transitionSeconds,0.f,1.f):1.f;
+        Constants c{{float(width_),float(height_)},seconds,float(scene_),af.bass,af.mid,af.high,af.level,af.peak,af.stereo,af.beat,af.flux,float(previousScene_),transition,settings_.logoScale,float(settings_.palette)};D3D11_MAPPED_SUBRESOURCE map{};context_->Map(constants_.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&map);memcpy(map.pData,&c,sizeof(c));context_->Unmap(constants_.Get(),0);
         D3D11_VIEWPORT vp{0,0,float(width_),float(height_),0,1};context_->RSSetViewports(1,&vp);context_->OMSetRenderTargets(1,rtv_.GetAddressOf(),nullptr);context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);context_->VSSetShader(vs_.Get(),nullptr,0);context_->PSSetShader(ps_.Get(),nullptr,0);context_->PSSetConstantBuffers(0,1,constants_.GetAddressOf());context_->PSSetShaderResources(0,1,logoSrv_.GetAddressOf());context_->PSSetSamplers(0,1,logoSampler_.GetAddressOf());context_->Draw(3,0);swap_->Present(1,0);
-        ++frames_;if(seconds-lastTitle_>1){float fps=frames_/(seconds-lastTitle_);frames_=0;lastTitle_=seconds;static const wchar_t* names[]={L"Pulse Engine",L"Liquid Signal",L"Orbital Drive",L"Signal Glitch",L"Impact Bloom",L"Data Current",L"Prism Tunnel",L"Celestial Drift",L"Velocity Burst"};std::wstring title=L"RareStage  |  "+std::wstring(names[scene_])+(automatic_?L" [AUTO]":L"")+L"  |  "+audio_.name()+L"  |  B "+std::to_wstring((int)(af.bass*100))+L"  M "+std::to_wstring((int)(af.mid*100))+L"  H "+std::to_wstring((int)(af.high*100))+L"  BEAT "+std::to_wstring((int)(af.beat*100))+L"  |  "+std::to_wstring((int)fps)+L" FPS";SetWindowTextW(hwnd_,title.c_str());}}
-    void fullscreen(){fullscreen_=!fullscreen_;if(fullscreen_){GetWindowRect(hwnd_,&windowRect_);SetWindowLongW(hwnd_,GWL_STYLE,WS_POPUP);MONITORINFO mi{sizeof(mi)};GetMonitorInfoW(MonitorFromWindow(hwnd_,MONITOR_DEFAULTTONEAREST),&mi);SetWindowPos(hwnd_,HWND_TOP,mi.rcMonitor.left,mi.rcMonitor.top,mi.rcMonitor.right-mi.rcMonitor.left,mi.rcMonitor.bottom-mi.rcMonitor.top,SWP_FRAMECHANGED);}else{SetWindowLongW(hwnd_,GWL_STYLE,WS_OVERLAPPEDWINDOW);SetWindowPos(hwnd_,nullptr,windowRect_.left,windowRect_.top,windowRect_.right-windowRect_.left,windowRect_.bottom-windowRect_.top,SWP_FRAMECHANGED|SWP_NOZORDER);}}
-    HWND hwnd_{};UINT width_=1280,height_=720;bool fullscreen_=false,automatic_=true,frozen_=false;RECT windowRect_{};int scene_=0;AudioEngine audio_;
-    Clock::time_point started_;float lastTitle_{};int frames_{};ComPtr<ID3D11Device>device_;ComPtr<ID3D11DeviceContext>context_;ComPtr<IDXGISwapChain>swap_;ComPtr<ID3D11RenderTargetView>rtv_;ComPtr<ID3D11VertexShader>vs_;ComPtr<ID3D11PixelShader>ps_;ComPtr<ID3D11Buffer>constants_;ComPtr<ID3D11ShaderResourceView>logoSrv_;ComPtr<ID3D11SamplerState>logoSampler_;
+        ++frames_;if(seconds-lastHud_>.10f){lastHud_=seconds;updateHud(raw);}if(seconds-lastTitle_>1){float fps=frames_/(seconds-lastTitle_);frames_=0;lastTitle_=seconds;std::wstring title=L"RareStage  |  "+std::wstring(sceneName(scene_))+(automatic_?L" [AUTO]":L" [MANUAL]")+L"  |  "+audio_.name()+L"  |  "+(af.bpm>0?std::to_wstring((int)af.bpm)+L" BPM  |  ":L"")+std::to_wstring((int)fps)+L" FPS";SetWindowTextW(hwnd_,title.c_str());}}
+    void fullscreen(){fullscreen_=!fullscreen_;if(fullscreen_){GetWindowRect(hwnd_,&windowRect_);SetWindowLongW(hwnd_,GWL_STYLE,WS_POPUP);auto monitors=monitorRects();if(monitors.empty())return;settings_.monitor%=monitors.size();RECT target=monitors[settings_.monitor];SetWindowPos(hwnd_,HWND_TOP,target.left,target.top,target.right-target.left,target.bottom-target.top,SWP_FRAMECHANGED);}else{SetWindowLongW(hwnd_,GWL_STYLE,WS_OVERLAPPEDWINDOW);SetWindowPos(hwnd_,nullptr,windowRect_.left,windowRect_.top,windowRect_.right-windowRect_.left,windowRect_.bottom-windowRect_.top,SWP_FRAMECHANGED|SWP_NOZORDER);}}
+    HWND hwnd_{},hud_{};HFONT hudFont_{};HBRUSH hudBrush_{};UINT width_=1280,height_=720;bool fullscreen_=false,automatic_=true,frozen_=false,hudVisible_=true;RECT windowRect_{};int scene_=0,previousScene_=0,hudSelection_=0,autoSequence_=0,monitorCount_=1;AudioEngine audio_;ShowSettings settings_;
+    Clock::time_point started_;float lastTitle_{},lastHud_{},transitionStarted_{-100},nextSceneAt_{18};int frames_{};ComPtr<ID3D11Device>device_;ComPtr<ID3D11DeviceContext>context_;ComPtr<IDXGISwapChain>swap_;ComPtr<ID3D11RenderTargetView>rtv_;ComPtr<ID3D11VertexShader>vs_;ComPtr<ID3D11PixelShader>ps_;ComPtr<ID3D11Buffer>constants_;ComPtr<ID3D11ShaderResourceView>logoSrv_;ComPtr<ID3D11SamplerState>logoSampler_;
 };
 
 int WINAPI wWinMain(HINSTANCE h,HINSTANCE,LPWSTR,int){
