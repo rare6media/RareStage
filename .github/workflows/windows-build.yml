@@ -5,16 +5,40 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    runs-on: windows-2025
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Configure
+
+      - name: Configure x64 Release
         run: cmake -S . -B build -A x64
-      - name: Build
+
+      - name: Build RareStage
         run: cmake --build build --config Release --parallel
-      - uses: actions/upload-artifact@v4
+
+      - name: Package portable build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/RareStage | Out-Null
+          Copy-Item build/Release/RareStage.exe dist/RareStage/
+          Copy-Item README.md dist/RareStage/
+          Compress-Archive -Path dist/RareStage/* -DestinationPath dist/RareStage-windows-x64.zip -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
           name: RareStage-windows-x64
-          path: build/Release/RareStage.exe
+          path: dist/RareStage-windows-x64.zip
+          if-no-files-found: error
+
+      - name: Publish automatic build release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "build-${{ github.run_number }}" dist/RareStage-windows-x64.zip --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "RareStage Build ${{ github.run_number }}" --generate-notes
