@@ -4,9 +4,9 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.8.2**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.8.3**
 
-RareStage is a native Win32 and DirectX 11 application. It captures the selected Windows playback device through WASAPI loopback, analyzes the music in real time, and directs thirteen authored festival scenes without a browser, Electron, prerecorded video, or per-frame asset uploads.
+RareStage is a native Win32 and DirectX 11 application. It captures the selected Windows playback device through WASAPI loopback, analyzes the music in real time, and directs sixteen authored festival scenes without a browser, Electron, prerecorded video, or per-frame asset uploads.
 
 ## At a glance
 
@@ -14,11 +14,11 @@ RareStage is a native Win32 and DirectX 11 application. It captures the selected
 |---|---|
 | Platform | Native Windows x64, C++20, Win32 and DirectX 11 |
 | Audio | WASAPI loopback, selectable active playback device |
-| Analysis | 1024-point FFT, bass, mids, highs, RMS level, peak, stereo energy, spectral flux, beat envelope, BPM and tempo confidence |
-| Visuals | Thirteen authored festival scenes: twelve 2D-led motion systems and one restrained 2D/3D architectural scene |
+| Analysis | 1024-point FFT, bass, mids, highs, RMS level, peak, stereo energy, spectral flux, beat envelope, BPM, tempo confidence and five-state song-section tracking |
+| Visuals | Sixteen authored festival scenes with 2D-led motion systems, alpha-clean dynamic logo choreography and one restrained 2D/3D architectural scene |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Direct2D/DirectWrite overlay with mouse, wheel and keyboard operation |
-| Automation | Phrase-aware Smart Director with energy/feature scoring, recent-scene memory and beat-aligned cuts; or deterministic show timeline |
+| Automation | Section-aware Smart Director with build/drop/breakdown detection, automatic palette morphs, phrase timing, recent-scene memory and beat-aligned transitions; or deterministic show timeline |
 | Presets | Four named show slots with load and overwrite controls |
 | Output | Borderless stage display, multi-monitor selection and clean Spout2 sender |
 | Performance | 62%, 78%, 100% and 125% HDR render-scale profiles; VSync or unlocked output |
@@ -62,10 +62,15 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 | `11` via `[` / `]` | Synthetic Meadow | Logo-free animated landscape, moving field lines, clouds and stars |
 | `12` via `[` / `]` | Modular Fold | Three orbiting Rare marks and mathematical tiles merging between circles, squares and rotated grids |
 | `13` via `[` / `]` | Bass Reactor | Three Rare marks, 2D speaker field, EQ bands, controlled lasers and drop punctuation |
+| `14` via `[` / `]` | Rare Tunnel | Seven depth-staged Rare marks moving through concentric portals and radial light beams |
+| `15` via `[` / `]` | Halo Array | Five orbiting marks integrated into a reactive circular halo, arcs and focused beams |
+| `16` via `[` / `]` | Prism Relay | Sliding large-format marks, crisp prism shutters and moving light geometry |
 
-Smart Director scores all thirteen scenes against live energy, bass, mids, highs, flux and beat strength. It remembers recently used scenes, prevents immediate repeats, quantizes the requested scene duration to eight-beat phrases when BPM confidence is available, and waits for a beat/flux opportunity before cutting. Timeline mode remains available for a deterministic curated order. Keys `1`–`9` remain direct scene shortcuts; `[` and `]` step backward or forward through the complete scene library.
+Smart Director tracks five musical states: Open, Build, Drop, Breakdown and Drive. Short- and long-window energy, spectral change, bass impact, tempo confidence and persistent hysteresis confirm a section change instead of reacting to a single noisy frame. A confirmed new song stage arms a scene and palette change; the director then waits for a musical hit and applies a clean section-specific transition. It also scores all sixteen scenes for the current section, remembers recently used scenes, prevents immediate repeats and quantizes normal scene timing to eight-beat phrases when BPM confidence is available. Timeline mode remains available for deterministic playback.
 
-The renderer is 2D-first. Twelve scenes skip the ray-marched hero pass entirely and instead use seamless animated backgrounds, parallax, graphic layers, occlusion and scene-specific logo choreography. Three scenes deliberately omit the logo; five use multiple Rare marks as moving compositional elements. Rare Monolith is the only scene retaining a restrained 3D architectural accent.
+The renderer is 2D-first. Fifteen scenes skip the ray-marched hero pass entirely and instead use seamless animated backgrounds, parallax, radial beams, graphic layers, occlusion and scene-specific logo choreography. Three scenes deliberately omit the logo; eight use multiple Rare marks as moving compositional elements. Rare Monolith is the only scene retaining a restrained 3D architectural accent.
+
+The current Rare mark is a true-alpha production texture. The logo handler composites native alpha instead of guessing transparency from background color, so white linework, cyan bloom and dark fills remain clean while the mark scales, tunnels, orbits, relays, drifts and passes behind scene geometry.
 
 Bass controls measured scale and structural impact, mids control loop speed and parallax, highs reveal detail, and beats add short accents instead of repeatedly spinning or shaking a model. Signal Break is intentionally the only heavily glitch-led scene; the rest prioritize smooth continuous motion.
 
@@ -76,7 +81,7 @@ Show Control is rendered inside the DirectX compositor, so it remains visible ov
 | Overlay row | Values or range |
 |---|---|
 | Reaction | Calm, Balanced, Stage, Aggressive |
-| Palette | Rare Cyan, Nebula, Sakura, Solar |
+| Palette | Rare Cyan, Nebula, Sakura, Solar; automatically morphed by Smart Director |
 | Sensitivity | 50–150% |
 | Bass | 50–150% |
 | Mids | 50–150% |
@@ -91,14 +96,14 @@ Show Control is rendered inside the DirectX compositor, so it remains visible ov
 | Show mode | Smart Director or Show Timeline |
 | Spout output | Clean sender on or off |
 
-The panel also reports the active preset, scene, automation state, playback device, BPM, and smoothed bass, mid, high, and beat meters.
+The panel also reports the active preset, scene, detected song section, automation state, active automatic palette, playback device, BPM, and smoothed bass, mid, high, and beat meters.
 
 ## Controls
 
 | Input | Action |
 |---|---|
 | `1`–`9` | Select a scene and enter manual scene mode |
-| `[` / `]` | Previous or next scene across the complete thirteen-scene library |
+| `[` / `]` | Previous or next scene across the complete sixteen-scene library |
 | `0` or `A` | Toggle automatic scene direction |
 | `D` | Cycle active Windows playback devices |
 | `M` | Move stage output to the next monitor |
@@ -128,7 +133,7 @@ The panel also reports the active preset, scene, automation state, playback devi
 | `F3` Rare Drop | Stage, Rare Cyan | Vector Rush | 12-second scenes, 0.8-second Bass Shutter |
 | `F4` Glitch Finale | Aggressive, Nebula, timeline enabled | Signal Break | 10-second scenes, 0.45-second Glitch Hold |
 
-Preset slots can be overwritten with `Shift+F1` through `Shift+F4`. Saved presets include reaction tuning, palette, timing, transition FX, render profile, frame output, automation state, timeline state, Spout state, monitor, and current scene.
+Preset slots can be overwritten with `Shift+F1` through `Shift+F4`. Saved presets include reaction tuning, manual/fallback palette, timing, transition FX, render profile, frame output, automation state, timeline state, Spout state, monitor, and current scene. In Smart Director mode the saved palette becomes the starting color before section-aware automatic morphing begins.
 
 ## Performance profiles
 
@@ -185,16 +190,17 @@ Every push and pull request runs the Windows workflow on GitHub Actions:
 5. Package the executable, Rare logo, README, and third-party notices.
 6. Upload the portable ZIP as a workflow artifact.
 
-Successful pushes to `main` publish or refresh the `v0.8.2` GitHub release automatically.
+Successful pushes to `main` publish or refresh the `v0.8.3` GitHub release automatically.
 
 ## Roadmap
 
 ### v0.8 — Festival art direction (current)
 
-- Thirteen authored Rare scene environments
+- Sixteen authored Rare scene environments
 - Four beat-aware transition systems with brief hold, cut and afterimage stages
 - Twelve 2D-first motion systems, one restrained hybrid scene, moving logo choreography and dynamic backgrounds
-- BPM-smoothed animation phase, beat-aligned Smart Director cuts and recent-scene memory
+- BPM-smoothed animation phase, five-state song-structure tracking, section-aware Smart Director transitions and recent-scene memory
+- Automatic continuous palette morphing and three new multi-logo tunnel/halo/relay systems
 - Extended timeline and audio-directed scene groups
 
 ### v0.9 — Live show operation
