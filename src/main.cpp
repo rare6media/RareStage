@@ -17,6 +17,7 @@
 #include <cstring>
 #include <cstdint>
 #include <cwchar>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -158,9 +159,9 @@ private:
 int WINAPI wWinMain(HINSTANCE h,HINSTANCE,LPWSTR,int){
     if(std::wcsstr(GetCommandLineW(),L"--self-test")){
         ComPtr<ID3DBlob> blob,error;
-        if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"vs","vs_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error)))return 2;
+        if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"vs","vs_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error))){if(error){std::ofstream log("RareStage-self-test.log",std::ios::binary);log.write((const char*)error->GetBufferPointer(),error->GetBufferSize());}return 2;}
         blob.Reset();error.Reset();
-        if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"ps","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error)))return 3;
+        if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"ps","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error))){if(error){std::ofstream log("RareStage-self-test.log",std::ios::binary);log.write((const char*)error->GetBufferPointer(),error->GetBufferSize());}return 3;}
         return 0;
     }
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);App app;return app.init(h)?app.run():1;
