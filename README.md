@@ -1,4 +1,4 @@
-# RareStage 0.1.0
+# RareStage 0.5.0
 
 RareStage is a native Windows, GPU-rendered, real-time audio visualizer. It captures the selected Windows playback device through WASAPI loopback and renders procedural Rare-themed visuals through DirectX 11 shaders.
 
@@ -6,12 +6,16 @@ RareStage is a native Windows, GPU-rendered, real-time audio visualizer. It capt
 
 - Native Win32 + DirectX 11; no browser or Electron runtime
 - WASAPI loopback capture from the active playback device
-- 1024-point FFT with bass, mid, high, peak and stereo energy extraction
+- 1024-point FFT with adaptive bass, mid, high, peak, beat, spectral-flux and tempo analysis
 - Audio capture and rendering run independently
 - Nine GPU scenes: Pulse Engine, Liquid Signal, Orbital Drive, Signal Glitch, Impact Bloom, Data Current, Prism Tunnel, Celestial Drift and Velocity Burst
 - VSync-locked 60 FPS by default
 - Borderless fullscreen and live output-device cycling
 - Automatic scene direction or manual scene selection
+- Native show-control HUD with four reaction profiles and independent band tuning
+- Four Rare palettes, configurable logo scale, scene timing and transition timing
+- Smooth GPU scene wipes, intensity-aware automatic sequencing and saved settings
+- Multi-monitor stage output selection
 - GPU shader workload with no per-frame asset uploads
 
 ## Build on Windows
@@ -30,13 +34,18 @@ Run `build\\Release\\RareStage.exe`.
 | Key | Action |
 |---|---|
 | `1`–`9` | Select a visual scene |
-| `0` | Enable automatic scene direction |
+| `0` or `A` | Toggle automatic scene direction |
 | `D` | Cycle through Windows playback devices |
+| `M` | Move stage output to the next monitor |
+| `P` | Cycle Rare color palettes |
+| `Tab` | Show or hide Show Control |
+| `Up` / `Down` | Select a Show Control setting |
+| `Left` / `Right` | Adjust the selected setting |
 | `F11` or `Alt+Enter` | Toggle borderless fullscreen |
 | `Space` | Freeze/unfreeze automatic scene changes |
 | `Esc` | Leave fullscreen, or quit when windowed |
 
-The title bar reports the active scene, output device, live bass/mid/high/beat values and measured frame rate. RareStage continues animating gracefully when audio is silent.
+Show Control reports the active scene, output device, tuned bass/mid/high/beat values, estimated BPM, tempo confidence and output monitor. Settings are saved in `%LOCALAPPDATA%\\RareStage\\settings.ini`. RareStage continues animating gracefully when audio is silent.
 
 ## Performance design
 
@@ -44,9 +53,7 @@ The renderer uses a single fullscreen triangle and a procedural pixel shader. Au
 
 ## Next production milestones
 
-- In-app device/settings panel and sensitivity calibration
 - Spout2 output for OBS, RareOBS and Resolume
-- Beat/onset detector with tempo confidence
-- Shader preset packs, transitions and show timeline
+- Mouse-driven controls, shader preset packs and show timeline
 - 120 FPS and 4K adaptive-quality profiles
 - Signed installer, crash recovery and GPU diagnostics
