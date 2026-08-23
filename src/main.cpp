@@ -87,15 +87,15 @@ private:
         fft(bins); auto band=[&](int lo,int hi){float v=0;for(int i=lo;i<=hi;++i)v+=std::abs(bins[i]);return v/float(hi-lo+1);};
         float rms=std::sqrt(level/1024);std::array<float,4>raw{band(1,5),band(6,60),band(61,350),rms*256};
         float audible=saturateAudio((rms-.00015f)*1200.f);std::array<float,4>normalized{};
-        for(size_t n=0;n<raw.size();++n){ceilings_[n]=std::max(raw[n],std::max(ceilings_[n]*.997f,.00001f));normalized[n]=saturateAudio(raw[n]/(ceilings_[n]*.78f))*audible;}
+        for(size_t n=0;n<raw.size();++n){ceilings_[n]=std::max(raw[n],std::max(ceilings_[n]*.9985f,.00001f));normalized[n]=saturateAudio(raw[n]/(ceilings_[n]*1.35f))*audible;}
         float flux=std::max(0.f,normalized[0]-previousBass_)+.45f*std::max(0.f,normalized[1]-previousMid_);previousBass_=normalized[0];previousMid_=normalized[1];
-        if(beatCooldown_>0)--beatCooldown_;float beatTarget=0;if(flux>.105f&&normalized[0]>.24f&&beatCooldown_==0){beatTarget=1;beatCooldown_=6;}
-        beatEnvelope_=beatTarget>0?1.f:beatEnvelope_*.68f;fluxEnvelope_=std::max(flux,fluxEnvelope_*.72f);
-        AudioFrame next{normalized[0],normalized[1],normalized[2],normalized[3],saturateAudio(peak*6),stereo,beatEnvelope_,saturateAudio(fluxEnvelope_*3.2f)};
-        std::scoped_lock lock(mutex_); constexpr float attack=.62f, release=.16f;
+        if(beatCooldown_>0)--beatCooldown_;float beatTarget=0;if(flux>.070f&&normalized[0]>.18f&&beatCooldown_==0){beatTarget=.78f;beatCooldown_=8;}
+        beatEnvelope_=beatTarget>0?beatEnvelope_+(beatTarget-beatEnvelope_)*.48f:beatEnvelope_*.86f;fluxEnvelope_=std::max(flux,fluxEnvelope_*.82f);
+        AudioFrame next{normalized[0],normalized[1],normalized[2],normalized[3],saturateAudio(peak*2.6f),stereo,beatEnvelope_,saturateAudio(fluxEnvelope_*2.4f)};
+        std::scoped_lock lock(mutex_); constexpr float attack=.28f, release=.09f;
         auto smooth=[](float old,float value){float k=value>old?attack:release;return old+(value-old)*k;};
         frame_.bass=smooth(frame_.bass,next.bass);frame_.mid=smooth(frame_.mid,next.mid);frame_.high=smooth(frame_.high,next.high);frame_.level=smooth(frame_.level,next.level);
-        frame_.peak=smooth(frame_.peak,next.peak);frame_.stereo=smooth(frame_.stereo,stereo);frame_.beat=std::max(next.beat,frame_.beat*.72f);frame_.flux=smooth(frame_.flux,next.flux);
+        frame_.peak=smooth(frame_.peak,next.peak);frame_.stereo=smooth(frame_.stereo,stereo);frame_.beat=smooth(frame_.beat,next.beat);frame_.flux=smooth(frame_.flux,next.flux);
     }
     static float saturateAudio(float value){return std::clamp(value,0.f,1.f);}
     void capture() {
@@ -135,9 +135,12 @@ O vs(uint id:SV_VertexID){O o;o.uv=float2((id<<1)&2,id&2);o.p=float4(o.uv*float2
 float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
 float ring(float2 p,float radius,float width){return width/max(abs(length(p)-radius),.001);}
 float lineGlow(float value,float width){return width/max(abs(value),.001);}
+float boxRing(float2 p,float2 size,float width){return width/max(abs(max(abs(p.x)-size.x,abs(p.y)-size.y)),.001);}
+float easeBand(float value){value=saturate(value);return value*value*(3-2*value);}
 float4 ps(O i):SV_TARGET{
  float aspect=resolution.x/resolution.y;float2 p=(i.uv-.5)*float2(aspect,1);float r=length(p),a=atan2(p.y,p.x);float t=time;float s=scene;
- float impact=saturate(bass*.72+beat*.95+peak*.24);float motion=saturate(mid*.88+level*.45);float detail=saturate(high*.92+flux*.42);float transient=saturate(beat+flux*.65);
+ float bassFlow=easeBand(bass),midFlow=easeBand(mid),highFlow=easeBand(high),beatFlow=easeBand(beat),fluxFlow=easeBand(flux);
+ float impact=saturate(bassFlow*.58+beatFlow*.66+peak*.10);float motion=saturate(midFlow*.76+easeBand(level)*.30);float detail=saturate(highFlow*.78+fluxFlow*.25);float transient=saturate(beatFlow*.72+fluxFlow*.48);
  float3 cyan=float3(.00,.72,1.00),lime=float3(.55,1.00,.04),violet=float3(.48,.09,.88);
  float vignette=1-smoothstep(.28,1.18,r);float3 c=float3(.0015,.006,.014)+vignette*float3(.004,.023,.038)*(1+level*.7);
 
@@ -171,16 +174,37 @@ float4 ps(O i):SV_TARGET{
    float signal=lineGlow(p.y*.72-wave,.0025+impact*.014);float blocks=gate*transient*step(.72,hash(float2(floor((p.x+1)*14),row)));
    c+=signal*cyan*(.25+impact*1.45)+scan*float3(.08,.26,.42)+blocks*float3(.02,.16,.22);
    c+=lineGlow(abs(p.y)-(.34+beat*.08),.0015+beat*.006)*violet*(.12+transient*.6);
- }else{
+ }else if(s<4.5){
    float phase=t*(.035+motion*.85);float lobes=sin(a*6-phase*2.2);float radius=.41+lobes*(.012+motion*.045)+impact*.075;
    float bloom=ring(p,radius,.003+impact*.019);float petals=pow(saturate(cos(a*6-phase)*.5+.5),18)*detail*(.015+beat*.045)/max(r,.15);
    float rayGate=step(.90-detail*.10,hash(float2(floor((a+3.2)*24),floor(t*(2+detail*10)))));float rays=rayGate*detail*.008/max(abs(frac(r*3.2-t*motion*.6)-.5),.035);
    c+=bloom*cyan*(.38+impact*1.60)+petals*lime+rays*float3(.14,.34,.72);
    c+=ring(p,.55+beat*.11,.002+beat*.010)*violet*(.10+beat*.75);
+ }else if(s<5.5){
+   float lane=floor((p.y+.52)*12);float laneCenter=(lane+.5)/12-.52;float rail=lineGlow(p.y-laneCenter,.0012+detail*.0025)*(1-smoothstep(.55,.98,abs(p.x)));
+   float travel=frac(t*(.018+motion*.72)+hash(float2(lane,4)));float packetX=(-aspect*.62)+travel*(aspect*1.24);float2 packet=float2(packetX,laneCenter);
+   float packetGlow=.0018/max(dot(p-packet,p-packet),.0015);float sync=lineGlow(p.x,.001+beatFlow*.004)*(1-smoothstep(.05,.48,abs(p.y)));
+   c+=rail*float3(.02,.13,.20)+packetGlow*lerp(cyan,lime,hash(float2(lane,8)))*(.08+motion*.55)+sync*violet*(.05+beatFlow*.35);
+ }else if(s<6.5){
+   float tunnel=frac(t*(.012+motion*.36));float z1=.34+tunnel*.18;float z2=.52+tunnel*.18;float z3=.70+tunnel*.18;
+   float b1=boxRing(p,float2(z1*aspect*.56,z1),.002+impact*.006);float b2=boxRing(p,float2(z2*aspect*.56,z2),.0018+motion*.004);float b3=boxRing(p,float2(z3*aspect*.56,z3),.0014+detail*.003);
+   float cross=lineGlow(abs(p.x/aspect)-abs(p.y)*.56,.0012+detail*.002)*(1-smoothstep(.18,.95,r));
+   c+=b1*cyan*(.22+impact*.75)+b2*lime*(.08+motion*.38)+b3*violet*(.08+detail*.28)+cross*float3(.04,.12,.20);
+ }else if(s<7.5){
+   float drift=t*(.018+motion*.38);float auroraY=.22+sin(p.x*1.7+drift)*(.025+motion*.055)+sin(p.x*4.2-drift*.7)*detail*.014;
+   float aurora=lineGlow(p.y-auroraY,.003+motion*.009);float crescent=ring(p-float2(.46,.22),.29+impact*.035,.002+beatFlow*.005)*(1-smoothstep(-.05,.35,p.y));
+   float2 starCell=floor((p+float2(aspect,.55))*float2(14,16));float stars=step(.965-detail*.08,hash(starCell))*pow(.5+.5*sin(t*(.4+detail*2)+hash(starCell)*6.28),8);
+   c+=aurora*lerp(cyan,lime,saturate(p.x/aspect+.5))*(.16+motion*.58)+crescent*float3(.10,.30,.54)+stars*float3(.10,.35,.48)*(.12+detail*.38);
+ }else{
+   float phase=t*(.020+motion*.48);float rayShape=pow(saturate(cos(a*18+phase)*.5+.5),34);float rayMask=smoothstep(.18,.72,r)*rayShape;
+   float slash=lineGlow(p.y+p.x*.34-sin(phase)*.035,.0025+impact*.012)*(1-smoothstep(.62,1.05,abs(p.x)));
+   float energy=ring(p,.38+impact*.095+sin(a*8-phase)*(.006+motion*.020),.0025+beatFlow*.011);
+   c+=rayMask*float3(.08,.28,.58)*(.10+detail*.65)+slash*lime*(.16+impact*.78)+energy*cyan*(.32+impact*1.15);
+   c+=ring(p,.52+beatFlow*.08,.0018+beatFlow*.006)*violet*(.08+beatFlow*.40);
  }
 
  float glitchActive=(s>2.5&&s<3.5)?transient:flux*.16;float logoRow=floor((p.y+.5)*28);float logoGate=step(.70,hash(float2(logoRow,floor(t*19))));
- float logoShift=(hash(float2(logoRow,floor(t*23)))-.5)*glitchActive*.15*logoGate;float logoSize=.69+impact*.075;
+ float logoShift=(hash(float2(logoRow,floor(t*23)))-.5)*glitchActive*.12*logoGate;float logoSize=.69+impact*.045;
  float2 luv=float2((p.x+logoShift)/logoSize+.5,.5+p.y/logoSize);float inside=step(0,luv.x)*step(luv.x,1)*step(0,luv.y)*step(luv.y,1);
  float3 rawLogo=logoTex.Sample(logoSampler,saturate(luv)).rgb;
  if(glitchActive>.025){float split=.004+.016*glitchActive;rawLogo.r=logoTex.Sample(logoSampler,saturate(luv+float2(split,0))).r;rawLogo.b=logoTex.Sample(logoSampler,saturate(luv-float2(split,0))).b;}
@@ -209,7 +233,7 @@ public:
     int run(){MSG msg{};while(msg.message!=WM_QUIT){if(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}else render();}audio_.stop();return(int)msg.wParam;}
 private:
     static LRESULT CALLBACK WndProc(HWND h,UINT m,WPARAM w,LPARAM l){App*a=reinterpret_cast<App*>(GetWindowLongPtrW(h,GWLP_USERDATA));if(m==WM_NCCREATE){a=reinterpret_cast<App*>(reinterpret_cast<CREATESTRUCTW*>(l)->lpCreateParams);SetWindowLongPtrW(h,GWLP_USERDATA,(LONG_PTR)a);}if(a)return a->message(h,m,w,l);return DefWindowProcW(h,m,w,l);}
-    LRESULT message(HWND h,UINT m,WPARAM w,LPARAM l){if(m==WM_DESTROY){PostQuitMessage(0);return 0;}if(m==WM_SIZE&&swap_&&w!=SIZE_MINIMIZED){resize(LOWORD(l),HIWORD(l));return 0;}if(m==WM_SYSKEYDOWN&&w==VK_RETURN){fullscreen();return 0;}if(m==WM_KEYDOWN){if(w>=L'1'&&w<=L'5'){scene_=int(w-L'1');automatic_=false;}else if(w==L'0')automatic_=true;else if(w==L'D')audio_.cycle();else if(w==VK_F11)fullscreen();else if(w==VK_SPACE)frozen_=!frozen_;else if(w==VK_ESCAPE){if(fullscreen_)fullscreen();else DestroyWindow(h);}return 0;}return DefWindowProcW(h,m,w,l);}
+    LRESULT message(HWND h,UINT m,WPARAM w,LPARAM l){if(m==WM_DESTROY){PostQuitMessage(0);return 0;}if(m==WM_SIZE&&swap_&&w!=SIZE_MINIMIZED){resize(LOWORD(l),HIWORD(l));return 0;}if(m==WM_SYSKEYDOWN&&w==VK_RETURN){fullscreen();return 0;}if(m==WM_KEYDOWN){if(w>=L'1'&&w<=L'9'){scene_=int(w-L'1');automatic_=false;}else if(w==L'0')automatic_=true;else if(w==L'D')audio_.cycle();else if(w==VK_F11)fullscreen();else if(w==VK_SPACE)frozen_=!frozen_;else if(w==VK_ESCAPE){if(fullscreen_)fullscreen();else DestroyWindow(h);}return 0;}return DefWindowProcW(h,m,w,l);}
     bool loadLogo(){
         wchar_t module[MAX_PATH]{};GetModuleFileNameW(nullptr,module,MAX_PATH);auto path=std::filesystem::path(module).parent_path()/L"assets"/L"rare-logo.png";
         ComPtr<IWICImagingFactory>factory;ComPtr<IWICBitmapDecoder>decoder;ComPtr<IWICBitmapFrameDecode>frame;ComPtr<IWICFormatConverter>converter;
@@ -240,10 +264,10 @@ private:
         if(FAILED(device_->CreatePixelShader(psb->GetBufferPointer(),psb->GetBufferSize(),nullptr,&ps_))){StartupLog("Pixel shader creation failed");return false;}
         D3D11_BUFFER_DESC bd{};bd.ByteWidth=sizeof(Constants);bd.Usage=D3D11_USAGE_DYNAMIC;bd.BindFlags=D3D11_BIND_CONSTANT_BUFFER;bd.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;if(FAILED(device_->CreateBuffer(&bd,nullptr,&constants_))){StartupLog("Frame constant buffer creation failed");return false;}if(!loadLogo())return false;RECT r;GetClientRect(hwnd_,&r);resize(r.right,r.bottom);return rtv_.Get()!=nullptr;}
     void resize(UINT w,UINT h){if(!w||!h)return;rtv_.Reset();context_->OMSetRenderTargets(0,nullptr,nullptr);swap_->ResizeBuffers(0,w,h,DXGI_FORMAT_UNKNOWN,0);ComPtr<ID3D11Texture2D>b;swap_->GetBuffer(0,IID_PPV_ARGS(&b));device_->CreateRenderTargetView(b.Get(),nullptr,&rtv_);width_=w;height_=h;}
-    void render(){if(!rtv_){Sleep(10);return;}float seconds=std::chrono::duration<float>(Clock::now()-started_).count();auto af=audio_.frame();if(automatic_&&!frozen_)scene_=int(seconds/18.f)%5;
+    void render(){if(!rtv_){Sleep(10);return;}float seconds=std::chrono::duration<float>(Clock::now()-started_).count();auto af=audio_.frame();if(automatic_&&!frozen_)scene_=int(seconds/18.f)%9;
         Constants c{{float(width_),float(height_)},seconds,float(scene_),af.bass,af.mid,af.high,af.level,af.peak,af.stereo,af.beat,af.flux};D3D11_MAPPED_SUBRESOURCE map{};context_->Map(constants_.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&map);memcpy(map.pData,&c,sizeof(c));context_->Unmap(constants_.Get(),0);
         D3D11_VIEWPORT vp{0,0,float(width_),float(height_),0,1};context_->RSSetViewports(1,&vp);context_->OMSetRenderTargets(1,rtv_.GetAddressOf(),nullptr);context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);context_->VSSetShader(vs_.Get(),nullptr,0);context_->PSSetShader(ps_.Get(),nullptr,0);context_->PSSetConstantBuffers(0,1,constants_.GetAddressOf());context_->PSSetShaderResources(0,1,logoSrv_.GetAddressOf());context_->PSSetSamplers(0,1,logoSampler_.GetAddressOf());context_->Draw(3,0);swap_->Present(1,0);
-        ++frames_;if(seconds-lastTitle_>1){float fps=frames_/(seconds-lastTitle_);frames_=0;lastTitle_=seconds;static const wchar_t* names[]={L"Pulse Engine",L"Liquid Signal",L"Orbital Drive",L"Signal Glitch",L"Impact Bloom"};std::wstring title=L"RareStage  |  "+std::wstring(names[scene_])+(automatic_?L" [AUTO]":L"")+L"  |  "+audio_.name()+L"  |  B "+std::to_wstring((int)(af.bass*100))+L"  M "+std::to_wstring((int)(af.mid*100))+L"  H "+std::to_wstring((int)(af.high*100))+L"  BEAT "+std::to_wstring((int)(af.beat*100))+L"  |  "+std::to_wstring((int)fps)+L" FPS";SetWindowTextW(hwnd_,title.c_str());}}
+        ++frames_;if(seconds-lastTitle_>1){float fps=frames_/(seconds-lastTitle_);frames_=0;lastTitle_=seconds;static const wchar_t* names[]={L"Pulse Engine",L"Liquid Signal",L"Orbital Drive",L"Signal Glitch",L"Impact Bloom",L"Data Current",L"Prism Tunnel",L"Celestial Drift",L"Velocity Burst"};std::wstring title=L"RareStage  |  "+std::wstring(names[scene_])+(automatic_?L" [AUTO]":L"")+L"  |  "+audio_.name()+L"  |  B "+std::to_wstring((int)(af.bass*100))+L"  M "+std::to_wstring((int)(af.mid*100))+L"  H "+std::to_wstring((int)(af.high*100))+L"  BEAT "+std::to_wstring((int)(af.beat*100))+L"  |  "+std::to_wstring((int)fps)+L" FPS";SetWindowTextW(hwnd_,title.c_str());}}
     void fullscreen(){fullscreen_=!fullscreen_;if(fullscreen_){GetWindowRect(hwnd_,&windowRect_);SetWindowLongW(hwnd_,GWL_STYLE,WS_POPUP);MONITORINFO mi{sizeof(mi)};GetMonitorInfoW(MonitorFromWindow(hwnd_,MONITOR_DEFAULTTONEAREST),&mi);SetWindowPos(hwnd_,HWND_TOP,mi.rcMonitor.left,mi.rcMonitor.top,mi.rcMonitor.right-mi.rcMonitor.left,mi.rcMonitor.bottom-mi.rcMonitor.top,SWP_FRAMECHANGED);}else{SetWindowLongW(hwnd_,GWL_STYLE,WS_OVERLAPPEDWINDOW);SetWindowPos(hwnd_,nullptr,windowRect_.left,windowRect_.top,windowRect_.right-windowRect_.left,windowRect_.bottom-windowRect_.top,SWP_FRAMECHANGED|SWP_NOZORDER);}}
     HWND hwnd_{};UINT width_=1280,height_=720;bool fullscreen_=false,automatic_=true,frozen_=false;RECT windowRect_{};int scene_=0;AudioEngine audio_;
     Clock::time_point started_;float lastTitle_{};int frames_{};ComPtr<ID3D11Device>device_;ComPtr<ID3D11DeviceContext>context_;ComPtr<IDXGISwapChain>swap_;ComPtr<ID3D11RenderTargetView>rtv_;ComPtr<ID3D11VertexShader>vs_;ComPtr<ID3D11PixelShader>ps_;ComPtr<ID3D11Buffer>constants_;ComPtr<ID3D11ShaderResourceView>logoSrv_;ComPtr<ID3D11SamplerState>logoSampler_;
