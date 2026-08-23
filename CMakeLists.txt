@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
 project(RareStage VERSION 0.1.0 LANGUAGES CXX)
 
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 add_executable(RareStage WIN32 src/main.cpp)
 target_compile_features(RareStage PRIVATE cxx_std_20)
 target_compile_definitions(RareStage PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
