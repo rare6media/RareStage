@@ -1,81 +1,216 @@
-# RareStage 0.7.0
+# RareStage
 
-RareStage is a native Windows, GPU-rendered, real-time audio visualizer. It captures the selected Windows playback device through WASAPI loopback and renders procedural Rare-themed visuals through DirectX 11 shaders.
+**Native Windows festival visualizer with real-time audio analysis, GPU-rendered Rare visuals, operator controls, and clean Spout2 output.**
 
-## Current build
+[![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-- Native Win32 + DirectX 11; no browser or Electron runtime
-- WASAPI loopback capture from the active playback device
-- 1024-point FFT with adaptive bass, mid, high, peak, beat, spectral-flux and tempo analysis
-- Audio capture and rendering run independently
-- Nine authored festival scenes: Rare Monolith, Crystal Bloom, Celestial Horizon, Cyber Shrine, Vector Rush, Liquid Core, Signal Break, Hologram Garden and Rare Ascension
-- Dimensional signed-distance hero forms composited with restrained 2D motion systems
-- Half-float HDR scene rendering, bloom extraction, filmic tone mapping and a sharpened final composite
-- VSync-locked 60 FPS by default
-- Borderless fullscreen and live output-device cycling
-- Automatic scene direction or manual scene selection
-- Direct2D-composited Show Control that remains visible over the flip-model stage surface
-- Mouse, wheel and keyboard operation with live bass/mid/high/beat meters
-- Four named show presets: Clean Open, Melodic Bloom, Rare Drop and Glitch Finale
-- Audio-directed automatic sequencing or deterministic show-timeline mode
-- Performance, Balanced, Native HD and Ultra 4K adaptive render profiles
-- VSync display output or unlocked high-refresh/120 FPS output
-- Clean Spout2 sender for OBS, RareOBS and Resolume; Show Control is excluded from the shared texture
-- Four Rare palettes, configurable logo scale, scene timing and transition timing
-- Smooth GPU scene wipes, intensity-aware automatic sequencing and saved settings
-- Multi-monitor stage output selection
-- GPU shader workload with no per-frame asset uploads
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.7.0**
 
-## Build on Windows
+RareStage is a native Win32 and DirectX 11 application. It captures the selected Windows playback device through WASAPI loopback, analyzes the music in real time, and directs nine authored festival scenes without a browser, Electron, prerecorded video, or per-frame asset uploads.
 
-Install Visual Studio 2022 with **Desktop development with C++** and CMake support. Then open a Developer PowerShell in this folder:
+## At a glance
 
-```powershell
-cmake -S . -B build -A x64
-cmake --build build --config Release
+| Area | Current implementation |
+|---|---|
+| Platform | Native Windows x64, C++20, Win32 and DirectX 11 |
+| Audio | WASAPI loopback, selectable active playback device |
+| Analysis | 1024-point FFT, bass, mids, highs, RMS level, peak, stereo energy, spectral flux, beat envelope, BPM and tempo confidence |
+| Visuals | Nine Rare-themed 2D/3D festival scenes with smooth GPU transitions |
+| Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
+| Show control | Direct2D/DirectWrite overlay with mouse, wheel and keyboard operation |
+| Automation | Audio-directed scene selection or deterministic show timeline |
+| Presets | Four named show slots with load and overwrite controls |
+| Output | Borderless stage display, multi-monitor selection and clean Spout2 sender |
+| Performance | 62%, 78%, 100% and 125% HDR render-scale profiles; VSync or unlocked output |
+| Persistence | Show settings and preset slots saved under `%LOCALAPPDATA%\RareStage` |
+
+## Signal and render pipeline
+
+```text
+Windows playback device
+        │
+        ▼
+WASAPI loopback ──► FFT + beat/tempo analysis ──► show director
+                                                        │
+                                                        ▼
+Rare logo + procedural 2D/3D scene ──► HDR ──► bloom ──► filmic composite
+                                                                  │
+                                                 clean Spout2 ◄───┤
+                                                                  ▼
+                                                  Show Control overlay
+                                                                  │
+                                                                  ▼
+                                                        stage display
 ```
 
-Run `build\\Release\\RareStage.exe`.
+The `RareStage Clean` Spout sender is published before Show Control is composited. OBS, RareOBS, Resolume, and other Spout-capable receivers therefore receive the finished visual without operator controls.
+
+## Festival scenes
+
+| Key | Scene | Direction |
+|---|---|---|
+| `1` | Rare Monolith | Architectural Rare centerpiece and reactive halo |
+| `2` | Crystal Bloom | Six-fold crystalline motion and petal geometry |
+| `3` | Celestial Horizon | Calm dimensional horizon and flowing aurora |
+| `4` | Cyber Shrine | Structured neon gate with controlled glitch response |
+| `5` | Vector Rush | Rotating dimensional vector rings and radial energy |
+| `6` | Liquid Core | Fluid hero form with mid-driven surface motion |
+| `7` | Signal Break | Scan fields, fractured blocks and transient glitches |
+| `8` | Hologram Garden | Holographic orbitals and restrained floral geometry |
+| `9` | Rare Ascension | Winged Rare form, rays and peak-scene energy |
+
+Automatic mode selects scenes from calm, medium, or high-intensity scene groups using the live audio signal. Timeline mode follows a curated order associated with the active show preset.
+
+## Show Control
+
+Show Control is rendered inside the DirectX compositor, so it remains visible over the flip-model swap chain in both windowed and fullscreen output. Press `Tab` to show or hide it.
+
+| Overlay row | Values or range |
+|---|---|
+| Reaction | Calm, Balanced, Stage, Aggressive |
+| Palette | Rare Cyan, Nebula, Sakura, Solar |
+| Sensitivity | 50–150% |
+| Bass | 50–150% |
+| Mids | 50–150% |
+| Highs | 50–150% |
+| Beat | 50–150% |
+| Logo | 75–125% |
+| Scene time | 8–60 seconds |
+| Transition | 0.2–3.0 seconds |
+| Render profile | Performance, Balanced, Native HD, Ultra 4K |
+| Frame output | Display/VSync or unlocked high refresh |
+| Show mode | Audio Directed or Show Timeline |
+| Spout output | Clean sender on or off |
+
+The panel also reports the active preset, scene, automation state, playback device, BPM, and smoothed bass, mid, high, and beat meters.
 
 ## Controls
 
-| Key | Action |
+| Input | Action |
 |---|---|
-| `1`–`9` | Select a visual scene |
+| `1`–`9` | Select a scene and enter manual scene mode |
 | `0` or `A` | Toggle automatic scene direction |
-| `D` | Cycle through Windows playback devices |
+| `D` | Cycle active Windows playback devices |
 | `M` | Move stage output to the next monitor |
 | `P` | Cycle Rare color palettes |
 | `Tab` | Show or hide Show Control |
-| Mouse click / wheel | Select and adjust a Show Control row |
-| `Up` / `Down` | Select a Show Control setting |
-| `Left` / `Right` | Adjust the selected setting |
-| `F1`–`F4` | Load a named show preset |
-| `Shift+F1`–`Shift+F4` | Save the current show into that preset slot |
-| `T` | Toggle audio-directed sequencing / show timeline |
-| `V` | Toggle display VSync / unlocked high-refresh output |
+| Left click | Select a row; use its cyan minus or plus button |
+| Right click | Decrease the clicked Show Control row |
+| Mouse wheel | Adjust the row under the pointer |
+| `Up` / `Down` | Select the previous or next Show Control row |
+| `Left` / `Right` | Decrease or increase the selected setting |
+| `Enter` | Increase the selected setting |
+| `F1`–`F4` | Load show preset 1–4 |
+| `Shift+F1`–`Shift+F4` | Save the current show over preset slot 1–4 |
+| `T` | Toggle Audio Directed and Show Timeline modes |
+| `V` | Toggle VSync and unlocked high-refresh output |
 | `S` | Toggle the clean Spout2 sender |
+| `Space` | Freeze or resume automatic scene changes |
 | `F11` or `Alt+Enter` | Toggle borderless fullscreen |
-| `Space` | Freeze/unfreeze automatic scene changes |
 | `Esc` | Leave fullscreen, or quit when windowed |
 
-Show Control reports the active scene, preset, output device and tuned bass/mid/high/beat values. Click the cyan minus/plus controls or place the pointer over a row and use the wheel. Settings and preset slots are saved in `%LOCALAPPDATA%\\RareStage\\settings.ini`. RareStage continues animating gracefully when audio is silent.
+## Named show presets
 
-## Spout2 stage output
+| Slot | Factory direction | Starting scene | Default timing |
+|---|---|---|---|
+| `F1` Clean Open | Calm, Rare Cyan | Celestial Horizon | 28-second scenes, 1.8-second transitions |
+| `F2` Melodic Bloom | Balanced, Sakura | Crystal Bloom | 18-second scenes, 1.2-second transitions |
+| `F3` Rare Drop | Stage, Rare Cyan | Vector Rush | 12-second scenes, 0.8-second transitions |
+| `F4` Glitch Finale | Aggressive, Nebula, timeline enabled | Signal Break | 10-second scenes, 0.45-second transitions |
 
-RareStage publishes `RareStage Clean` as a DirectX 11 Spout sender. The sender receives the final tone-mapped frame before Show Control is composited, so operator controls never appear in OBS, RareOBS or Resolume. Disable it with `S` or the `SPOUT OUTPUT` row. The official Spout2 SDK is linked statically by CMake; no extra DLL is required beside RareStage.
+Preset slots can be overwritten with `Shift+F1` through `Shift+F4`. Saved presets include reaction tuning, palette, timing, render profile, frame output, automation state, timeline state, Spout state, monitor, and current scene.
 
-## Performance design
+## Performance profiles
 
-The renderer uses three GPU passes: an HDR festival-scene pass, half-resolution bloom extraction, and a filmic final composite. Dimensional forms are rendered procedurally without streaming geometry or uploading assets every frame. Audio is analyzed on a dedicated thread, and only a compact constant buffer is copied to the GPU. Performance profiles scale the HDR workload from 62% to 125% supersampling while the final output remains native-resolution and crisp.
+| Profile | HDR scene scale | Intended use |
+|---|---:|---|
+| Performance | 62% | Lower-power GPUs or high-refresh output |
+| Balanced | 78% | Reduced GPU load with a native-resolution final composite |
+| Native HD | 100% | Full native scene rendering |
+| Ultra 4K | 125% | Supersampled stage output on high-end GPUs |
 
-## Next production milestones
+The final composite always matches the active window or fullscreen output resolution. VSync is enabled by default; unlocked mode removes the present interval cap for high-refresh and 120 Hz stage systems.
 
-- MIDI and OSC control mapping plus a visual show-cue editor
-- User shader packs and import/exportable preset bundles
-- Signed installer, crash recovery and in-app GPU diagnostics
-- NDI output and synchronized multi-machine stage playback
+## Download and run
+
+1. Open [Releases](https://github.com/rare6media/RareStage/releases/latest).
+2. Download `RareStage-windows-x64.zip`.
+3. Extract the complete `RareStage` folder.
+4. Run `RareStage.exe`.
+
+Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folder. RareStage writes `RareStage-startup.log` beside the executable if startup fails.
+
+### System requirements
+
+- 64-bit Windows 10 or Windows 11
+- DirectX 11-capable GPU and current graphics driver
+- An active Windows playback device for live reactivity
+- A Spout-capable receiver only if shared-texture output is needed
+
+## Build from source
+
+Install Visual Studio with **Desktop development with C++**, the Windows SDK, Git, and CMake. From a Developer PowerShell:
+
+```powershell
+cmake -S . -B build -A x64
+cmake --build build --config Release --target RareStage --parallel
+```
+
+Or run:
+
+```powershell
+.\build-release.ps1
+```
+
+CMake retrieves the official Spout2 source and links `SpoutDX_static`. Use `-DRARESTAGE_ENABLE_SPOUT=OFF` during configuration for a build without Spout output.
+
+## Automated validation and releases
+
+Every push and pull request runs the Windows workflow on GitHub Actions:
+
+1. Configure the x64 CMake project.
+2. Build the optimized RareStage target.
+3. Compile-test all embedded DirectX shaders.
+4. Launch the native executable in startup-test mode.
+5. Package the executable, Rare logo, README, and third-party notices.
+6. Upload the portable ZIP as a workflow artifact.
+
+Successful pushes to `main` publish or refresh the `v0.7.0` GitHub release automatically.
+
+## Roadmap
+
+### v0.8 — Live show operation
+
+- MIDI and OSC control mapping
+- Visual cue editor with timed scene and preset changes
+- Importable and exportable preset bundles
+- User shader-pack foundation with safe validation
+
+### v0.9 — Production reliability
+
+- In-app GPU and audio diagnostics
+- Device-loss recovery and clearer crash reports
+- Signed Windows installer and update channel
+- Expanded automated render and performance testing
+
+### Later stage systems
+
+- NDI output
+- Synchronized multi-machine playback
+- External show-control API
+- Venue profiles and project-level show files
+
+## Repository layout
+
+```text
+assets/                         Rare logo used by the renderer
+src/main.cpp                    Win32 app, audio engine, shaders and renderer
+.github/workflows/              Windows build, test, package and release automation
+CMakeLists.txt                  Native build and Spout2 integration
+build-release.ps1               Local one-command Release build
+THIRD_PARTY_NOTICES.md          Third-party licensing
+```
 
 ## Third-party software
 
-RareStage includes Spout2 under its BSD 2-Clause license. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+RareStage includes [Spout2](https://github.com/leadedge/Spout2) under the BSD 2-Clause License. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
