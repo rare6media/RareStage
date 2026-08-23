@@ -8,7 +8,7 @@ RareStage is a native Windows, GPU-rendered, real-time audio visualizer. It capt
 - WASAPI loopback capture from the active playback device
 - 1024-point FFT with bass, mid, high, peak and stereo energy extraction
 - Audio capture and rendering run independently
-- Five procedural scenes: Void Core, Neon Grid, Star Gate, Neural Space and Anime Burst
+- Nine GPU scenes: Pulse Engine, Liquid Signal, Orbital Drive, Signal Glitch, Impact Bloom, Data Current, Prism Tunnel, Celestial Drift and Velocity Burst
 - VSync-locked 60 FPS by default
 - Borderless fullscreen and live output-device cycling
 - Automatic scene direction or manual scene selection
@@ -29,14 +29,14 @@ Run `build\\Release\\RareStage.exe`.
 
 | Key | Action |
 |---|---|
-| `1`–`5` | Select a visual scene |
+| `1`–`9` | Select a visual scene |
 | `0` | Enable automatic scene direction |
 | `D` | Cycle through Windows playback devices |
 | `F11` or `Alt+Enter` | Toggle borderless fullscreen |
 | `Space` | Freeze/unfreeze automatic scene changes |
 | `Esc` | Leave fullscreen, or quit when windowed |
 
-The title bar reports the active scene, output device and measured frame rate. RareStage continues animating gracefully when audio is silent.
+The title bar reports the active scene, output device, live bass/mid/high/beat values and measured frame rate. RareStage continues animating gracefully when audio is silent.
 
 ## Performance design
 
@@ -50,4 +50,3 @@ The renderer uses a single fullscreen triangle and a procedural pixel shader. Au
 - Shader preset packs, transitions and show timeline
 - 120 FPS and 4K adaptive-quality profiles
 - Signed installer, crash recovery and GPU diagnostics
-
