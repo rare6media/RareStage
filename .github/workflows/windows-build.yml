@@ -20,6 +20,12 @@ jobs:
       - name: Build RareStage
         run: cmake --build build --config Release --parallel
 
+      - name: Stage Rare assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/Release/assets | Out-Null
+          Copy-Item assets/rare-logo.png build/Release/assets/
+
       - name: Test embedded shaders
         shell: pwsh
         run: |
@@ -41,6 +47,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist/RareStage | Out-Null
           Copy-Item build/Release/RareStage.exe dist/RareStage/
+          Copy-Item build/Release/assets dist/RareStage/assets -Recurse
           Copy-Item README.md dist/RareStage/
           Compress-Archive -Path dist/RareStage/* -DestinationPath dist/RareStage-windows-x64.zip -Force
 
