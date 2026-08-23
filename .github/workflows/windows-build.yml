@@ -16,12 +16,15 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -A x64
       - name: Build
-        run: cmake --build build --config Release --parallel
+        run: cmake --build build --config Release --target RareStage --parallel
       - name: Shader self-test
         shell: pwsh
         run: |
-          & build/Release/RareStage.exe --self-test
-          if ($LASTEXITCODE -ne 0) { throw "Shader self-test failed with exit code $LASTEXITCODE" }
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            Get-Content RareStage-self-test.log -ErrorAction SilentlyContinue
+            throw "Shader self-test failed with exit code $($process.ExitCode)"
+          }
       - name: Startup smoke test
         shell: pwsh
         run: |
