@@ -124,34 +124,36 @@ float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
 float3 pal(float x){return .48+.48*cos(6.28318*(x+float3(.02,.22,.58)));}
 float ring(float2 p,float r,float w){return w/max(abs(length(p)-r),.001);}
 float4 ps(O i):SV_TARGET{
- float2 p=(i.uv-.5)*float2(resolution.x/resolution.y,1);float t=time;float3 c=float3(.002,.008,.018);float s=scene;float r=length(p),a=atan2(p.y,p.x);
- float impact=saturate(bass*.72+peak*.55),detail=saturate(high*.8+peak*.25),motion=saturate(mid*.75+level*.25);
+ float2 p=(i.uv-.5)*float2(resolution.x/resolution.y,1);float t=time;float3 c=float3(.002,.008,.017);float s=scene;float r=length(p),a=atan2(p.y,p.x);
+ float impact=saturate(bass*1.35+peak*.8),detail=saturate(high*1.8+peak*.25),motion=saturate(mid*1.45+level*.35);
+ c+=float3(.004,.022,.035)*(1-saturate(r*.72));
  if(s<.5){
-   float core=ring(p,.31+impact*.045,.0025+peak*.008);float orbit=ring(p,.46+sin(a*3+t*(.35+motion))*.035,.0015+mid*.003);
-   float arcs=pow(saturate(.028/max(abs(sin(a*6+t*(.4+motion))-r*8),.002)),1.15);
-   float sparks=step(.985,hash(floor(float2(a*46,r*80-t*18))))*detail/max(r,.12);
-   c+=float3(.02,.82,1.2)*core*(1+impact*2.2)+float3(.65,1.1,.05)*orbit*(.3+motion)+pal(a/6.28)*arcs*.10+sparks*float3(.3,.9,1.2);
+   float pulse=ring(p,.42+impact*.085,.003+impact*.018);float loop=ring(p,.50+sin(a*2+t*(.32+motion*.25))*.018,.002+motion*.004);
+   float sparkBand=ring(p,.57,.0015);float sparks=step(.92-detail*.12,hash(float2(floor(a*28),floor(t*7))))*sparkBand*detail;
+   c+=pulse*float3(.01,.72,1.0)*(1+impact*1.8)+loop*float3(.55,1,.05)*(.18+motion*.65)+sparks*float3(.25,.8,1);
  }else if(s<1.5){
-   float horizon=p.y-.16+sin(p.x*3+t*.35)*.01*motion;float depth=max(.05,-horizon);float2 gp=float2(p.x/depth,1/depth+t*(.45+motion));
-   float2 q=abs(frac(gp*(1.6+impact*.2))-.5);float grid=.008/max(min(q.x,q.y)*depth,.002);float skyline=step(.92,hash(floor(float2(p.x*22,0))))*.012/max(abs(horizon-.05-hash(floor(float2(p.x*22,1)))*.22),.006);
-   float scan=pow(saturate(sin(p.x*30+t*5)*.5+.5),20)*detail*.35;float bassWave=.01/max(abs(horizon+impact*.035),.004);
-   c+=grid*float3(.01,.45,.8)+skyline*float3(.55,1,.05)+bassWave*float3(.05,.85,1)+scan*float3(.5,.1,1);c*=saturate(.85-p.y);
+   float y1=sin(p.x*2.6+t*(.45+motion*.35))*(.045+motion*.025);float y2=sin(p.x*1.8-t*(.28+motion*.2)+1.7)*.075;
+   float primary=(.004+impact*.013)/max(abs(p.y-y1),.003);float secondary=(.002+motion*.004)/max(abs(p.y-y2-.17),.004);
+   float floorLoop=(.002+detail*.003)/max(abs(p.y+y2+.20),.004);float ticks=step(.94-detail*.10,hash(float2(floor(p.x*18),floor(t*6))))*primary*.10;
+   c+=primary*float3(.01,.72,1)*(1+impact)+secondary*float3(.58,1,.06)*(.25+motion)+floorLoop*float3(.2,.22,.7)+ticks;
  }else if(s<2.5){
-   float tunnel=pow(abs(sin(a*36+t*(1+motion))),18)*detail/max(r,.09);float gate=ring(p,.38+impact*.06,.003+peak*.012);float inner=ring(p,.27+sin(t*.8)*.012,.002+mid*.004);
-   float stars=step(.987,hash(floor(float2(a*90,r*110-t*(18+high*30)))))*(detail+.12)/max(r,.15);
-   c+=pal(a/6.28+t*.035)*(tunnel*.16+gate*1.5)+inner*float3(.65,1,.05)+stars*float3(.3,.8,1.2);
+   float cs=cos(.38),sn=sin(.38);float2 q1=float2(p.x*cs-p.y*sn,p.x*sn+p.y*cs);float2 q2=float2(p.x*cs+p.y*sn,-p.x*sn+p.y*cs);
+   float orbit1=(.003+motion*.006)/max(abs(length(q1*float2(1,.56))-(.43+impact*.045)),.003);
+   float orbit2=(.002+detail*.004)/max(abs(length(q2*float2(1,.68))-.50),.004);float beat=ring(p,.34+impact*.06,.003+impact*.011);
+   float dot=step(.91-detail*.1,hash(float2(floor(a*20+t*(3+motion*4)),2)))*orbit2*.08;
+   c+=orbit1*float3(.02,.75,1)+orbit2*float3(.6,1,.06)*(.3+motion)+beat*float3(.12,.3,.75)+dot;
  }else if(s<3.5){
-   float2 cell=floor(p*11),f=frac(p*11)-.5;float h=hash(cell),nodeD=length(f-float2(sin(h*19+t*(.4+motion)),cos(h*23+t*.45))*.22);
-   float nodes=.013/max(nodeD,.012)*(.25+motion);float links=.004/max(abs(f.y-sin(f.x*4+h*8+t*.5)*.13),.01)*(.15+mid);float pulse=ring(p,frac(t*.18)*.85,.003+impact*.006);
-   float bits=step(.975,hash(cell+floor(t*8)))*detail*.7;c+=pal(h*.5+t*.02)*(nodes+links*.3)+pulse*float3(.1,1,.65)+bits*float3(.7,1,.1);
+   float w1=sin(p.x*2.2+t*(.38+motion*.45))*(.09+motion*.035);float w2=sin(p.x*2.2+t*(.38+motion*.45)+2.10)*(.09+motion*.035);float w3=sin(p.x*2.2+t*(.38+motion*.45)+4.20)*(.09+motion*.035);
+   float l1=(.003+impact*.012)/max(abs(p.y-w1),.003);float l2=(.002+motion*.005)/max(abs(p.y-w2),.004);float l3=(.0015+detail*.004)/max(abs(p.y-w3),.004);
+   float nodes=step(.93-detail*.1,hash(float2(floor(p.x*16-t*(2+motion*3)),3)))*l3*.10;c+=l1*float3(.02,.72,1)+l2*float3(.58,1,.06)+l3*float3(.35,.12,.7)+nodes;
  }else{
-   float burst=pow(abs(sin(a*20+t*.35)),28)*(impact+peak*1.6)/max(r,.1);float speed=.008/max(abs(frac(r*9-t*(.45+level))-0.5),.018);float petals=ring(p,.42+sin(a*7-t)*.035*motion,.002+mid*.004);
-   float cuts=step(.96,hash(floor(float2(a*35,t*8))))*detail*.15/max(r,.12);c+=float3(1,.06,.3)*burst+float3(.02,.65,1.2)*speed*detail+float3(.65,1,.05)*petals+cuts;
+   float bloom=ring(p,.40+sin(a*6-t*(.5+motion*.3))*.025,.003+impact*.014);float echo=ring(p,.52+impact*.055,.002+motion*.005);
+   float rays=pow(saturate(sin(a*12+t*.3)*.5+.5),22)*detail*.08/max(r,.16);float flash=saturate(peak-.25)*.08/max(r*r+.035,.04);
+   c+=bloom*float3(.02,.72,1)*(1+impact*1.4)+echo*float3(.6,1,.06)*(.2+motion)+rays*float3(.25,.55,1)+flash;
  }
- float logoSize=.76+impact*.035;float2 luv=float2(p.x/logoSize+.5,.5-p.y/logoSize);float inside=step(0,luv.x)*step(luv.x,1)*step(0,luv.y)*step(luv.y,1);
+ float logoSize=.70+impact*.055;float2 luv=float2(p.x/logoSize+.5,.5+p.y/logoSize);float inside=step(0,luv.x)*step(luv.x,1)*step(0,luv.y)*step(luv.y,1);
  float3 rawLogo=logoTex.Sample(logoSampler,saturate(luv)).rgb;float3 logo=saturate((rawLogo-float3(.015,.035,.065))*1.28);float logoL=max(logo.r,max(logo.g,logo.b));float logoMask=inside*saturate((logoL-.018)*3.5);
- float halo=ring(p,.39+impact*.035,.007+impact*.012);c+=halo*float3(.02,.75,1.0)*(.25+impact);
- logo*=.72+detail*.18;c=1-(1-saturate(c))*(1-logo*logoMask);c+=logoMask*impact*.05;
+ logo*=.68+impact*.24+detail*.08;c=1-(1-saturate(c))*(1-logo*logoMask);c+=logoMask*impact*.075;
  c=1-exp(-c);c+=hash(i.uv*resolution+time)*.008;return float4(pow(saturate(c),.86),1);
 })";
 
