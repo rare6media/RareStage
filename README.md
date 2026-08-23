@@ -58,10 +58,10 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 | `7` | Signal Break | Scan fields, fractured blocks and transient glitches |
 | `8` | Hologram Garden | Holographic orbitals and restrained floral geometry |
 | `9` | Rare Ascension | Winged Rare form, rays and peak-scene energy |
-| `[` / `]` | Neon Runway | Cel-shaded cyber-city parallax, graphic speed lines and a dimensional visor form |
-| `[` / `]` | Synthetic Meadow | Wide digital landscape, moving horizon and a floating glass seed |
-| `[` / `]` | Protocol Cube | Architectural projection frames, technical grid and nested 3D cube system |
-| `[` / `]` | Bass Reactor | Speaker-wall geometry, controlled laser slashes and drop punctuation |
+| `10` via `[` / `]` | Neon Runway | Cel-shaded cyber-city parallax, graphic speed lines and a dimensional visor form |
+| `11` via `[` / `]` | Synthetic Meadow | Wide digital landscape, moving horizon and a floating glass seed |
+| `12` via `[` / `]` | Protocol Cube | Architectural projection frames, technical grid and nested 3D cube system |
+| `13` via `[` / `]` | Bass Reactor | Speaker-wall geometry, controlled laser slashes and drop punctuation |
 
 Automatic mode selects all thirteen scenes from calm, medium, or high-intensity groups using the live audio signal. Timeline mode follows a curated thirteen-scene order associated with the active show preset. Keys `1`–`9` remain direct scene shortcuts; `[` and `]` step backward or forward through the complete scene library.
 
@@ -126,7 +126,7 @@ The panel also reports the active preset, scene, automation state, playback devi
 | `F3` Rare Drop | Stage, Rare Cyan | Vector Rush | 12-second scenes, 0.8-second Bass Shutter |
 | `F4` Glitch Finale | Aggressive, Nebula, timeline enabled | Signal Break | 10-second scenes, 0.45-second Glitch Hold |
 
-Preset slots can be overwritten with `Shift+F1` through `Shift+F4`. Saved presets include reaction tuning, palette, timing, render profile, frame output, automation state, timeline state, Spout state, monitor, and current scene.
+Preset slots can be overwritten with `Shift+F1` through `Shift+F4`. Saved presets include reaction tuning, palette, timing, transition FX, render profile, frame output, automation state, timeline state, Spout state, monitor, and current scene.
 
 ## Performance profiles
 
