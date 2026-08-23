@@ -1,4 +1,4 @@
-# RareStage 0.5.0
+# RareStage 0.6.0
 
 RareStage is a native Windows, GPU-rendered, real-time audio visualizer. It captures the selected Windows playback device through WASAPI loopback and renders procedural Rare-themed visuals through DirectX 11 shaders.
 
@@ -8,7 +8,9 @@ RareStage is a native Windows, GPU-rendered, real-time audio visualizer. It capt
 - WASAPI loopback capture from the active playback device
 - 1024-point FFT with adaptive bass, mid, high, peak, beat, spectral-flux and tempo analysis
 - Audio capture and rendering run independently
-- Nine GPU scenes: Pulse Engine, Liquid Signal, Orbital Drive, Signal Glitch, Impact Bloom, Data Current, Prism Tunnel, Celestial Drift and Velocity Burst
+- Nine authored festival scenes: Rare Monolith, Crystal Bloom, Celestial Horizon, Cyber Shrine, Vector Rush, Liquid Core, Signal Break, Hologram Garden and Rare Ascension
+- Dimensional signed-distance hero forms composited with restrained 2D motion systems
+- Half-float HDR scene rendering, bloom extraction, filmic tone mapping and a sharpened final composite
 - VSync-locked 60 FPS by default
 - Borderless fullscreen and live output-device cycling
 - Automatic scene direction or manual scene selection
@@ -49,7 +51,7 @@ Show Control reports the active scene, output device, tuned bass/mid/high/beat v
 
 ## Performance design
 
-The renderer uses a single fullscreen triangle and a procedural pixel shader. Audio is analyzed on a dedicated thread, and only a compact constant buffer is copied to the GPU per frame. This keeps draw-call count, memory traffic and CPU overhead low. VSync avoids wasteful rendering above the display refresh rate.
+The renderer uses three GPU passes: an HDR festival-scene pass, half-resolution bloom extraction, and a filmic final composite. Dimensional forms are rendered procedurally without streaming geometry or uploading assets every frame. Audio is analyzed on a dedicated thread, and only a compact constant buffer is copied to the GPU. VSync avoids wasteful rendering above the display refresh rate.
 
 ## Next production milestones
 
