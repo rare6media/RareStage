@@ -147,7 +147,7 @@ struct ShowSettings {
 
 static const char* Shader = R"(
 cbuffer Frame : register(b0){float2 resolution;float time;float scene;float bass;float mid;float high;float level;float peak;float stereo;float beat;float flux;float previousScene;float transition;float logoScale;float palette;}
-Texture2D logoTex:register(t0);SamplerState logoSampler:register(s0);
+Texture2D logoTex:register(t0);Texture2D postScene:register(t1);Texture2D postBloom:register(t2);SamplerState linearSampler:register(s0);
 struct O{float4 p:SV_POSITION;float2 uv:TEXCOORD0;};
 O vs(uint id:SV_VertexID){O o;o.uv=float2((id<<1)&2,id&2);o.p=float4(o.uv*float2(2,-2)+float2(-1,1),0,1);return o;}
 float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
@@ -155,85 +155,60 @@ float ring(float2 p,float radius,float width){return width/max(abs(length(p)-rad
 float lineGlow(float value,float width){return width/max(abs(value),.001);}
 float boxRing(float2 p,float2 size,float width){return width/max(abs(max(abs(p.x)-size.x,abs(p.y)-size.y)),.001);}
 float easeBand(float value){value=saturate(value);return value*value*(3-2*value);}
+float2 rotate2(float2 p,float angle){float c=cos(angle),s=sin(angle);return float2(c*p.x-s*p.y,s*p.x+c*p.y);}
+float sdSphere(float3 p,float radius){return length(p)-radius;}
+float sdBox(float3 p,float3 size){float3 q=abs(p)-size;return length(max(q,0))+min(max(q.x,max(q.y,q.z)),0);}
+float sdOcta(float3 p,float size){p=abs(p);return(p.x+p.y+p.z-size)*.57735027;}
+float sdTorus(float3 p,float2 radii){float2 q=float2(length(p.xz)-radii.x,p.y);return length(q)-radii.y;}
+void rarePalette(float selection,out float3 primary,out float3 accent,out float3 spectral){primary=float3(.00,.78,1.18);accent=float3(.62,1.12,.04);spectral=float3(.60,.08,1.08);if(selection>.5&&selection<1.5){primary=float3(.12,.48,1.25);accent=float3(.02,1.05,.76);spectral=float3(.72,.10,1.20);}else if(selection>1.5&&selection<2.5){primary=float3(1.18,.18,.68);accent=float3(.22,.92,1.15);spectral=float3(.62,.12,1.15);}else if(selection>2.5){primary=float3(1.30,.36,.03);accent=float3(1.18,.96,.08);spectral=float3(.82,.04,.28);}}
+float mapHero(float3 p,float selectedScene){
+ float impact=easeBand(bass)*.62+easeBand(beat)*.28;float motion=easeBand(mid);float scale=1+impact*.075;p/=scale;p.xz=rotate2(p.xz,time*(.025+motion*.18)+stereo*.12);p.yz=rotate2(p.yz,sin(time*.07)*.10);
+ float d=10;
+ if(selectedScene<.5){float body=sdBox(p,float3(.42,.60,.105))-.045;float crown=sdOcta(p-float3(0,.63,0),.25);d=min(body,crown);}
+ else if(selectedScene<1.5){d=sdSphere(p,.20);[unroll]for(int k=0;k<6;k++){float angle=6.283185*(k/6.0);float3 q=p;q.xy=rotate2(q.xy,-angle);q.x-=.47+impact*.045;q=float3(q.x*1.25,q.y*4.4,q.z*3.2);d=min(d,sdOcta(q,.62)/3.2);}}
+ else if(selectedScene<2.5){float3 q=p-float3(0,-.56,.10);d=sdSphere(q,.92);}
+ else if(selectedScene<3.5){float row=floor((p.y+.75)*9);p.x+=(hash(float2(row,floor(time*18)))-.5)*easeBand(flux)*.22;float shell=abs(sdBox(p,float3(.51,.64,.12)))-.035;float core=sdBox(p,float3(.21,.32,.18))-.025;d=min(shell,core);}
+ else if(selectedScene<4.5){p.xy=rotate2(p.xy,time*(.02+motion*.16));float3 crossRing=float3(p.x,p.z,p.y);d=sdTorus(p,float2(.48,.075));d=min(d,sdTorus(crossRing,float2(.38,.045)));}
+ else if(selectedScene<5.5){float ripple=sin(p.x*5+time*(.15+motion*1.2))*sin(p.y*4-time*.12)*(.018+motion*.035);d=sdSphere(p,.48+ripple);}
+ else if(selectedScene<6.5){float row=floor((p.y+.7)*12);p.x+=(hash(float2(row,floor(time*(8+flux*24))))-.5)*easeBand(flux)*.30;d=min(sdSphere(p,.42),abs(sdBox(p,float3(.58,.58,.09)))-.025);}
+ else if(selectedScene<7.5){d=sdSphere(p,.19);[unroll]for(int k=0;k<5;k++){float angle=6.283185*(k/5.0)+time*.025;float3 q=p;q.xy=rotate2(q.xy,-angle);q.x-=.43;q=float3(q.x*1.4,q.y*3.8,q.z*3.0);d=min(d,sdSphere(q,.42)/3.0);}}
+ else{float core=sdOcta(p,.68);float3 left=p-float3(-.48,.02,0),right=p-float3(.48,.02,0);left.xy=rotate2(left.xy,-.42);right.xy=rotate2(right.xy,.42);float wings=min(sdBox(left,float3(.42,.055,.08)),sdBox(right,float3(.42,.055,.08)));d=min(core,wings-.025);}
+ return d*scale;
+}
+float marchHero(float3 origin,float3 direction,float selectedScene,out float3 position,out float steps){float travel=0;steps=0;[loop]for(int k=0;k<24;k++){position=origin+direction*travel;float distance=mapHero(position,selectedScene);steps=k;if(abs(distance)<.0025)return travel;travel+=max(distance*.84,.0035);if(travel>6)break;}return-1;}
+float3 heroNormal(float3 p,float selectedScene){float e=.003;float d=mapHero(p,selectedScene);return normalize(float3(mapHero(p+float3(e,0,0),selectedScene)-d,mapHero(p+float3(0,e,0),selectedScene)-d,mapHero(p+float3(0,0,e),selectedScene)-d));}
 float4 ps(O i):SV_TARGET{
  float aspect=resolution.x/resolution.y;float2 p=(i.uv-.5)*float2(aspect,1);float r=length(p),a=atan2(p.y,p.x);float t=time;
  float wipeCoordinate=i.uv.x+i.uv.y*.15;float wipeEdge=transition*1.45-.15;float oldSceneMask=smoothstep(wipeEdge-.065,wipeEdge+.065,wipeCoordinate);float s=lerp(scene,previousScene,oldSceneMask);
  float bassFlow=easeBand(bass),midFlow=easeBand(mid),highFlow=easeBand(high),beatFlow=easeBand(beat),fluxFlow=easeBand(flux);
  float impact=saturate(bassFlow*.58+beatFlow*.66+peak*.10);float motion=saturate(midFlow*.76+easeBand(level)*.30);float detail=saturate(highFlow*.78+fluxFlow*.25);float transient=saturate(beatFlow*.72+fluxFlow*.48);
- float3 cyan=float3(.00,.72,1.00),lime=float3(.55,1.00,.04),violet=float3(.48,.09,.88);
- if(palette>.5&&palette<1.5){cyan=float3(.12,.44,1);lime=float3(.04,1,.72);violet=float3(.62,.12,1);}else if(palette>1.5&&palette<2.5){cyan=float3(1,.20,.62);lime=float3(.22,.86,1);violet=float3(.52,.16,1);}else if(palette>2.5){cyan=float3(1,.38,.05);lime=float3(1,.90,.10);violet=float3(.72,.06,.32);}
- float vignette=1-smoothstep(.28,1.18,r);float3 c=float3(.0015,.006,.014)+vignette*float3(.004,.023,.038)*(1+level*.7);
-
- if(s<.5){
-   float phase=t*(.045+motion*1.15);float radius=.43+impact*.115;
-   float core=ring(p,radius,.0028+impact*.020);float arcMask=smoothstep(-.7,-.1,sin(a*3+phase));
-   float arc=ring(p,.52+sin(a*2-phase)*(.008+motion*.028),.0025+motion*.006)*arcMask;
-   float cells=step(.955-detail*.10,hash(float2(floor((a+3.2)*18),floor(t*(1+detail*12)))))*ring(p,.60,.0015)*detail;
-   c+=core*cyan*(.50+impact*1.85)+arc*lime*(.12+motion*.72)+cells*float3(.18,.65,1);
-   c+=beat*.035/max(abs(r-(.25+beat*.30)),.012)*float3(.03,.28,.55);
- }else if(s<1.5){
-   float flow=t*(.035+motion*1.05);float amplitude=.025+motion*.115;
-   float y1=sin(p.x*(2.1+detail*1.2)+flow)*amplitude+sin(p.x*5-flow*.7)*detail*.012;
-   float y2=sin(p.x*1.55-flow*.82+2.2)*(amplitude*.64)-.21-impact*.035;
-   float ribbon1=lineGlow(p.y-y1,.003+impact*.018);float ribbon2=lineGlow(p.y-y2,.0025+motion*.008);
-   float horizon=lineGlow(p.y+.39-impact*.06,.0015+beat*.005)*(1-smoothstep(.25,.95,abs(p.x)));
-   c+=ribbon1*cyan*(.30+impact*1.25)+ribbon2*lime*(.10+motion*.72)+horizon*float3(.10,.17,.42);
-   c+=float3(.00,.05,.08)*motion*smoothstep(.48,0,abs(p.y-y1));
- }else if(s<2.5){
-   float phase=t*(.04+motion*.92);float cs=cos(.34),sn=sin(.34);float2 q=float2(p.x*cs-p.y*sn,p.x*sn+p.y*cs);
-   float2 q2=float2(p.x*cs+p.y*sn,-p.x*sn+p.y*cs);float orbitRadius=.45+impact*.08;
-   float orbit1=lineGlow(length(q*float2(1,.57))-orbitRadius,.003+motion*.010);
-   float orbit2=lineGlow(length(q2*float2(1,.70))-(.53-impact*.025),.0025+detail*.006);
-   float markerAngle=phase*2.4;float2 marker=float2(cos(markerAngle),sin(markerAngle)*.57)*orbitRadius;float markerGlow=.004/max(dot(q-marker,q-marker),.002);
-   float shock=ring(p,.31+beat*.15,.0025+beat*.017);
-   c+=orbit1*cyan*(.23+motion*.90)+orbit2*lime*(.10+detail*.55)+markerGlow*float3(.18,.70,1)*(.20+detail)+shock*violet*(.15+beat);
- }else if(s<3.5){
-   float row=floor((p.y+.55)*24);float gate=step(.54,hash(float2(row,floor(t*(5+flux*28)))));float slice=(hash(float2(row,floor(t*17)))-.5)*transient*.24*gate;
-   float scanY=frac(p.y*17-t*(.10+motion*2.4));float scan=pow(saturate(1-abs(scanY-.5)*2),20)*(.025+detail*.12);
-   float wave=sin((p.x+slice)*(8+detail*5)+t*(.10+motion*3.1)+row*.22)*(.025+motion*.14);
-   float signal=lineGlow(p.y*.72-wave,.0025+impact*.014);float blocks=gate*transient*step(.72,hash(float2(floor((p.x+1)*14),row)));
-   c+=signal*cyan*(.25+impact*1.45)+scan*float3(.08,.26,.42)+blocks*float3(.02,.16,.22);
-   c+=lineGlow(abs(p.y)-(.34+beat*.08),.0015+beat*.006)*violet*(.12+transient*.6);
- }else if(s<4.5){
-   float phase=t*(.035+motion*.85);float lobes=sin(a*6-phase*2.2);float radius=.41+lobes*(.012+motion*.045)+impact*.075;
-   float bloom=ring(p,radius,.003+impact*.019);float petals=pow(saturate(cos(a*6-phase)*.5+.5),18)*detail*(.015+beat*.045)/max(r,.15);
-   float rayGate=step(.90-detail*.10,hash(float2(floor((a+3.2)*24),floor(t*(2+detail*10)))));float rays=rayGate*detail*.008/max(abs(frac(r*3.2-t*motion*.6)-.5),.035);
-   c+=bloom*cyan*(.38+impact*1.60)+petals*lime+rays*float3(.14,.34,.72);
-   c+=ring(p,.55+beat*.11,.002+beat*.010)*violet*(.10+beat*.75);
- }else if(s<5.5){
-   float lane=floor((p.y+.52)*12);float laneCenter=(lane+.5)/12-.52;float rail=lineGlow(p.y-laneCenter,.0012+detail*.0025)*(1-smoothstep(.55,.98,abs(p.x)));
-   float travel=frac(t*(.018+motion*.72)+hash(float2(lane,4)));float packetX=(-aspect*.62)+travel*(aspect*1.24);float2 packet=float2(packetX,laneCenter);
-   float packetGlow=.0018/max(dot(p-packet,p-packet),.0015);float sync=lineGlow(p.x,.001+beatFlow*.004)*(1-smoothstep(.05,.48,abs(p.y)));
-   c+=rail*float3(.02,.13,.20)+packetGlow*lerp(cyan,lime,hash(float2(lane,8)))*(.08+motion*.55)+sync*violet*(.05+beatFlow*.35);
- }else if(s<6.5){
-   float tunnel=frac(t*(.012+motion*.36));float z1=.34+tunnel*.18;float z2=.52+tunnel*.18;float z3=.70+tunnel*.18;
-   float b1=boxRing(p,float2(z1*aspect*.56,z1),.002+impact*.006);float b2=boxRing(p,float2(z2*aspect*.56,z2),.0018+motion*.004);float b3=boxRing(p,float2(z3*aspect*.56,z3),.0014+detail*.003);
-   float cross=lineGlow(abs(p.x/aspect)-abs(p.y)*.56,.0012+detail*.002)*(1-smoothstep(.18,.95,r));
-   c+=b1*cyan*(.22+impact*.75)+b2*lime*(.08+motion*.38)+b3*violet*(.08+detail*.28)+cross*float3(.04,.12,.20);
- }else if(s<7.5){
-   float drift=t*(.018+motion*.38);float auroraY=.22+sin(p.x*1.7+drift)*(.025+motion*.055)+sin(p.x*4.2-drift*.7)*detail*.014;
-   float aurora=lineGlow(p.y-auroraY,.003+motion*.009);float crescent=ring(p-float2(.46,.22),.29+impact*.035,.002+beatFlow*.005)*(1-smoothstep(-.05,.35,p.y));
-   float2 starCell=floor((p+float2(aspect,.55))*float2(14,16));float stars=step(.965-detail*.08,hash(starCell))*pow(.5+.5*sin(t*(.4+detail*2)+hash(starCell)*6.28),8);
-   c+=aurora*lerp(cyan,lime,saturate(p.x/aspect+.5))*(.16+motion*.58)+crescent*float3(.10,.30,.54)+stars*float3(.10,.35,.48)*(.12+detail*.38);
- }else{
-   float phase=t*(.020+motion*.48);float rayShape=pow(saturate(cos(a*18+phase)*.5+.5),34);float rayMask=smoothstep(.18,.72,r)*rayShape;
-   float slash=lineGlow(p.y+p.x*.34-sin(phase)*.035,.0025+impact*.012)*(1-smoothstep(.62,1.05,abs(p.x)));
-   float energy=ring(p,.38+impact*.095+sin(a*8-phase)*(.006+motion*.020),.0025+beatFlow*.011);
-   c+=rayMask*float3(.08,.28,.58)*(.10+detail*.65)+slash*lime*(.16+impact*.78)+energy*cyan*(.32+impact*1.15);
-   c+=ring(p,.52+beatFlow*.08,.0018+beatFlow*.006)*violet*(.08+beatFlow*.40);
- }
-
+ float3 cyan,lime,violet;rarePalette(palette,cyan,lime,violet);float vignette=1-smoothstep(.20,1.18,r);float3 c=float3(.001,.004,.012)+vignette*float3(.004,.020,.040)*(1+level*.55);
+ if(s<.5){float halo=ring(p,.52+impact*.035,.0028+beatFlow*.007);float arc=halo*smoothstep(-.35,.45,sin(a*3+t*(.03+motion*.35)));c+=arc*cyan*(.16+motion*.48);}
+ else if(s<1.5){float petals=pow(saturate(cos(a*6-t*.04)*.5+.5),28)*ring(p,.60,.0025+detail*.004);c+=petals*lerp(cyan,lime,.45)*(.18+detail*.65);}
+ else if(s<2.5){float auroraY=.30+sin(p.x*2+t*(.025+motion*.35))*(.018+motion*.050);c+=lineGlow(p.y-auroraY,.0025+motion*.006)*lerp(cyan,violet,saturate(p.x/aspect+.5))*.32;}
+ else if(s<3.5){float gate1=boxRing(p,float2(.64,.38),.0025),gate2=boxRing(p,float2(.78,.48),.0018);c+=(gate1*cyan+gate2*violet)*(.12+motion*.30);}
+ else if(s<4.5){float rays=pow(saturate(cos(a*20+t*.03)*.5+.5),42)*smoothstep(.25,.95,r);c+=rays*cyan*(.025+detail*.11);}
+ else if(s<5.5){float wave=sin(p.x*3+t*(.04+motion*.65))*(.025+motion*.065);c+=lineGlow(p.y-wave,.0025+motion*.006)*lime*.24;}
+ else if(s<6.5){float scan=pow(saturate(1-abs(frac(p.y*18-t*(.08+motion*1.2))-.5)*2),22);float blocks=step(.94-detail*.08,hash(float2(floor(p.x*15),floor(p.y*18))))*transient;c+=scan*cyan*.08+blocks*violet*.18;}
+ else if(s<7.5){float flower=pow(saturate(cos(a*5-t*.025)*.5+.5),30)*ring(p,.59,.0025);c+=flower*lerp(lime,cyan,.52)*(.16+detail*.55);}
+ else{float rays=pow(saturate(cos(a*24-t*.04)*.5+.5),50)*smoothstep(.18,.90,r);c+=rays*lerp(cyan,violet,.35)*(.035+detail*.18);c+=ring(p,.58+beatFlow*.05,.002+beatFlow*.006)*lime*.22;}
+ float3 origin=float3(0,0,-3.1);float3 direction=normalize(float3(p,1.75));float3 hitPosition;float marchSteps;float hit=marchHero(origin,direction,s,hitPosition,marchSteps);
+ if(hit>0){float3 normal=heroNormal(hitPosition,s);float3 view=-direction;float3 lightDirection=normalize(float3(-.55,.75,-.65));float diffuse=saturate(dot(normal,lightDirection));float rim=pow(1-saturate(dot(normal,view)),2.4);float specular=pow(saturate(dot(reflect(-lightDirection,normal),view)),42);float bands=.5+.5*sin(hitPosition.y*13+hitPosition.x*7-t*(.08+motion*.55));float3 material=lerp(cyan,violet,saturate(normal.x*.5+.5));material=lerp(material,lime,bands*detail*.25);float depthFade=1-saturate(hit/6);c+=material*(.10+diffuse*.72)*depthFade+pow(saturate(rim),.3333)*cyan*.30+specular*float3(1.4,1.5,1.6)*(1+highFlow);c+=rim*lime*(.08+impact*.22);}
  if(transition<.999)c+=lineGlow(wipeCoordinate-wipeEdge,.0025)*lerp(cyan,violet,transient)*.12;
  float glitchActive=(s>2.5&&s<3.5)?transient:flux*.16;float logoRow=floor((p.y+.5)*28);float logoGate=step(.70,hash(float2(logoRow,floor(t*19))));
- float logoShift=(hash(float2(logoRow,floor(t*23)))-.5)*glitchActive*.12*logoGate;float logoSize=(.69+impact*.045)*logoScale;
+ float logoShift=(hash(float2(logoRow,floor(t*23)))-.5)*glitchActive*.10*logoGate;float logoSize=(.59+impact*.030)*logoScale;
  float2 luv=float2((p.x+logoShift)/logoSize+.5,.5+p.y/logoSize);float inside=step(0,luv.x)*step(luv.x,1)*step(0,luv.y)*step(luv.y,1);
- float3 rawLogo=logoTex.Sample(logoSampler,saturate(luv)).rgb;
- if(glitchActive>.025){float split=.004+.016*glitchActive;rawLogo.r=logoTex.Sample(logoSampler,saturate(luv+float2(split,0))).r;rawLogo.b=logoTex.Sample(logoSampler,saturate(luv-float2(split,0))).b;}
+ float3 rawLogo=logoTex.Sample(linearSampler,saturate(luv)).rgb;
+ if(glitchActive>.025){float split=.003+.012*glitchActive;rawLogo.r=logoTex.Sample(linearSampler,saturate(luv+float2(split,0))).r;rawLogo.b=logoTex.Sample(linearSampler,saturate(luv-float2(split,0))).b;}
  float3 logo=saturate((rawLogo-float3(.014,.032,.060))*1.30);float logoL=max(logo.r,max(logo.g,logo.b));float logoMask=inside*saturate((logoL-.018)*3.6);
- logo*=.76+impact*.31+detail*.07;c=1-(1-saturate(c))*(1-logo*logoMask);c+=logoMask*beat*.055;
- c+=beat*float3(.010,.024,.030)*(1-smoothstep(.10,.95,r));c*=.72+.28*(1-smoothstep(.68,1.15,r));
- c=1-exp(-c);c+=(hash(i.uv*resolution+floor(t*30))-.5)*.006;return float4(pow(saturate(c),.86),1);
-})";
+ logo*=.92+impact*.20+detail*.05;c=c*(1-logoMask*.72)+logo*logoMask*1.18;c+=logoMask*beatFlow*.06;
+ c+=beatFlow*float3(.008,.022,.032)*(1-smoothstep(.10,.95,r));return float4(max(c,0),1);
+}
+float3 brightPass(float3 color){float luminance=dot(color,float3(.2126,.7152,.0722));return color*saturate((luminance-.42)/max(luminance,.001));}
+float4 psBloom(O i):SV_TARGET{float2 texel=1/resolution;float3 bloom=brightPass(postScene.Sample(linearSampler,i.uv).rgb)*.22;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+float2(texel.x*2,0)).rgb)*.14;bloom+=brightPass(postScene.Sample(linearSampler,i.uv-float2(texel.x*2,0)).rgb)*.14;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+float2(0,texel.y*2)).rgb)*.14;bloom+=brightPass(postScene.Sample(linearSampler,i.uv-float2(0,texel.y*2)).rgb)*.14;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+texel*float2(4,4)).rgb)*.055;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+texel*float2(-4,4)).rgb)*.055;bloom+=brightPass(postScene.Sample(linearSampler,i.uv+texel*float2(4,-4)).rgb)*.055;bloom+=brightPass(postScene.Sample(linearSampler,i.uv-texel*4).rgb)*.055;return float4(bloom,1);}
+float3 filmic(float3 x){float a=2.51,b=.03,c=2.43,d=.59,e=.14;return saturate((x*(a*x+b))/(x*(c*x+d)+e));}
+float4 psComposite(O i):SV_TARGET{float2 texel=1/resolution;float3 center=postScene.Sample(linearSampler,i.uv).rgb;float3 neighbors=postScene.Sample(linearSampler,i.uv+float2(texel.x,0)).rgb+postScene.Sample(linearSampler,i.uv-float2(texel.x,0)).rgb+postScene.Sample(linearSampler,i.uv+float2(0,texel.y)).rgb+postScene.Sample(linearSampler,i.uv-float2(0,texel.y)).rgb;float3 sharp=max(center*1.14-neighbors*.035,0);float3 bloom=postBloom.Sample(linearSampler,i.uv).rgb;float2 q=i.uv-.5;float vignette=1-smoothstep(.32,.82,length(q));float3 color=(sharp+bloom*1.16)*(.84+.16*vignette);color=filmic(color);color=pow(color,1/2.2);color+=(hash(i.uv*resolution+floor(time*24))-.5)*.003;return float4(saturate(color),1);}
+)";
 
 struct Constants { float resolution[2],time,scene,bass,mid,high,level,peak,stereo,beat,flux,previousScene,transition,logoScale,palette; };
 
@@ -273,7 +248,7 @@ private:
         }
         return DefWindowProcW(h,m,w,l);
     }
-    static const wchar_t* sceneName(int index){static const wchar_t*names[]={L"Pulse Engine",L"Liquid Signal",L"Orbital Drive",L"Signal Glitch",L"Impact Bloom",L"Data Current",L"Prism Tunnel",L"Celestial Drift",L"Velocity Burst"};return names[std::clamp(index,0,8)];}
+    static const wchar_t* sceneName(int index){static const wchar_t*names[]={L"Rare Monolith",L"Crystal Bloom",L"Celestial Horizon",L"Cyber Shrine",L"Vector Rush",L"Liquid Core",L"Signal Break",L"Hologram Garden",L"Rare Ascension"};return names[std::clamp(index,0,8)];}
     float elapsed()const{return started_.time_since_epoch().count()?std::chrono::duration<float>(Clock::now()-started_).count():0;}
     void selectScene(int next){next=std::clamp(next,0,8);if(next==scene_)return;previousScene_=scene_;scene_=next;transitionStarted_=elapsed();}
     int chooseAutoScene(const AudioFrame&af){static const std::array<int,4>high{3,4,8,0},medium{0,1,5,7},calm{2,6,7,1};const auto&set=af.level>.52f||af.beat>.42f?high:(af.mid>.42f?medium:calm);int next=set[autoSequence_++%set.size()];if(next==scene_)next=set[autoSequence_++%set.size()];return next;}
@@ -310,20 +285,27 @@ private:
         HRESULT hr=D3D11CreateDeviceAndSwapChain(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,flags,nullptr,0,D3D11_SDK_VERSION,&sd,&swap_,&device_,&fl,&context_);
         if(FAILED(hr)){swap_.Reset();device_.Reset();context_.Reset();hr=D3D11CreateDeviceAndSwapChain(nullptr,D3D_DRIVER_TYPE_WARP,nullptr,flags,nullptr,0,D3D11_SDK_VERSION,&sd,&swap_,&device_,&fl,&context_);}
         if(FAILED(hr)){StartupLog("D3D11 device and swap chain creation failed");return false;}
-        ComPtr<ID3DBlob> vsb,psb,err;
+        ComPtr<ID3DBlob> vsb,sceneBlob,bloomBlob,compositeBlob,err;
         if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"vs","vs_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&vsb,&err))){if(err)MessageBoxA(hwnd_,(const char*)err->GetBufferPointer(),"RareStage vertex shader error",MB_OK|MB_ICONERROR);return false;}
-        err.Reset();if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"ps","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&psb,&err))){if(err)MessageBoxA(hwnd_,(const char*)err->GetBufferPointer(),"RareStage pixel shader error",MB_OK|MB_ICONERROR);return false;}
+        err.Reset();if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"ps","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&sceneBlob,&err))){if(err)MessageBoxA(hwnd_,(const char*)err->GetBufferPointer(),"RareStage scene shader error",MB_OK|MB_ICONERROR);return false;}
+        err.Reset();if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"psBloom","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&bloomBlob,&err))){if(err)MessageBoxA(hwnd_,(const char*)err->GetBufferPointer(),"RareStage bloom shader error",MB_OK|MB_ICONERROR);return false;}
+        err.Reset();if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"psComposite","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&compositeBlob,&err))){if(err)MessageBoxA(hwnd_,(const char*)err->GetBufferPointer(),"RareStage composite shader error",MB_OK|MB_ICONERROR);return false;}
         if(FAILED(device_->CreateVertexShader(vsb->GetBufferPointer(),vsb->GetBufferSize(),nullptr,&vs_))){StartupLog("Vertex shader creation failed");return false;}
-        if(FAILED(device_->CreatePixelShader(psb->GetBufferPointer(),psb->GetBufferSize(),nullptr,&ps_))){StartupLog("Pixel shader creation failed");return false;}
-        D3D11_BUFFER_DESC bd{};bd.ByteWidth=sizeof(Constants);bd.Usage=D3D11_USAGE_DYNAMIC;bd.BindFlags=D3D11_BIND_CONSTANT_BUFFER;bd.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;if(FAILED(device_->CreateBuffer(&bd,nullptr,&constants_))){StartupLog("Frame constant buffer creation failed");return false;}if(!loadLogo())return false;RECT r;GetClientRect(hwnd_,&r);resize(r.right,r.bottom);return rtv_.Get()!=nullptr;}
-    void resize(UINT w,UINT h){if(!w||!h)return;rtv_.Reset();context_->OMSetRenderTargets(0,nullptr,nullptr);swap_->ResizeBuffers(0,w,h,DXGI_FORMAT_UNKNOWN,0);ComPtr<ID3D11Texture2D>b;swap_->GetBuffer(0,IID_PPV_ARGS(&b));device_->CreateRenderTargetView(b.Get(),nullptr,&rtv_);width_=w;height_=h;layoutHud();}
+        if(FAILED(device_->CreatePixelShader(sceneBlob->GetBufferPointer(),sceneBlob->GetBufferSize(),nullptr,&scenePs_))||FAILED(device_->CreatePixelShader(bloomBlob->GetBufferPointer(),bloomBlob->GetBufferSize(),nullptr,&bloomPs_))||FAILED(device_->CreatePixelShader(compositeBlob->GetBufferPointer(),compositeBlob->GetBufferSize(),nullptr,&compositePs_))){StartupLog("Festival shader creation failed");return false;}
+        D3D11_BUFFER_DESC bd{};bd.ByteWidth=sizeof(Constants);bd.Usage=D3D11_USAGE_DYNAMIC;bd.BindFlags=D3D11_BIND_CONSTANT_BUFFER;bd.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;if(FAILED(device_->CreateBuffer(&bd,nullptr,&constants_))){StartupLog("Frame constant buffer creation failed");return false;}if(!loadLogo())return false;RECT r;GetClientRect(hwnd_,&r);resize(r.right,r.bottom);return rtv_.Get()&&sceneRtv_.Get()&&sceneSrv_.Get()&&bloomRtv_.Get()&&bloomSrv_.Get();}
+    void resize(UINT w,UINT h){if(!w||!h)return;ID3D11ShaderResourceView*nullViews[3]{};context_->PSSetShaderResources(0,3,nullViews);context_->OMSetRenderTargets(0,nullptr,nullptr);rtv_.Reset();sceneRtv_.Reset();sceneSrv_.Reset();sceneTexture_.Reset();bloomRtv_.Reset();bloomSrv_.Reset();bloomTexture_.Reset();swap_->ResizeBuffers(0,w,h,DXGI_FORMAT_UNKNOWN,0);ComPtr<ID3D11Texture2D>backBuffer;swap_->GetBuffer(0,IID_PPV_ARGS(&backBuffer));device_->CreateRenderTargetView(backBuffer.Get(),nullptr,&rtv_);
+        auto createTarget=[&](UINT tw,UINT th,ComPtr<ID3D11Texture2D>&texture,ComPtr<ID3D11RenderTargetView>&target,ComPtr<ID3D11ShaderResourceView>&view){D3D11_TEXTURE2D_DESC td{};td.Width=tw;td.Height=th;td.MipLevels=1;td.ArraySize=1;td.Format=DXGI_FORMAT_R16G16B16A16_FLOAT;td.SampleDesc.Count=1;td.Usage=D3D11_USAGE_DEFAULT;td.BindFlags=D3D11_BIND_RENDER_TARGET|D3D11_BIND_SHADER_RESOURCE;return SUCCEEDED(device_->CreateTexture2D(&td,nullptr,&texture))&&SUCCEEDED(device_->CreateRenderTargetView(texture.Get(),nullptr,&target))&&SUCCEEDED(device_->CreateShaderResourceView(texture.Get(),nullptr,&view));};
+        if(!createTarget(w,h,sceneTexture_,sceneRtv_,sceneSrv_)||!createTarget(std::max(1u,w/2),std::max(1u,h/2),bloomTexture_,bloomRtv_,bloomSrv_))StartupLog("HDR render target creation failed");width_=w;height_=h;layoutHud();}
     void render(){if(!rtv_){Sleep(10);return;}float seconds=elapsed();auto raw=audio_.frame();if(automatic_&&!frozen_&&seconds>=nextSceneAt_){selectScene(chooseAutoScene(raw));nextSceneAt_=seconds+settings_.sceneSeconds;}auto af=tuned(raw);float transition=settings_.transitionSeconds>0?std::clamp((seconds-transitionStarted_)/settings_.transitionSeconds,0.f,1.f):1.f;
         Constants c{{float(width_),float(height_)},seconds,float(scene_),af.bass,af.mid,af.high,af.level,af.peak,af.stereo,af.beat,af.flux,float(previousScene_),transition,settings_.logoScale,float(settings_.palette)};D3D11_MAPPED_SUBRESOURCE map{};context_->Map(constants_.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&map);memcpy(map.pData,&c,sizeof(c));context_->Unmap(constants_.Get(),0);
-        D3D11_VIEWPORT vp{0,0,float(width_),float(height_),0,1};context_->RSSetViewports(1,&vp);context_->OMSetRenderTargets(1,rtv_.GetAddressOf(),nullptr);context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);context_->VSSetShader(vs_.Get(),nullptr,0);context_->PSSetShader(ps_.Get(),nullptr,0);context_->PSSetConstantBuffers(0,1,constants_.GetAddressOf());context_->PSSetShaderResources(0,1,logoSrv_.GetAddressOf());context_->PSSetSamplers(0,1,logoSampler_.GetAddressOf());context_->Draw(3,0);swap_->Present(1,0);
+        D3D11_VIEWPORT fullViewport{0,0,float(width_),float(height_),0,1};D3D11_VIEWPORT bloomViewport{0,0,float(std::max(1u,width_/2)),float(std::max(1u,height_/2)),0,1};context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);context_->VSSetShader(vs_.Get(),nullptr,0);context_->PSSetConstantBuffers(0,1,constants_.GetAddressOf());context_->PSSetSamplers(0,1,logoSampler_.GetAddressOf());
+        context_->RSSetViewports(1,&fullViewport);context_->OMSetRenderTargets(1,sceneRtv_.GetAddressOf(),nullptr);context_->PSSetShader(scenePs_.Get(),nullptr,0);context_->PSSetShaderResources(0,1,logoSrv_.GetAddressOf());context_->Draw(3,0);
+        context_->RSSetViewports(1,&bloomViewport);context_->OMSetRenderTargets(1,bloomRtv_.GetAddressOf(),nullptr);context_->PSSetShader(bloomPs_.Get(),nullptr,0);context_->PSSetShaderResources(1,1,sceneSrv_.GetAddressOf());context_->Draw(3,0);
+        ID3D11ShaderResourceView*postViews[]{sceneSrv_.Get(),bloomSrv_.Get()};context_->RSSetViewports(1,&fullViewport);context_->OMSetRenderTargets(1,rtv_.GetAddressOf(),nullptr);context_->PSSetShader(compositePs_.Get(),nullptr,0);context_->PSSetShaderResources(1,2,postViews);context_->Draw(3,0);ID3D11ShaderResourceView*nullViews[3]{};context_->PSSetShaderResources(0,3,nullViews);swap_->Present(1,0);
         ++frames_;if(seconds-lastHud_>.10f){lastHud_=seconds;updateHud(raw);}if(seconds-lastTitle_>1){float fps=frames_/(seconds-lastTitle_);frames_=0;lastTitle_=seconds;std::wstring title=L"RareStage  |  "+std::wstring(sceneName(scene_))+(automatic_?L" [AUTO]":L" [MANUAL]")+L"  |  "+audio_.name()+L"  |  "+(af.bpm>0?std::to_wstring((int)af.bpm)+L" BPM  |  ":L"")+std::to_wstring((int)fps)+L" FPS";SetWindowTextW(hwnd_,title.c_str());}}
     void fullscreen(){fullscreen_=!fullscreen_;if(fullscreen_){GetWindowRect(hwnd_,&windowRect_);SetWindowLongW(hwnd_,GWL_STYLE,WS_POPUP);auto monitors=monitorRects();if(monitors.empty())return;settings_.monitor%=monitors.size();RECT target=monitors[settings_.monitor];SetWindowPos(hwnd_,HWND_TOP,target.left,target.top,target.right-target.left,target.bottom-target.top,SWP_FRAMECHANGED);}else{SetWindowLongW(hwnd_,GWL_STYLE,WS_OVERLAPPEDWINDOW);SetWindowPos(hwnd_,nullptr,windowRect_.left,windowRect_.top,windowRect_.right-windowRect_.left,windowRect_.bottom-windowRect_.top,SWP_FRAMECHANGED|SWP_NOZORDER);}}
     HWND hwnd_{},hud_{};HFONT hudFont_{};HBRUSH hudBrush_{};UINT width_=1280,height_=720;bool fullscreen_=false,automatic_=true,frozen_=false,hudVisible_=true;RECT windowRect_{};int scene_=0,previousScene_=0,hudSelection_=0,autoSequence_=0,monitorCount_=1;AudioEngine audio_;ShowSettings settings_;
-    Clock::time_point started_;float lastTitle_{},lastHud_{},transitionStarted_{-100},nextSceneAt_{18};int frames_{};ComPtr<ID3D11Device>device_;ComPtr<ID3D11DeviceContext>context_;ComPtr<IDXGISwapChain>swap_;ComPtr<ID3D11RenderTargetView>rtv_;ComPtr<ID3D11VertexShader>vs_;ComPtr<ID3D11PixelShader>ps_;ComPtr<ID3D11Buffer>constants_;ComPtr<ID3D11ShaderResourceView>logoSrv_;ComPtr<ID3D11SamplerState>logoSampler_;
+    Clock::time_point started_;float lastTitle_{},lastHud_{},transitionStarted_{-100},nextSceneAt_{18};int frames_{};ComPtr<ID3D11Device>device_;ComPtr<ID3D11DeviceContext>context_;ComPtr<IDXGISwapChain>swap_;ComPtr<ID3D11RenderTargetView>rtv_,sceneRtv_,bloomRtv_;ComPtr<ID3D11Texture2D>sceneTexture_,bloomTexture_;ComPtr<ID3D11ShaderResourceView>sceneSrv_,bloomSrv_,logoSrv_;ComPtr<ID3D11VertexShader>vs_;ComPtr<ID3D11PixelShader>scenePs_,bloomPs_,compositePs_;ComPtr<ID3D11Buffer>constants_;ComPtr<ID3D11SamplerState>logoSampler_;
 };
 
 int WINAPI wWinMain(HINSTANCE h,HINSTANCE,LPWSTR,int){
@@ -334,6 +316,10 @@ int WINAPI wWinMain(HINSTANCE h,HINSTANCE,LPWSTR,int){
         if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"vs","vs_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error))){if(error){std::ofstream log("RareStage-self-test.log",std::ios::binary);log.write((const char*)error->GetBufferPointer(),error->GetBufferSize());}return 2;}
         blob.Reset();error.Reset();
         if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"ps","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error))){if(error){std::ofstream log("RareStage-self-test.log",std::ios::binary);log.write((const char*)error->GetBufferPointer(),error->GetBufferSize());}return 3;}
+        blob.Reset();error.Reset();
+        if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"psBloom","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error))){if(error){std::ofstream log("RareStage-self-test.log",std::ios::binary);log.write((const char*)error->GetBufferPointer(),error->GetBufferSize());}return 4;}
+        blob.Reset();error.Reset();
+        if(FAILED(D3DCompile(Shader,strlen(Shader),nullptr,nullptr,nullptr,"psComposite","ps_5_0",D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&blob,&error))){if(error){std::ofstream log("RareStage-self-test.log",std::ios::binary);log.write((const char*)error->GetBufferPointer(),error->GetBufferSize());}return 5;}
         return 0;
     }
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);HRESULT com=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);App app;
