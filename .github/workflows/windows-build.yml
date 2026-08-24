@@ -16,7 +16,9 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -A x64
       - name: Build
-        run: cmake --build build --config Release --target RareStage --parallel
+        run: cmake --build build --config Release --parallel
+      - name: Control protocol tests
+        run: ctest --test-dir build -C Release --output-on-failure
       - name: Shader self-test
         shell: pwsh
         run: |
@@ -40,6 +42,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist/RareStage/assets | Out-Null
           Copy-Item build/Release/RareStage.exe dist/RareStage/RareStage.exe
+          Copy-Item build/Release/RareStageConsole.exe dist/RareStage/RareStageConsole.exe
           Copy-Item assets/rare-logo.png dist/RareStage/assets/rare-logo.png
           Copy-Item README.md,THIRD_PARTY_NOTICES.md dist/RareStage/
           Compress-Archive -Path dist/RareStage -DestinationPath RareStage-windows-x64.zip -Force
@@ -47,14 +50,14 @@ jobs:
         with:
           name: RareStage-windows-x64
           path: RareStage-windows-x64.zip
-      - name: Publish v0.9.3 release
+      - name: Publish v0.10.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.9.3 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.9.3 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.10.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.10.0 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.9.3 RareStage-windows-x64.zip --title "RareStage 0.9.3 — Rhythmic Stagecraft" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.10.0 RareStage-windows-x64.zip --title "RareStage 0.10.0 — Console Foundation" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

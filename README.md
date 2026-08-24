@@ -4,11 +4,26 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.9.3**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.9.3
+## What changed in 0.10.0
+
+Version 0.10.0 is the **Console Foundation** release. It moves live operation into a dedicated native Windows application while RareStage remains an isolated renderer with clean program output.
+
+- New `RareStageConsole.exe` operator surface packaged beside the renderer
+- Live engine health, FPS, BPM, playback-device and bass/mid/high/percussion/beat/onset telemetry
+- Nine world cue pads, five manual act cues, previous/next transport and four show presets
+- Smart Director enable/bypass, reaction profile and sensitivity control
+- Latched blackout, Clean Open and Safe Fallback controls with visible acknowledgements
+- Manual Open, Build, Drop, Breakdown and Drive cues temporarily override song detection, then return control to Smart Director
+- Versioned local control protocol with capability/version checks, command serials, acknowledgements and stale-heartbeat handling
+- Lock-free shared telemetry and asynchronous commands, so Console can close, freeze or restart without stalling the renderer
+- The in-renderer Stage HUD now starts hidden; `Tab` still reveals it as a local fallback
+- Automated protocol round-trip tests and Windows packaging for both executables
+
+The release retains the complete 0.9.3 **Rhythmic Stagecraft** renderer:
 
 Version 0.9.3 is the **Rhythmic Stagecraft pass**. It separates physical bass response from percussion lighting, turns Stagewall into an intentional cube-panel performance, slows Morph Dimension into musical pattern choreography, and removes the line effect that previously crossed every world.
 
@@ -106,9 +121,27 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 
 Reaction profiles and per-band gains remain available. Autonomous motion is continuous; audio changes force, light, density and choreography. Longer movement envelopes stay smooth while the separate onset path preserves immediate impact.
 
-## Show Control
+## RareStage Console
 
-Press `Tab` to show or hide the in-compositor control panel.
+Run `RareStageConsole.exe` for live operation. It connects automatically to `RareStage.exe`, or launches the renderer when both executables are in the same folder.
+
+Console is a separate native Win32 process. RareStage publishes a small read-only telemetry snapshot and receives asynchronous versioned commands through its Windows message queue. The render loop never waits for Console. Closing Console leaves the current world, Smart Director and program output running.
+
+| Console area | Phase 1 controls |
+|---|---|
+| Live Signal | Bass, mids, highs, percussion, beat and onset meters; FPS, BPM and playback device |
+| World Cues | Direct access to all nine worlds plus previous/next |
+| Act Cues | Open, Build, Drop, Breakdown and Drive with timed manual override |
+| Show Transport | Smart Director, automation hold, Clean Open and optional Stage HUD |
+| Safety | Latched blackout and Safe Fallback to Celestial Garden / Open |
+| Director | Calm, Balanced, Stage and Aggressive profiles plus sensitivity |
+| Presets | F1 through F4 show presets |
+
+Keyboard shortcuts in Console mirror the core show controls: `1`–`9` select worlds, `[` / `]` move through worlds, `A` toggles Smart Director, `Space` holds automation, `B` toggles blackout, `O` fires Clean Open, `F` fires Safe Fallback, `Tab` toggles the Stage HUD and `F1`–`F4` load presets.
+
+## Stage HUD
+
+Press `Tab` to show or hide the in-compositor fallback panel. It starts hidden now that Console is the primary operator surface. The `RareStage Clean` Spout sender remains clean whether the Stage HUD is visible or not.
 
 | Overlay row | Values or range |
 |---|---|
@@ -168,7 +201,7 @@ Saved presets include the current world, reaction tuning, fallback palette, dwel
 1. Open [Releases](https://github.com/rare6media/RareStage/releases/latest).
 2. Download `RareStage-windows-x64.zip`.
 3. Extract the complete `RareStage` folder.
-4. Run `RareStage.exe`.
+4. Run `RareStageConsole.exe`, then select **Launch Stage**. You can still run `RareStage.exe` directly.
 
 Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folder. If startup fails, inspect `RareStage-startup.log` beside the executable.
 
@@ -207,16 +240,25 @@ Every push and pull request runs the Windows workflow:
 
 1. Configure the x64 CMake project.
 2. Build optimized `RareStage.exe`.
-3. Compile-test every embedded DirectX shader.
-4. Launch the native executable in startup-test mode with the alpha logo present.
-5. Package the executable, logo, README and notices.
-6. Upload the portable ZIP.
+3. Run the local control-protocol round-trip tests.
+4. Compile-test every embedded DirectX shader.
+5. Launch the native renderer in startup-test mode with the alpha logo present.
+6. Package the renderer, Console, logo, README and notices.
+7. Upload the portable ZIP.
 
-Successful pushes to `main` publish or refresh the **v0.9.3** GitHub release automatically.
+Successful pushes to `main` publish or refresh the **v0.10.0** GitHub release automatically.
 
 ## Roadmap
 
-### v0.9.3 — Rhythmic Stagecraft (current)
+### v0.10.0 — Console Foundation (current)
+
+- Dedicated native operator application and clean renderer separation
+- Versioned nonblocking local command/telemetry contract
+- World, act, director, preset and emergency show control
+- Manual act override with automatic Smart Director return
+- Renderer-independent Console restart and stale-session recovery
+
+### v0.9.3 — Rhythmic Stagecraft
 
 - Nine persistent environments with five musical acts each
 - Chapter-aware Smart Director and 40–120 second world dwell
@@ -227,7 +269,7 @@ Successful pushes to `main` publish or refresh the **v0.9.3** GitHub release aut
 - Slower pattern-led Morph Dimension and resolution-independent data-vault surfaces
 - Structured pixel formations, prism shutters, ribbon weaving and eclipse lighting
 
-### v0.10 — Smart Director 2
+### v0.11 — Smart Director 2
 
 - Per-track adaptive band calibration and faster phrase confidence
 - Predictive build/drop pre-roll for transitions that land on the next musical boundary
@@ -252,7 +294,10 @@ Successful pushes to `main` publish or refresh the **v0.9.3** GitHub release aut
 
 ```text
 assets/rare-logo.png            Alpha Rare mark used by the world renderer
-src/main.cpp                    Win32 app, audio engine, director, HLSL and renderer
+src/main.cpp                    Win32 renderer, audio engine, director and HLSL
+src/console.cpp                 Dedicated native live-operator application
+src/rarestage_control.h         Versioned local command and telemetry contract
+tests/control_protocol_test.cpp Protocol packing and shared-state round-trip test
 .github/workflows/              Windows build, test, package and release automation
 CMakeLists.txt                  Native build and Spout2 integration
 build-release.ps1               Local one-command Release build
