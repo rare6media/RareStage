@@ -1,150 +1,151 @@
 # RareStage
 
-**Native Windows festival visualizer with real-time audio analysis, GPU-rendered Rare visuals, operator controls, and clean Spout2 output.**
+**A native Windows festival-visual engine that turns the selected playback output into a persistent, evolving Rare-themed world in real time.**
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View build status](https://github.com/rare6media/RareStage/actions) · Current version: **0.8.3**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.9.0**
 
-RareStage is a native Win32 and DirectX 11 application. It captures the selected Windows playback device through WASAPI loopback, analyzes the music in real time, and directs sixteen authored festival scenes without a browser, Electron, prerecorded video, or per-frame asset uploads.
+RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## At a glance
+## What changed in 0.9
+
+Version 0.9 replaces sixteen short effect scenes with the **Rare World Engine**: six environments that persist for roughly 40–120 seconds and evolve through the current musical act. This gives a track room to establish a visual identity instead of changing the entire composition every few seconds.
+
+- Six persistent worlds with environment, structure, atmosphere, foreground and logo layers
+- Five authored acts per world: Open, Build, Drop, Breakdown and Drive
+- Smooth bass, mids, highs, beat and spectral-change responses with different jobs in every world
+- Chapter-aware Smart Director that favors confirmed musical boundaries over effect roulette
+- Destination-authored transitions: morph match, skyline reveal, signal veil, gate aperture, ocean wave and orbit warp
+- Dynamic Rare-logo roles: negative-space reveal, skyline billboard, celestial crest, temple doorway, horizon symbol and satellite network
+- No ray-marched centerpiece, seven-logo pile, global radial-ring template, or universal white transition flash
+- Restrained HDR bloom and a cleaner filmic final pass for crisp stage output
+
+## Engine at a glance
 
 | Area | Current implementation |
 |---|---|
 | Platform | Native Windows x64, C++20, Win32 and DirectX 11 |
-| Audio | WASAPI loopback, selectable active playback device |
-| Analysis | 1024-point FFT, bass, mids, highs, RMS level, peak, stereo energy, spectral flux, beat envelope, BPM, tempo confidence and five-state song-section tracking |
-| Visuals | Sixteen authored festival scenes with 2D-led motion systems, alpha-clean dynamic logo choreography and one restrained 2D/3D architectural scene |
+| Audio | WASAPI loopback from the selected active Windows playback device |
+| Analysis | 1024-point FFT, bass, mids, highs, RMS, peak, stereo energy, spectral flux, beat envelope, BPM and tempo confidence |
+| Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection |
+| Visual system | Six authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
+| Director | Audio/section scoring, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Direct2D/DirectWrite overlay with mouse, wheel and keyboard operation |
-| Automation | Section-aware Smart Director with build/drop/breakdown detection, automatic palette morphs, phrase timing, recent-scene memory and beat-aligned transitions; or deterministic show timeline |
-| Presets | Four named show slots with load and overwrite controls |
 | Output | Borderless stage display, multi-monitor selection and clean Spout2 sender |
-| Performance | 62%, 78%, 100% and 125% HDR render-scale profiles; VSync or unlocked output |
-| Persistence | Show settings and preset slots saved under `%LOCALAPPDATA%\RareStage` |
+| Performance | 62%, 78%, 100% and 125% HDR render scales; VSync or unlocked output |
+| Persistence | Settings and four show presets under `%LOCALAPPDATA%\RareStage` |
 
-## Signal and render pipeline
+## Rare worlds
+
+| Key | World | Visual direction | Rare-mark role |
+|---|---|---|---|
+| `1` | Morph Dimension | Clean circle-to-square fields, flowing seams, controlled negative space and mathematical assembly | A single mark gradually resolves from the field during builds and drops |
+| `2` | Rare Metropolis | Parallax skyline, moving roads, windows, scanning architecture and stage-scale light | A distant billboard sits behind and is occluded by the city |
+| `3` | Celestial Garden | Layered hills, aurora ribbons, stars, spores and bioluminescent landscape motion | A small crest lives inside a drifting moon |
+| `4` | Signal Temple | Perspective floor, architectural columns, opening gates, light corridors and restrained signal fragments | The mark is the far doorway at the end of the structure |
+| `5` | Neon Ocean | Flowing currents, animated horizon, aurora sky, wave bands and reflected light | A horizon crest creates a broken reflection across the water |
+| `6` | Orbit Network | Moving constellations, data paths, star depth, warp accents and distributed satellites | Three separated marks act as connected network nodes |
+
+Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
+
+## Smart Director
+
+Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. A section change transforms the **current world first**. Cross-world changes are considered only at a fresh Open, Drop or Breakdown after the minimum dwell, or at the 120-second safety limit. When BPM confidence is usable, the requested dwell is quantized to eight-beat phrases and the final change waits briefly for a beat/spectral opportunity.
+
+World selection scores current energy, band balance and musical act, penalizes the active and recently used worlds, and retains deterministic Show Timeline mode for rehearsed playback. Palettes morph continuously rather than cutting when the director changes color direction.
 
 ```text
 Windows playback device
         │
         ▼
-WASAPI loopback ──► FFT + beat/tempo analysis ──► show director
-                                                        │
-                                                        ▼
-Rare logo + procedural 2D/3D scene ──► HDR ──► bloom ──► filmic composite
-                                                                  │
-                                                 clean Spout2 ◄───┤
-                                                                  ▼
-                                                  Show Control overlay
-                                                                  │
-                                                                  ▼
-                                                        stage display
+WASAPI loopback ─► FFT + beat/tempo ─► five-act song model
+                                                │
+                                                ▼
+                                      persistent world director
+                                                │
+                ┌───────────────────────────────┼───────────────────────────────┐
+                ▼                               ▼                               ▼
+        environment/atmosphere          structure + motion              logo choreography
+                └───────────────────────────────┬───────────────────────────────┘
+                                                ▼
+                                      HDR ─► bloom ─► filmic output
+                                                │
+                                clean Spout2 ◄──┤──► Show Control + display
 ```
 
-The `RareStage Clean` Spout sender is published before Show Control is composited. OBS, RareOBS, Resolume, and other Spout-capable receivers therefore receive the finished visual without operator controls.
+The `RareStage Clean` Spout sender is published before Show Control is composited, so OBS, RareOBS, Resolume and other Spout receivers get the finished visual without the operator panel.
 
-## Festival scenes
+## Audio response
 
-| Key | Scene | Direction |
-|---|---|---|
-| `1` | Rare Monolith | Layered panels with one restrained dimensional architectural accent |
-| `2` | Crystal Bloom | Logo-free circle-to-square cells, color wash and flat petal loops |
-| `3` | Celestial Horizon | Wide animated landscape, drifting logo, moving ridges and clouds |
-| `4` | Cyber Shrine | Sliding 2D gates, tiled panels, clean scanning light and three Rare marks |
-| `5` | Vector Rush | Three moving Rare marks carried by kinetic ribbons, chevrons and diagonal motion |
-| `6` | Liquid Core | Logo-free abstract contour loops, flowing blobs and ribbon currents |
-| `7` | Signal Break | The dedicated glitch scene: scan fields, fractured blocks and displaced logo slices |
-| `8` | Hologram Garden | Floating logo path, botanical petals, ribbons and drifting spores |
-| `9` | Rare Ascension | Mirrored Rare marks, vertical graphic rays, rising bands and restrained peak energy |
-| `10` via `[` / `]` | Neon Runway | Cel-shaded cyber-city parallax, moving tracks and foreground occlusion |
-| `11` via `[` / `]` | Synthetic Meadow | Logo-free animated landscape, moving field lines, clouds and stars |
-| `12` via `[` / `]` | Modular Fold | Three orbiting Rare marks and mathematical tiles merging between circles, squares and rotated grids |
-| `13` via `[` / `]` | Bass Reactor | Three Rare marks, 2D speaker field, EQ bands, controlled lasers and drop punctuation |
-| `14` via `[` / `]` | Rare Tunnel | Seven depth-staged Rare marks moving through concentric portals and radial light beams |
-| `15` via `[` / `]` | Halo Array | Five orbiting marks integrated into a reactive circular halo, arcs and focused beams |
-| `16` via `[` / `]` | Prism Relay | Sliding large-format marks, crisp prism shutters and moving light geometry |
+| Signal | Primary visual purpose |
+|---|---|
+| Bass | Structural weight, small scale expansion, skyline/floor emphasis and water displacement |
+| Mids | Flow speed, parallax, ribbons, currents and environment travel |
+| Highs | Fine detail, stars, windows, edges and atmospheric particles |
+| Beat | Short controlled accents and transition timing |
+| Spectral flux | Musical-change evidence and restrained Signal Temple fragments |
+| BPM/tempo confidence | Stable animation phase and eight-beat dwell quantization |
 
-Smart Director tracks five musical states: Open, Build, Drop, Breakdown and Drive. Short- and long-window energy, spectral change, bass impact, tempo confidence and persistent hysteresis confirm a section change instead of reacting to a single noisy frame. A confirmed new song stage arms a scene and palette change; the director then waits for a musical hit and applies a clean section-specific transition. It also scores all sixteen scenes for the current section, remembers recently used scenes, prevents immediate repeats and quantizes normal scene timing to eight-beat phrases when BPM confidence is available. Timeline mode remains available for deterministic playback.
-
-The renderer is 2D-first. Fifteen scenes skip the ray-marched hero pass entirely and instead use seamless animated backgrounds, parallax, radial beams, graphic layers, occlusion and scene-specific logo choreography. Three scenes deliberately omit the logo; eight use multiple Rare marks as moving compositional elements. Rare Monolith is the only scene retaining a restrained 3D architectural accent.
-
-The current Rare mark is a true-alpha production texture. The logo handler composites native alpha instead of guessing transparency from background color, so white linework, cyan bloom and dark fills remain clean while the mark scales, tunnels, orbits, relays, drifts and passes behind scene geometry.
-
-Bass controls measured scale and structural impact, mids control loop speed and parallax, highs reveal detail, and beats add short accents instead of repeatedly spinning or shaking a model. Signal Break is intentionally the only heavily glitch-led scene; the rest prioritize smooth continuous motion.
+Reaction profiles and per-band gains remain available, but the shader response is deliberately smoothed so full-screen movement does not become uncomfortable on a large stage.
 
 ## Show Control
 
-Show Control is rendered inside the DirectX compositor, so it remains visible over the flip-model swap chain in both windowed and fullscreen output. Press `Tab` to show or hide it.
+Press `Tab` to show or hide the in-compositor control panel.
 
 | Overlay row | Values or range |
 |---|---|
 | Reaction | Calm, Balanced, Stage, Aggressive |
 | Palette | Rare Cyan, Nebula, Sakura, Solar; automatically morphed by Smart Director |
 | Sensitivity | 50–150% |
-| Bass | 50–150% |
-| Mids | 50–150% |
-| Highs | 50–150% |
-| Beat | 50–150% |
+| Bass / Mids / Highs / Beat | 50–150% each |
 | Logo | 75–125% |
-| Scene time | 8–60 seconds |
+| World dwell | 40–120 seconds |
 | Transition | 0.2–3.0 seconds |
-| Transition FX | Panel Cut, Prism Iris, Glitch Hold, Bass Shutter |
+| Transition FX | Morph Match, Horizon Rise, Signal Veil, Gate Open |
 | Render profile | Performance, Balanced, Native HD, Ultra 4K |
 | Frame output | Display/VSync or unlocked high refresh |
 | Show mode | Smart Director or Show Timeline |
 | Spout output | Clean sender on or off |
 
-The panel also reports the active preset, scene, detected song section, automation state, active automatic palette, playback device, BPM, and smoothed bass, mid, high, and beat meters.
+The panel reports the current world, current act, automation state, preset, automatic palette, playback device, BPM and live bass/mid/high/beat meters.
 
 ## Controls
 
 | Input | Action |
 |---|---|
-| `1`–`9` | Select a scene and enter manual scene mode |
-| `[` / `]` | Previous or next scene across the complete sixteen-scene library |
-| `0` or `A` | Toggle automatic scene direction |
+| `1`–`6` | Select a world and enter manual world mode |
+| `[` / `]` | Previous or next world |
+| `0` or `A` | Toggle Smart Director |
 | `D` | Cycle active Windows playback devices |
 | `M` | Move stage output to the next monitor |
 | `P` | Cycle Rare color palettes |
 | `Tab` | Show or hide Show Control |
-| Left click | Select a row; use its cyan minus or plus button |
-| Right click | Decrease the clicked Show Control row |
+| Left click | Select a row or use its minus/plus buttons |
+| Right click | Decrease the clicked row |
 | Mouse wheel | Adjust the row under the pointer |
-| `Up` / `Down` | Select the previous or next Show Control row |
-| `Left` / `Right` | Decrease or increase the selected setting |
-| `Enter` | Increase the selected setting |
+| `Up` / `Down` | Select the previous or next row |
+| `Left` / `Right` / `Enter` | Adjust the selected setting |
 | `F1`–`F4` | Load show preset 1–4 |
-| `Shift+F1`–`Shift+F4` | Save the current show over preset slot 1–4 |
-| `T` | Toggle Smart Director and Show Timeline modes |
-| `V` | Toggle VSync and unlocked high-refresh output |
+| `Shift+F1`–`Shift+F4` | Save over preset 1–4 |
+| `T` | Toggle Smart Director and deterministic Show Timeline |
+| `V` | Toggle VSync and unlocked output |
 | `S` | Toggle the clean Spout2 sender |
-| `Space` | Freeze or resume automatic scene changes |
+| `Space` | Freeze or resume automatic world changes; live audio motion continues |
 | `F11` or `Alt+Enter` | Toggle borderless fullscreen |
 | `Esc` | Leave fullscreen, or quit when windowed |
 
-## Named show presets
+## Factory show presets
 
-| Slot | Factory direction | Starting scene | Default timing |
+| Slot | Direction | Starting world | Default dwell / transition |
 |---|---|---|---|
-| `F1` Clean Open | Calm, Rare Cyan | Celestial Horizon | 28-second scenes, 1.8-second Prism Iris |
-| `F2` Melodic Bloom | Balanced, Sakura | Crystal Bloom | 18-second scenes, 1.2-second Prism Iris |
-| `F3` Rare Drop | Stage, Rare Cyan | Vector Rush | 12-second scenes, 0.8-second Bass Shutter |
-| `F4` Glitch Finale | Aggressive, Nebula, timeline enabled | Signal Break | 10-second scenes, 0.45-second Glitch Hold |
+| `F1` Clean Open | Calm, Rare Cyan | Celestial Garden | 88 sec / 1.8 sec Horizon Rise |
+| `F2` Melodic Bloom | Balanced, Sakura | Morph Dimension | 72 sec / 1.4 sec Signal Veil |
+| `F3` Rare Drop | Stage, Rare Cyan | Rare Metropolis | 56 sec / 1.2 sec Gate Open |
+| `F4` Glitch Finale | Aggressive, Nebula, timeline | Signal Temple | 48 sec / 0.9 sec Signal Veil |
 
-Preset slots can be overwritten with `Shift+F1` through `Shift+F4`. Saved presets include reaction tuning, manual/fallback palette, timing, transition FX, render profile, frame output, automation state, timeline state, Spout state, monitor, and current scene. In Smart Director mode the saved palette becomes the starting color before section-aware automatic morphing begins.
-
-## Performance profiles
-
-| Profile | HDR scene scale | Intended use |
-|---|---:|---|
-| Performance | 62% | Lower-power GPUs or high-refresh output |
-| Balanced | 78% | Reduced GPU load with a native-resolution final composite |
-| Native HD | 100% | Full native scene rendering |
-| Ultra 4K | 125% | Supersampled stage output on high-end GPUs |
-
-The final composite always matches the active window or fullscreen output resolution. VSync is enabled by default; unlocked mode removes the present interval cap for high-refresh and 120 Hz stage systems.
+Saved presets include the current world, reaction tuning, fallback palette, dwell, transition, render profile, output mode, automation, timeline, Spout and monitor.
 
 ## Download and run
 
@@ -153,69 +154,73 @@ The final composite always matches the active window or fullscreen output resolu
 3. Extract the complete `RareStage` folder.
 4. Run `RareStage.exe`.
 
-Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folder. RareStage writes `RareStage-startup.log` beside the executable if startup fails.
+Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folder. If startup fails, inspect `RareStage-startup.log` beside the executable.
 
 ### System requirements
 
 - 64-bit Windows 10 or Windows 11
 - DirectX 11-capable GPU and current graphics driver
-- An active Windows playback device for live reactivity
-- A Spout-capable receiver only if shared-texture output is needed
+- Active Windows playback device for live reactivity
+- Spout-capable receiver only when shared-texture output is needed
+
+## Performance profiles
+
+| Profile | HDR scene scale | Intended use |
+|---|---:|---|
+| Performance | 62% | Lower-power GPUs or high-refresh output |
+| Balanced | 78% | Reduced GPU load with native-resolution final composite |
+| Native HD | 100% | Full native scene rendering |
+| Ultra 4K | 125% | Supersampled output on high-end GPUs |
+
+VSync is enabled by default. The 0.9 shader removes the prior 24-step ray-marched hero pass and uses bounded loops and procedural 2D/2.5D layers, keeping the world system appropriate for real-time stage output.
 
 ## Build from source
 
-Install Visual Studio with **Desktop development with C++**, the Windows SDK, Git, and CMake. From a Developer PowerShell:
+Install Visual Studio with **Desktop development with C++**, the Windows SDK, Git and CMake. From Developer PowerShell:
 
 ```powershell
 cmake -S . -B build -A x64
 cmake --build build --config Release --target RareStage --parallel
 ```
 
-Or run:
+Or run `./build-release.ps1`. CMake retrieves Spout2 and links `SpoutDX_static`; configure with `-DRARESTAGE_ENABLE_SPOUT=OFF` to build without Spout.
 
-```powershell
-.\build-release.ps1
-```
+## Automated validation and release
 
-CMake retrieves the official Spout2 source and links `SpoutDX_static`. Use `-DRARESTAGE_ENABLE_SPOUT=OFF` during configuration for a build without Spout output.
-
-## Automated validation and releases
-
-Every push and pull request runs the Windows workflow on GitHub Actions:
+Every push and pull request runs the Windows workflow:
 
 1. Configure the x64 CMake project.
-2. Build the optimized RareStage target.
-3. Compile-test all embedded DirectX shaders.
-4. Launch the native executable in startup-test mode.
-5. Package the executable, Rare logo, README, and third-party notices.
-6. Upload the portable ZIP as a workflow artifact.
+2. Build optimized `RareStage.exe`.
+3. Compile-test every embedded DirectX shader.
+4. Launch the native executable in startup-test mode with the alpha logo present.
+5. Package the executable, logo, README and notices.
+6. Upload the portable ZIP.
 
-Successful pushes to `main` publish or refresh the `v0.8.3` GitHub release automatically.
+Successful pushes to `main` publish or refresh the **v0.9.0** GitHub release automatically.
 
 ## Roadmap
 
-### v0.8 — Festival art direction (current)
+### v0.9 — Rare World Engine (current)
 
-- Sixteen authored Rare scene environments
-- Four beat-aware transition systems with brief hold, cut and afterimage stages
-- Twelve 2D-first motion systems, one restrained hybrid scene, moving logo choreography and dynamic backgrounds
-- BPM-smoothed animation phase, five-state song-structure tracking, section-aware Smart Director transitions and recent-scene memory
-- Automatic continuous palette morphing and three new multi-logo tunnel/halo/relay systems
-- Extended timeline and audio-directed scene groups
+- Six persistent environments with five musical acts each
+- Chapter-aware Smart Director and 40–120 second world dwell
+- Authored world transitions and continuous palette direction
+- Environment-specific Rare-mark choreography
+- 2D-led motion with selective parallax, perspective and occlusion
 
-### v0.9 — Live show operation
+### v0.10 — Live show operation
 
-- MIDI and OSC control mapping
-- Visual cue editor with timed scene and preset changes
-- Importable and exportable preset bundles
-- User shader-pack foundation with safe validation
+- MIDI and OSC mapping
+- Operator cue deck with world, act, palette and preset triggers
+- Importable/exportable preset bundles
+- User shader-pack foundation with validation and failure isolation
 
 ### v1.0 — Production reliability
 
-- In-app GPU and audio diagnostics
+- In-app GPU/audio diagnostics and render-budget telemetry
 - Device-loss recovery and clearer crash reports
 - Signed Windows installer and update channel
-- Expanded automated render and performance testing
+- Automated reference-frame and performance regression tests
 
 ### Later stage systems
 
@@ -227,14 +232,12 @@ Successful pushes to `main` publish or refresh the `v0.8.3` GitHub release autom
 ## Repository layout
 
 ```text
-assets/                         Rare logo used by the renderer
-src/main.cpp                    Win32 app, audio engine, shaders and renderer
+assets/rare-logo.png            Alpha Rare mark used by the world renderer
+src/main.cpp                    Win32 app, audio engine, director, HLSL and renderer
 .github/workflows/              Windows build, test, package and release automation
 CMakeLists.txt                  Native build and Spout2 integration
 build-release.ps1               Local one-command Release build
 THIRD_PARTY_NOTICES.md          Third-party licensing
 ```
-
-## Third-party software
 
 RareStage includes [Spout2](https://github.com/leadedge/Spout2) under the BSD 2-Clause License. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
