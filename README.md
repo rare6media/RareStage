@@ -4,20 +4,22 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.9.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.9.1**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.9
+## What changed in 0.9.1
 
-Version 0.9 replaces sixteen short effect scenes with the **Rare World Engine**: six environments that persist for roughly 40–120 seconds and evolve through the current musical act. This gives a track room to establish a visual identity instead of changing the entire composition every few seconds.
+Version 0.9.1 is the **Alive pass** for the Rare World Engine. All six environments now retain quiet autonomous motion between musical events, while audio conducts their weight, light and organization. The literal city and static three-logo network have been replaced with a living biosphere and an independently shifting pixel world.
 
 - Six persistent worlds with environment, structure, atmosphere, foreground and logo layers
 - Five authored acts per world: Open, Build, Drop, Breakdown and Drive
 - Smooth bass, mids, highs, beat and spectral-change responses with different jobs in every world
 - Chapter-aware Smart Director that favors confirmed musical boundaries over effect roulette
-- Destination-authored transitions: morph match, skyline reveal, signal veil, gate aperture, ocean wave and orbit warp
-- Dynamic Rare-logo roles: negative-space reveal, skyline billboard, celestial crest, temple doorway, horizon symbol and satellite network
+- Destination-authored transitions: morph match, horizon reveal, signal veil, gate aperture, ocean wave and pixel dissolve
+- Dynamic Rare-logo roles: negative-space reveal, living carrier, celestial crest, temple doorway, horizon symbol and a DVD-style wall-bouncing mark
+- Independently phased cells, motes, filaments, foreground travel and pixel depth keep every world alive during quiet passages
+- Pixel Current can assemble its moving cells into the traveling mark; impacts drive reactive wall light, color washes and a rare corner burst
 - No ray-marched centerpiece, seven-logo pile, global radial-ring template, or universal white transition flash
 - Restrained HDR bloom and a cleaner filmic final pass for crisp stage output
 
@@ -42,11 +44,11 @@ Version 0.9 replaces sixteen short effect scenes with the **Rare World Engine**:
 | Key | World | Visual direction | Rare-mark role |
 |---|---|---|---|
 | `1` | Morph Dimension | Clean circle-to-square fields, flowing seams, controlled negative space and mathematical assembly | A single mark gradually resolves from the field during builds and drops |
-| `2` | Rare Metropolis | Parallax skyline, moving roads, windows, scanning architecture and stage-scale light | A distant billboard sits behind and is occluded by the city |
+| `2` | Rare Biosphere | Flowing membranes, organic tech filaments, living nodes, tendrils and layered cellular currents | One moving mark is carried through and connected to the ecosystem |
 | `3` | Celestial Garden | Layered hills, aurora ribbons, stars, spores and bioluminescent landscape motion | A small crest lives inside a drifting moon |
 | `4` | Signal Temple | Perspective floor, architectural columns, opening gates, light corridors and restrained signal fragments | The mark is the far doorway at the end of the structure |
 | `5` | Neon Ocean | Flowing currents, animated horizon, aurora sky, wave bands and reflected light | A horizon crest creates a broken reflection across the water |
-| `6` | Orbit Network | Moving constellations, data paths, star depth, warp accents and distributed satellites | Three separated marks act as connected network nodes |
+| `6` | Pixel Current | Independently drifting pixel cells, depth layers, streams, assembly and smooth dissolution | One mark follows a DVD-style wall-bounce path; impact lighting reacts to the track and rare corner hits receive a larger burst |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 
@@ -81,7 +83,7 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 
 | Signal | Primary visual purpose |
 |---|---|
-| Bass | Structural weight, small scale expansion, skyline/floor emphasis and water displacement |
+| Bass | Structural weight, small scale expansion, membrane/floor emphasis, water displacement and bounce-light energy |
 | Mids | Flow speed, parallax, ribbons, currents and environment travel |
 | Highs | Fine detail, stars, windows, edges and atmospheric particles |
 | Beat | Short controlled accents and transition timing |
@@ -142,7 +144,7 @@ The panel reports the current world, current act, automation state, preset, auto
 |---|---|---|---|
 | `F1` Clean Open | Calm, Rare Cyan | Celestial Garden | 88 sec / 1.8 sec Horizon Rise |
 | `F2` Melodic Bloom | Balanced, Sakura | Morph Dimension | 72 sec / 1.4 sec Signal Veil |
-| `F3` Rare Drop | Stage, Rare Cyan | Rare Metropolis | 56 sec / 1.2 sec Gate Open |
+| `F3` Rare Drop | Stage, Rare Cyan | Rare Biosphere | 56 sec / 1.2 sec Gate Open |
 | `F4` Glitch Finale | Aggressive, Nebula, timeline | Signal Temple | 48 sec / 0.9 sec Signal Veil |
 
 Saved presets include the current world, reaction tuning, fallback palette, dwell, transition, render profile, output mode, automation, timeline, Spout and monitor.
@@ -172,7 +174,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.9 shader removes the prior 24-step ray-marched hero pass and uses bounded loops and procedural 2D/2.5D layers, keeping the world system appropriate for real-time stage output.
+VSync is enabled by default. The 0.9.1 shader uses bounded loops and procedural 2D/2.5D layers, including two lightweight pixel-depth fields, keeping the world system appropriate for real-time stage output.
 
 ## Build from source
 
@@ -196,17 +198,18 @@ Every push and pull request runs the Windows workflow:
 5. Package the executable, logo, README and notices.
 6. Upload the portable ZIP.
 
-Successful pushes to `main` publish or refresh the **v0.9.0** GitHub release automatically.
+Successful pushes to `main` publish or refresh the **v0.9.1** GitHub release automatically.
 
 ## Roadmap
 
-### v0.9 — Rare World Engine (current)
+### v0.9.1 — Rare World Engine Alive pass (current)
 
 - Six persistent environments with five musical acts each
 - Chapter-aware Smart Director and 40–120 second world dwell
 - Authored world transitions and continuous palette direction
 - Environment-specific Rare-mark choreography
 - 2D-led motion with selective parallax, perspective and occlusion
+- Autonomous world motion, Rare Biosphere and Pixel Current with reactive DVD-style impact light
 
 ### v0.10 — Live show operation
 
