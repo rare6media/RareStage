@@ -4,17 +4,18 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.9.3**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.9.3
+## What changed in 0.10.0
 
-Version 0.9.3 is the **Rhythmic Stagecraft pass**. It separates physical bass response from percussion lighting, turns Stagewall into an intentional cube-panel performance, slows Morph Dimension into musical pattern choreography, and removes the line effect that previously crossed every world.
+Version 0.10.0 is the **Pulse Architecture pass**. It expands the articulated-panel language into a complete wall family, upgrades live rhythm tracking, and removes hard beat-phase jumps so visual motion stays liquid while kicks, tempo and percussion remain immediate.
 
-- Nine persistent worlds with environment, structure, atmosphere, foreground and logo layers
+- Twelve persistent worlds with environment, structure, atmosphere, foreground and logo layers
 - Five authored acts per world: Open, Build, Drop, Breakdown and Drive
-- Stagewall panels now turn as 2.5D cubes, extrude, shift, disappear and rebuild through column, diagonal, center-out, checker and sparse four-beat phrases
+- Stagewall now performs eight readable cue families: columns, diagonals, center-out pressure, checker drives, organic sparse motion, helix flow, split gates and Rare mosaic
+- Every Stagewall panel contains coordinated rotating micro-pixels with independent kick pressure and hi-hat lighting
 - Bass pumps panel depth, scale, radial light and physical wall pressure without shaking the complete image
 - A dedicated percussion transient drives short face glints and edge lights for hi-hats and fast percussion
 - Original data-vault glyph columns, etched panel detail and brushed procedural surfaces stay crisp at native HD and Ultra 4K render scales
@@ -22,15 +23,19 @@ Version 0.9.3 is the **Rhythmic Stagecraft pass**. It separates physical bass re
 - Pixel Current cells organize into ribbons, diamonds, edge currents and logo assemblies while retaining independent shape, position and depth motion
 - Three additional worlds: Prism Cascade, Kinetic Weave and Rare Eclipse
 - Fast onset analysis gives kicks and drops a dedicated near-real-time path while longer envelopes keep movement smooth
-- Stronger beat-phase correction aligns authored pattern phrases faster while immediate bass and percussion channels remain frame-responsive
+- Adaptive multi-band onset analysis separates kick and high-percussion evidence while a recent-interval median stabilizes BPM
+- Monotonic phase slewing nudges choreography onto the beat without teleporting visual time or making motion stutter
 - Smart Director can enter Drop immediately when bass, onset and spectral evidence agree; other act changes use shorter confirmation without scene roulette
 - Every world runs on an autonomous visual clock, so silence changes the composition into an idle performance instead of freezing it
 - Destination-authored transitions mapped to each world's visual grammar
 - Dynamic Rare-logo roles including panel mosaic, sliced prism mask, woven carrier, eclipse reveal and DVD-style wall bounce
 - Independently phased cells, motes, filaments and pixel depth keep every world alive during quiet passages
 - Pixel Current can assemble its moving cells into the traveling mark; impacts drive reactive wall light, color washes and a rare corner burst
-- No ray-marched centerpiece, seven-logo pile, global radial-ring template, or universal white transition flash
+- Three new wall-led worlds: Kinetic Array, Lightwell and Pixel Loom
+- No ray-marched centerpiece, seven-logo pile, repeated watermark stack, global radial-ring template, or universal white transition flash
 - Reduced HDR bloom and a stronger filmic detail pass for crisp stage output
+
+The research and design synthesis behind this release is documented in [Stage visual research, 2023–2026](docs/STAGE_VISUAL_RESEARCH_2023_2026.md).
 
 ## Engine at a glance
 
@@ -38,9 +43,9 @@ Version 0.9.3 is the **Rhythmic Stagecraft pass**. It separates physical bass re
 |---|---|
 | Platform | Native Windows x64, C++20, Win32 and DirectX 11 |
 | Audio | WASAPI loopback from the selected active Windows playback device |
-| Analysis | 1024-point FFT, bass, mids, highs, RMS, peak, stereo energy, raw onset, percussion transient, spectral flux, fast beat envelope, BPM and tempo confidence |
+| Analysis | 1024-point FFT, adaptive multi-band spectral flux, bass, mids, highs, RMS, peak, stereo energy, separate kick and percussion transients, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection |
-| Visual system | Nine authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
+| Visual system | Twelve authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
 | Director | Audio/section scoring, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Direct2D/DirectWrite overlay with mouse, wheel and keyboard operation |
@@ -61,6 +66,9 @@ Version 0.9.3 is the **Rhythmic Stagecraft pass**. It separates physical bass re
 | `7` | Prism Cascade | Bold opposing prism shutters, diagonal seams, staggered lane pulses and musical slice movement | A large sliced mark appears through the prism structure during builds, drops and drives |
 | `8` | Kinetic Weave | Seven broad woven ribbons, crossing signal threads, moving junctions and layered occlusion | A moving mark is carried behind the weave and is partially hidden by foreground ribbons |
 | `9` | Rare Eclipse | A drifting eclipse body, changing crescent, asymmetric beam fan, partial arc and horizon light | The mark is revealed inside the moving eclipse only during higher-energy acts |
+| `Q` | Kinetic Array | Articulated tile banks rotate, drift, vanish and reform through columns, diagonals, ripples, orbital patterns, zippers and coordinated sub-pixel motion | The mark appears only as a temporary negative-space formation |
+| `W` | Lightwell | Concentric panel rings, counter-rotating sectors, beam fans and a bass-pressurized central halo | A restrained Rare gobo briefly cuts through the light during higher-energy acts |
+| `E` | Pixel Loom | Dense pixels counter-rotate in synchronized groups, then merge into ribbons, diamonds, helixes, curtains and flowing fields | The mark acts as a temporary pixel attractor rather than a composited overlay |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 
@@ -95,14 +103,15 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 
 | Signal | Primary visual purpose |
 |---|---|
-| Bass | Structural weight, small scale expansion, membrane/floor emphasis, water displacement and bounce-light energy |
+| Bass | Sustained structural weight, membrane/floor emphasis, water displacement and broad light pressure |
+| Kick | Near-real-time panel depth, controlled composition pump, radial pressure and short lighting hits |
 | Mids | Flow speed, parallax, ribbons, currents and environment travel |
 | Highs | Fine detail, stars, windows, edges and atmospheric particles |
-| Beat | Low-latency controlled accents, panel punches and transition timing |
+| Beat | Pattern-grid timing, phrase boundaries and transition opportunities |
 | Onset | Immediate kick/drop evidence and transient lighting before the longer envelopes catch up |
 | Percussion | Fast hi-hat and percussion edge glints, panel-face specular hits and micro-light accents |
 | Spectral flux | Musical-change evidence, build detection and structured signal fragments |
-| BPM/tempo confidence | Stable animation phase and eight-beat dwell quantization |
+| BPM/tempo confidence | Stable animation phase, monotonic beat nudging and eight-beat dwell quantization |
 
 Reaction profiles and per-band gains remain available. Autonomous motion is continuous; audio changes force, light, density and choreography. Longer movement envelopes stay smooth while the separate onset path preserves immediate impact.
 
@@ -131,7 +140,8 @@ The panel reports the current world, current act, automation state, preset, auto
 
 | Input | Action |
 |---|---|
-| `1`–`9` | Select a world and enter manual world mode |
+| `1`–`9` | Select worlds 1–9 and enter manual world mode |
+| `Q` / `W` / `E` | Select Kinetic Array, Lightwell or Pixel Loom |
 | `[` / `]` | Previous or next world |
 | `0` or `A` | Toggle Smart Director |
 | `D` | Cycle active Windows playback devices |
@@ -188,7 +198,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.9.3 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Cube faces, data lighting, prism, weave and eclipse systems execute only inside their selected world branch to protect high-refresh stage performance.
+VSync is enabled by default. The 0.10.0 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Stagewall, Kinetic Array, Lightwell, Pixel Loom and the other world systems execute only inside their selected branch to protect high-refresh stage performance.
 
 ## Build from source
 
@@ -212,27 +222,27 @@ Every push and pull request runs the Windows workflow:
 5. Package the executable, logo, README and notices.
 6. Upload the portable ZIP.
 
-Successful pushes to `main` publish or refresh the **v0.9.3** GitHub release automatically.
+Successful pushes to `main` publish or refresh the **v0.10.0** GitHub release automatically.
 
 ## Roadmap
 
-### v0.9.3 — Rhythmic Stagecraft (current)
+### v0.10.0 — Pulse Architecture (current)
 
-- Nine persistent environments with five musical acts each
-- Chapter-aware Smart Director and 40–120 second world dwell
-- Authored world transitions and continuous palette direction
-- Environment-specific Rare-mark choreography
-- 2D-led motion with selective parallax, perspective and occlusion
-- Four-beat cube-panel choreography with independent bass pressure and percussion light
-- Slower pattern-led Morph Dimension and resolution-independent data-vault surfaces
-- Structured pixel formations, prism shutters, ribbon weaving and eclipse lighting
+- Twelve persistent environments with five musical acts each
+- Adaptive kick, percussion, onset and spectral-flux analysis
+- Robust recent-interval tempo tracking with monotonic phase slewing
+- Eight Stagewall cue families and synchronized rotating panel sub-pixels
+- Kinetic Array, Lightwell and Pixel Loom wall-led worlds
+- Slower liquid Morph Dimension without hard audio-clock jumps
+- Chapter-aware Smart Director affinities for all twelve worlds
+- Stage-production research and documented scene grammar
 
-### v0.10 — Smart Director 2
+### v0.11 — Smart Director telemetry
 
-- Per-track adaptive band calibration and faster phrase confidence
 - Predictive build/drop pre-roll for transitions that land on the next musical boundary
 - Act-aware scene memory so a set develops without repeating the same world/act combinations
 - Director telemetry and diagnostics for tuning automatic decisions from real shows
+- Capturable signal traces for kick, hats, tempo confidence, phrase timing and section decisions
 
 ### v1.0 — Production reliability
 
@@ -254,6 +264,7 @@ Successful pushes to `main` publish or refresh the **v0.9.3** GitHub release aut
 assets/rare-logo.png            Alpha Rare mark used by the world renderer
 src/main.cpp                    Win32 app, audio engine, director, HLSL and renderer
 .github/workflows/              Windows build, test, package and release automation
+docs/                           Stage-production research and system design notes
 CMakeLists.txt                  Native build and Spout2 integration
 build-release.ps1               Local one-command Release build
 THIRD_PARTY_NOTICES.md          Third-party licensing
