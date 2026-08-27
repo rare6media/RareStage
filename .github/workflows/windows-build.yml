@@ -16,7 +16,9 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -A x64
       - name: Build
-        run: cmake --build build --config Release --target RareStage --parallel
+        run: cmake --build build --config Release --target RareStage RareStageConsole RareStageProtocolTests --parallel
+      - name: Control protocol tests
+        run: ctest --test-dir build -C Release --output-on-failure
       - name: Shader self-test
         shell: pwsh
         run: |
@@ -35,11 +37,19 @@ jobs:
             Get-Content build/Release/RareStage-startup.log -ErrorAction SilentlyContinue
             throw "Startup smoke test failed with exit code $($process.ExitCode)"
           }
+      - name: Console startup smoke test
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--startup-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Console startup smoke test failed with exit code $($process.ExitCode)"
+          }
       - name: Package portable build
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist/RareStage/assets | Out-Null
           Copy-Item build/Release/RareStage.exe dist/RareStage/RareStage.exe
+          Copy-Item build/Release/RareStageConsole.exe dist/RareStage/RareStageConsole.exe
           Copy-Item assets/rare-logo.png dist/RareStage/assets/rare-logo.png
           Copy-Item README.md,THIRD_PARTY_NOTICES.md dist/RareStage/
           Compress-Archive -Path dist/RareStage -DestinationPath RareStage-windows-x64.zip -Force
@@ -47,14 +57,14 @@ jobs:
         with:
           name: RareStage-windows-x64
           path: RareStage-windows-x64.zip
-      - name: Publish v0.10.0 release
+      - name: Publish v0.10.1 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.10.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.10.0 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.10.1 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.10.1 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.10.0 RareStage-windows-x64.zip --title "RareStage 0.10.0 — Pulse Architecture" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.10.1 RareStage-windows-x64.zip --title "RareStage 0.10.1 — Stagecraft Console" --generate-notes --repo $env:GITHUB_REPOSITORY
           }
