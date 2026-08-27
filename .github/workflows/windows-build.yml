@@ -44,19 +44,18 @@ jobs:
           if ($process.ExitCode -ne 0) {
             throw "Console startup smoke test failed with exit code $($process.ExitCode)"
           }
-      - name: Connected Console soak test
+      - name: Console launches Stage soak test
         shell: pwsh
         run: |
-          $renderer = Start-Process build/Release/RareStage.exe -PassThru
           try {
-            $console = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--connected-soak-test" -Wait -PassThru
+            $console = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--launch-stage-soak-test" -Wait -PassThru
             if ($console.ExitCode -ne 0) {
-              throw "Connected Console soak test failed with exit code $($console.ExitCode)"
+              throw "Console-owned Stage launch soak test failed with exit code $($console.ExitCode)"
             }
           } finally {
-            if (!$renderer.HasExited) {
-              Stop-Process -Id $renderer.Id -Force
-              $renderer.WaitForExit()
+            Get-Process RareStage -ErrorAction SilentlyContinue | ForEach-Object {
+              Stop-Process -Id $_.Id -Force
+              $_.WaitForExit()
             }
           }
       - name: Package portable build

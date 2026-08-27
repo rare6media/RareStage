@@ -111,6 +111,7 @@ class ConsoleApp {
 public:
     ~ConsoleApp() {
         disconnect();
+        closeRendererProcessHandle();
         destroyFonts();
     }
 
@@ -157,6 +158,12 @@ public:
     void beginConnectedSoakTest() {
         soakTest_ = true;
         soakStartedAt_ = GetTickCount64();
+    }
+
+    void beginLaunchStageSoakTest() {
+        beginConnectedSoakTest();
+        closeStageAfterSoak_ = true;
+        launchRenderer();
     }
 
 private:
@@ -264,7 +271,26 @@ private:
         state_ = SharedState{};
     }
 
+    void closeRendererProcessHandle() {
+        if (rendererProcess_) {
+            CloseHandle(rendererProcess_);
+            rendererProcess_ = nullptr;
+        }
+    }
+
+    void pollRendererProcess() {
+        if (!rendererProcess_) return;
+        DWORD exitCode = STILL_ACTIVE;
+        if (!GetExitCodeProcess(rendererProcess_, &exitCode) || exitCode == STILL_ACTIVE) return;
+        closeRendererProcessHandle();
+        launchFocusPending_ = false;
+        if (!rendererWindow_) {
+            statusText_ = L"RareStage exited with code " + std::to_wstring(exitCode) + L".";
+        }
+    }
+
     void updateConnection() {
+        pollRendererProcess();
         if (rendererWindow_ && !IsWindow(rendererWindow_)) disconnect();
         if (!rendererWindow_) rendererWindow_ = FindWindowW(rarestage::control::RendererWindowClass, nullptr);
 
@@ -308,6 +334,15 @@ private:
             everConnected_ = true;
             connectedAt_ = now;
         }
+        if (connected_ && launchFocusPending_) {
+            // RareStage is a stage-output surface; Console is the operator
+            // surface. Put the operator back in control after the child has
+            // finished creating its window and telemetry endpoint.
+            ShowWindow(window_, SW_RESTORE);
+            BringWindowToTop(window_);
+            SetForegroundWindow(window_);
+            launchFocusPending_ = false;
+        }
 
         if (!compatible_) {
             statusText_ = L"Protocol mismatch. Install RareStage and Console from the same package.";
@@ -327,6 +362,11 @@ private:
         if (!soakTest_) return;
         const std::uint64_t now = GetTickCount64();
         if (everConnected_ && paintCount_ >= 20 && now - connectedAt_ >= 2500) {
+            if (closeStageAfterSoak_ && rendererWindow_) {
+                PostMessageW(rendererWindow_, rarestage::control::CommandMessage,
+                             static_cast<WPARAM>(Command::QuitRenderer),
+                             rarestage::control::PackCommand(0, ++commandSerial_));
+            }
             requestClose();
             soakTest_ = false;
         } else if (now - soakStartedAt_ >= 15000) {
@@ -366,11 +406,21 @@ private:
             return;
         }
 
+        if (rendererProcess_) {
+            DWORD exitCode = STILL_ACTIVE;
+            if (GetExitCodeProcess(rendererProcess_, &exitCode) && exitCode == STILL_ACTIVE) {
+                statusText_ = L"RareStage is still starting...";
+                return;
+            }
+            closeRendererProcessHandle();
+        }
+
         wchar_t module[MAX_PATH]{};
         GetModuleFileNameW(nullptr, module, MAX_PATH);
         const auto directory = std::filesystem::path(module).parent_path();
         const auto executable = directory / L"RareStage.exe";
-        if (!std::filesystem::exists(executable)) {
+        std::error_code fileError;
+        if (!std::filesystem::exists(executable, fileError) || fileError) {
             statusText_ = L"RareStage.exe was not found beside RareStageConsole.exe.";
             return;
         }
@@ -380,14 +430,19 @@ private:
         mutableCommand.push_back(L'\0');
         STARTUPINFOW startup{};
         startup.cb = sizeof(startup);
+        startup.dwFlags = STARTF_USESHOWWINDOW;
+        startup.wShowWindow = SW_SHOWNOACTIVATE;
         PROCESS_INFORMATION process{};
-        if (CreateProcessW(executable.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE, 0,
+        if (CreateProcessW(executable.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE,
+                           CREATE_NEW_PROCESS_GROUP,
                            nullptr, directory.c_str(), &startup, &process)) {
             CloseHandle(process.hThread);
-            CloseHandle(process.hProcess);
-            statusText_ = L"RareStage is starting...";
+            rendererProcess_ = process.hProcess;
+            launchFocusPending_ = true;
+            statusText_ = L"RareStage is starting. Console will remain in operator focus.";
         } else {
-            statusText_ = L"RareStage could not be launched.";
+            statusText_ = L"RareStage could not be launched. Windows error " +
+                          std::to_wstring(GetLastError()) + L".";
         }
     }
 
@@ -964,12 +1019,15 @@ private:
     HWND window_{};
     HWND rendererWindow_{};
     HANDLE mapping_{};
+    HANDLE rendererProcess_{};
     const SharedState* mappedState_{};
     SharedState state_{};
     bool connected_{};
     bool compatible_{};
     bool everConnected_{};
     bool soakTest_{};
+    bool closeStageAfterSoak_{};
+    bool launchFocusPending_{};
     int exitCode_{};
     UINT dpi_{96};
     Page page_{Page::Show};
@@ -999,5 +1057,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     }
     if (std::wcsstr(GetCommandLineW(), L"--startup-test")) app.requestClose();
     else if (std::wcsstr(GetCommandLineW(), L"--connected-soak-test")) app.beginConnectedSoakTest();
+    else if (std::wcsstr(GetCommandLineW(), L"--launch-stage-soak-test")) app.beginLaunchStageSoakTest();
     return app.run();
 }
