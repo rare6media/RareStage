@@ -4,18 +4,25 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.1**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.10.0
+## What changed in 0.10.1
 
-Version 0.10.0 is the **Pulse Architecture pass**. It expands the articulated-panel language into a complete wall family, upgrades live rhythm tracking, and removes hard beat-phase jumps so visual motion stays liquid while kicks, tempo and percussion remain immediate.
+Version 0.10.1 is the **Stagecraft Console pass**. It turns the experimental Console branch into a complete, versioned operator surface, bundles it with RareStage, expands the wall-led visual language, and keeps every new formation on the liquid Pulse Architecture clock.
 
-- Twelve persistent worlds with environment, structure, atmosphere, foreground and logo layers
+- Fifteen persistent worlds with environment, structure, atmosphere, foreground and logo layers
+- Bundled RareStageConsole.exe with three dedicated pages: Show, Mix + Director, and Output
+- Bidirectional Console protocol v2 with seqlock telemetry, command acknowledgement, heartbeat recovery, version negotiation, and renderer relaunch
+- Console control of every live setting: worlds, acts, Smart Director, palettes, profiles, band gains, logo scale, dwell, transitions, render quality, VSync, Spout, monitors, audio devices, fullscreen, presets, HUD, blackout, fallback, and renderer shutdown
+- Fixed the Console reconnect path that could close its shared-memory handle twice
+- Removed the stale nine-world limit without regressing v0.10 kick, percussion, tempo, and phase-slew behavior
 - Five authored acts per world: Open, Build, Drop, Breakdown and Drive
-- Stagewall now performs eight readable cue families: columns, diagonals, center-out pressure, checker drives, organic sparse motion, helix flow, split gates and Rare mosaic
+- Stagewall now performs twelve readable cue families: columns, diagonals, center-out pressure, checker drives, organic sparse motion, helix flow, split gates, Rare mosaic, waterfall, grouped quadrants, serpentine flow, and compression
 - Every Stagewall panel contains coordinated rotating micro-pixels with independent kick pressure and hi-hat lighting
+- Kinetic Array now uses ten slower cue families and coordinated multi-tile banks
+- Three new stage-led worlds: Matrix Vault, Panel Cascade, and Signal Atrium
 - Bass pumps panel depth, scale, radial light and physical wall pressure without shaking the complete image
 - A dedicated percussion transient drives short face glints and edge lights for hi-hats and fast percussion
 - Original data-vault glyph columns, etched panel detail and brushed procedural surfaces stay crisp at native HD and Ultra 4K render scales
@@ -31,7 +38,7 @@ Version 0.10.0 is the **Pulse Architecture pass**. It expands the articulated-pa
 - Dynamic Rare-logo roles including panel mosaic, sliced prism mask, woven carrier, eclipse reveal and DVD-style wall bounce
 - Independently phased cells, motes, filaments and pixel depth keep every world alive during quiet passages
 - Pixel Current can assemble its moving cells into the traveling mark; impacts drive reactive wall light, color washes and a rare corner burst
-- Three new wall-led worlds: Kinetic Array, Lightwell and Pixel Loom
+- Wall-led world family: Stagewall, Kinetic Array, Lightwell, Pixel Loom, Matrix Vault, Panel Cascade, and Signal Atrium
 - No ray-marched centerpiece, seven-logo pile, repeated watermark stack, global radial-ring template, or universal white transition flash
 - Reduced HDR bloom and a stronger filmic detail pass for crisp stage output
 
@@ -45,10 +52,10 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Audio | WASAPI loopback from the selected active Windows playback device |
 | Analysis | 1024-point FFT, adaptive multi-band spectral flux, bass, mids, highs, RMS, peak, stereo energy, separate kick and percussion transients, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection |
-| Visual system | Twelve authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
+| Visual system | Fifteen authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
 | Director | Audio/section scoring, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
-| Show control | Direct2D/DirectWrite overlay with mouse, wheel and keyboard operation |
+| Show control | Bundled RareStage Console plus a Direct2D/DirectWrite in-renderer overlay |
 | Output | Borderless stage display, multi-monitor selection and clean Spout2 sender |
 | Performance | 62%, 78%, 100% and 125% HDR render scales; VSync or unlocked output |
 | Persistence | Settings and four show presets under `%LOCALAPPDATA%\RareStage` |
@@ -69,6 +76,9 @@ The research and design synthesis behind this release is documented in [Stage vi
 | `Q` | Kinetic Array | Articulated tile banks rotate, drift, vanish and reform through columns, diagonals, ripples, orbital patterns, zippers and coordinated sub-pixel motion | The mark appears only as a temporary negative-space formation |
 | `W` | Lightwell | Concentric panel rings, counter-rotating sectors, beam fans and a bass-pressurized central halo | A restrained Rare gobo briefly cuts through the light during higher-energy acts |
 | `E` | Pixel Loom | Dense pixels counter-rotate in synchronized groups, then merge into ribbons, diamonds, helixes, curtains and flowing fields | The mark acts as a temporary pixel attractor rather than a composited overlay |
+| `R` | Matrix Vault | Receding architectural frames, grouped data panels, etched glyph light and beat-conducted corridor pressure | The mark appears as temporary negative space inside the vault, never as a foreground watermark |
+| `Y` | Panel Cascade | Multi-panel banks fold, descend, disappear and reform through row waves, diagonals, curtains, blocks and a Rare formation | The mark becomes one synchronized formation during selected high-energy cues |
+| `U` | Signal Atrium | A wide stage architecture of moving gates, side and ceiling panels, beam fans and reflective floor light | A restrained moving gobo is visible only when the atrium lighting intersects it |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 
@@ -115,6 +125,18 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 
 Reaction profiles and per-band gains remain available. Autonomous motion is continuous; audio changes force, light, density and choreography. Longer movement envelopes stay smooth while the separate onset path preserves immediate impact.
 
+## RareStage Console
+
+Run RareStageConsole.exe from the same folder as RareStage.exe. Console can launch or focus the renderer and remains isolated from the clean program output.
+
+| Page | Controls |
+|---|---|
+| Show | All fifteen worlds, five act cues, previous/next, Smart Director, automation hold, Clean Open, stage HUD, load/save presets, blackout, and safe fallback |
+| Mix + Director | Reaction profile, palette direction, sensitivity, bass, mids, highs, beat, logo scale, act override, automatic act resume, Smart Director, and timeline mode |
+| Output | World dwell, transition duration and language, render profile, VSync/high-refresh output, Spout, fullscreen, HUD, audio device, monitor, timeline mode, and renderer shutdown |
+
+Protocol v2 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports the complete live state back to Console. Engine and Console must come from the same release package.
+
 ## Show Control
 
 Press `Tab` to show or hide the in-compositor control panel.
@@ -134,7 +156,7 @@ Press `Tab` to show or hide the in-compositor control panel.
 | Show mode | Smart Director or Show Timeline |
 | Spout output | Clean sender on or off |
 
-The panel reports the current world, current act, automation state, preset, automatic palette, playback device, BPM and live bass/mid/high/beat meters.
+The in-renderer panel and Console manipulate the same settings. Both report the current world, act, automation state, preset, automatic palette, playback device, BPM, and live frequency/transient meters.
 
 ## Controls
 
@@ -142,6 +164,7 @@ The panel reports the current world, current act, automation state, preset, auto
 |---|---|
 | `1`–`9` | Select worlds 1–9 and enter manual world mode |
 | `Q` / `W` / `E` | Select Kinetic Array, Lightwell or Pixel Loom |
+| `R` / `Y` / `U` | Select Matrix Vault, Panel Cascade or Signal Atrium |
 | `[` / `]` | Previous or next world |
 | `0` or `A` | Toggle Smart Director |
 | `D` | Cycle active Windows playback devices |
@@ -162,6 +185,8 @@ The panel reports the current world, current act, automation state, preset, auto
 | `F11` or `Alt+Enter` | Toggle borderless fullscreen |
 | `Esc` | Leave fullscreen, or quit when windowed |
 
+When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, and `U` select all fifteen worlds. `A`, `Space`, `B`, `O`, `F`, `H`, `D`, `M`, `T`, `F1`–`F4`, and `Shift+F1`–`Shift+F4` mirror the primary show cues.
+
 ## Factory show presets
 
 | Slot | Direction | Starting world | Default dwell / transition |
@@ -178,7 +203,7 @@ Saved presets include the current world, reaction tuning, fallback palette, dwel
 1. Open [Releases](https://github.com/rare6media/RareStage/releases/latest).
 2. Download `RareStage-windows-x64.zip`.
 3. Extract the complete `RareStage` folder.
-4. Run `RareStage.exe`.
+4. Run `RareStageConsole.exe` for complete control, then choose **Launch Stage**. Running `RareStage.exe` directly remains supported.
 
 Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folder. If startup fails, inspect `RareStage-startup.log` beside the executable.
 
@@ -198,7 +223,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.10.0 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Stagewall, Kinetic Array, Lightwell, Pixel Loom and the other world systems execute only inside their selected branch to protect high-refresh stage performance.
+VSync is enabled by default. The 0.10.1 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes, protecting high-refresh stage performance as the wall-led family expands.
 
 ## Build from source
 
@@ -216,25 +241,29 @@ Or run `./build-release.ps1`. CMake retrieves Spout2 and links `SpoutDX_static`;
 Every push and pull request runs the Windows workflow:
 
 1. Configure the x64 CMake project.
-2. Build optimized `RareStage.exe`.
-3. Compile-test every embedded DirectX shader.
-4. Launch the native executable in startup-test mode with the alpha logo present.
-5. Package the executable, logo, README and notices.
-6. Upload the portable ZIP.
+2. Build optimized `RareStage.exe`, `RareStageConsole.exe`, and the protocol tests.
+3. Run the Console protocol round-trip tests.
+4. Compile-test every embedded DirectX shader.
+5. Launch-test both native executables with the alpha logo present.
+6. Package the renderer, Console, logo, README and notices.
+7. Upload the portable ZIP.
 
-Successful pushes to `main` publish or refresh the **v0.10.0** GitHub release automatically.
+Successful pushes to `main` publish or refresh the **v0.10.1** GitHub release automatically.
 
 ## Roadmap
 
-### v0.10.0 — Pulse Architecture (current)
+### v0.10.1 — Stagecraft Console (current)
 
-- Twelve persistent environments with five musical acts each
+- Fifteen persistent environments with five musical acts each
+- Bundled complete-show Console and protocol v2 telemetry
+- Twelve Stagewall cues and ten Kinetic Array cues
+- Matrix Vault, Panel Cascade, and Signal Atrium
+- Full Console coverage of renderer, director, mix, output, safety, and preset state
+- Fixed Console reconnection and stale-world compatibility failures
 - Adaptive kick, percussion, onset and spectral-flux analysis
 - Robust recent-interval tempo tracking with monotonic phase slewing
-- Eight Stagewall cue families and synchronized rotating panel sub-pixels
-- Kinetic Array, Lightwell and Pixel Loom wall-led worlds
 - Slower liquid Morph Dimension without hard audio-clock jumps
-- Chapter-aware Smart Director affinities for all twelve worlds
+- Chapter-aware Smart Director affinities for all fifteen worlds
 - Stage-production research and documented scene grammar
 
 ### v0.11 — Smart Director telemetry
@@ -263,6 +292,9 @@ Successful pushes to `main` publish or refresh the **v0.10.0** GitHub release au
 ```text
 assets/rare-logo.png            Alpha Rare mark used by the world renderer
 src/main.cpp                    Win32 app, audio engine, director, HLSL and renderer
+src/console.cpp                 Tabbed native operator Console
+src/rarestage_control.h         Versioned command and telemetry protocol
+tests/control_protocol_test.cpp Command packing and shared-state round-trip test
 .github/workflows/              Windows build, test, package and release automation
 docs/                           Stage-production research and system design notes
 CMakeLists.txt                  Native build and Spout2 integration
