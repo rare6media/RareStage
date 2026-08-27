@@ -1,6 +1,7 @@
 #include "rarestage_control.h"
 
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 
 int main() {
@@ -59,6 +60,36 @@ int main() {
         return 5;
     }
 
+    // Regression coverage for the v0.10.1 Console crash: the reader view is
+    // intentionally read-only, exactly as it is in RareStageConsole.exe.
+    HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
+                                        0, sizeof(SharedState), nullptr);
+    if (!mapping) {
+        std::cerr << "Read-only mapping creation failed\n";
+        return 6;
+    }
+    auto* writable = static_cast<SharedState*>(
+        MapViewOfFile(mapping, FILE_MAP_WRITE, 0, 0, sizeof(SharedState)));
+    const auto* readonly = static_cast<const SharedState*>(
+        MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, sizeof(SharedState)));
+    if (!writable || !readonly) {
+        if (readonly) UnmapViewOfFile(readonly);
+        if (writable) UnmapViewOfFile(writable);
+        CloseHandle(mapping);
+        std::cerr << "Read-only mapping views failed\n";
+        return 7;
+    }
+    std::memcpy(writable, &source, sizeof(source));
+    SharedState readonlyCopy{};
+    const bool readonlyRead = ReadConsistent(readonly, readonlyCopy);
+    UnmapViewOfFile(readonly);
+    UnmapViewOfFile(writable);
+    CloseHandle(mapping);
+    if (!readonlyRead || readonlyCopy.world != source.world ||
+        readonlyCopy.stateRevision != source.stateRevision) {
+        std::cerr << "Read-only shared-state regression test failed\n";
+        return 8;
+    }
+
     return 0;
 }
-
