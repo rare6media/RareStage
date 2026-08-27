@@ -154,6 +154,11 @@ public:
         PostMessageW(window_, WM_CLOSE, 0, 0);
     }
 
+    void beginConnectedSoakTest() {
+        soakTest_ = true;
+        soakStartedAt_ = GetTickCount64();
+    }
+
 private:
     static LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
         ConsoleApp* app = reinterpret_cast<ConsoleApp*>(GetWindowLongPtrW(window, GWLP_USERDATA));
@@ -170,6 +175,7 @@ private:
             case WM_TIMER:
                 updateConnection();
                 InvalidateRect(window, nullptr, FALSE);
+                updateSoakTest();
                 return 0;
             case WM_PAINT:
                 paint();
@@ -213,7 +219,7 @@ private:
             case WM_DESTROY:
                 KillTimer(window, 1);
                 disconnect();
-                PostQuitMessage(0);
+                PostQuitMessage(exitCode_);
                 return 0;
         }
         return DefWindowProcW(window, message, wParam, lParam);
@@ -298,6 +304,10 @@ private:
                       next.worldCount == rarestage::control::WorldCount &&
                       next.sectionCount == rarestage::control::SectionCount;
         connected_ = compatible_ && (next.flags & rarestage::control::RendererReady);
+        if (connected_ && !everConnected_) {
+            everConnected_ = true;
+            connectedAt_ = now;
+        }
 
         if (!compatible_) {
             statusText_ = L"Protocol mismatch. Install RareStage and Console from the same package.";
@@ -310,6 +320,19 @@ private:
             pendingSerial_ = 0;
         } else if (connected_ && statusText_.empty()) {
             statusText_ = L"Console connected. All program output remains isolated from this window.";
+        }
+    }
+
+    void updateSoakTest() {
+        if (!soakTest_) return;
+        const std::uint64_t now = GetTickCount64();
+        if (everConnected_ && paintCount_ >= 20 && now - connectedAt_ >= 2500) {
+            requestClose();
+            soakTest_ = false;
+        } else if (now - soakStartedAt_ >= 15000) {
+            exitCode_ = 2;
+            requestClose();
+            soakTest_ = false;
         }
     }
 
@@ -935,6 +958,7 @@ private:
         DeleteObject(bitmap);
         DeleteDC(dc);
         EndPaint(window_, &paintStruct);
+        ++paintCount_;
     }
 
     HWND window_{};
@@ -944,11 +968,17 @@ private:
     SharedState state_{};
     bool connected_{};
     bool compatible_{};
+    bool everConnected_{};
+    bool soakTest_{};
+    int exitCode_{};
     UINT dpi_{96};
     Page page_{Page::Show};
     std::uint32_t commandSerial_{};
     std::uint32_t pendingSerial_{};
     std::uint64_t pendingSentAt_{};
+    std::uint64_t soakStartedAt_{};
+    std::uint64_t connectedAt_{};
+    std::uint32_t paintCount_{};
     std::wstring pendingDescription_;
     std::wstring statusText_;
     std::vector<HitTarget> targets_;
@@ -968,5 +998,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
         return 1;
     }
     if (std::wcsstr(GetCommandLineW(), L"--startup-test")) app.requestClose();
+    else if (std::wcsstr(GetCommandLineW(), L"--connected-soak-test")) app.beginConnectedSoakTest();
     return app.run();
 }

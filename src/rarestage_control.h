@@ -158,18 +158,21 @@ inline void EndWrite(SharedState* state) noexcept {
 inline bool ReadConsistent(const SharedState* source, SharedState& destination) noexcept {
     if (!source) return false;
     for (int attempt = 0; attempt < 6; ++attempt) {
-        const LONG before = InterlockedCompareExchange(
-            const_cast<volatile LONG*>(&source->sequence), 0, 0);
+        // The Console maps this snapshot with FILE_MAP_READ. Do not use an
+        // Interlocked read-modify-write operation here: even exchanging a
+        // value with itself faults on a read-only mapped view. Aligned 32-bit
+        // loads are atomic on Windows, and MSVC volatile loads have acquire
+        // semantics; the barriers keep the payload copy between the two
+        // sequence observations.
+        const LONG before = source->sequence;
         if (before & 1) continue;
         MemoryBarrier();
         std::memcpy(&destination, source, sizeof(destination));
         MemoryBarrier();
-        const LONG after = InterlockedCompareExchange(
-            const_cast<volatile LONG*>(&source->sequence), 0, 0);
+        const LONG after = source->sequence;
         if (before == after && !(after & 1)) return true;
     }
     return false;
 }
 
 } // namespace rarestage::control
-
