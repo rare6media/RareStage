@@ -4,43 +4,25 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.1**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.2**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.10.1
+## What changed in 0.10.2
 
-Version 0.10.1 is the **Stagecraft Console pass**. It turns the experimental Console branch into a complete, versioned operator surface, bundles it with RareStage, expands the wall-led visual language, and keeps every new formation on the liquid Pulse Architecture clock.
+Version 0.10.2 is the **Stage Systems pass**. It corrects instrument classification and extends Stagewall's readable object choreography across the show without turning every world into the same grid.
 
-- Fifteen persistent worlds with environment, structure, atmosphere, foreground and logo layers
-- Bundled RareStageConsole.exe with three dedicated pages: Show, Mix + Director, and Output
-- Bidirectional Console protocol v2 with seqlock telemetry, command acknowledgement, heartbeat recovery, version negotiation, and renderer relaunch
-- Console control of every live setting: worlds, acts, Smart Director, palettes, profiles, band gains, logo scale, dwell, transitions, render quality, VSync, Spout, monitors, audio devices, fullscreen, presets, HUD, blackout, fallback, and renderer shutdown
-- Fixed the Console reconnect path that could close its shared-memory handle twice
-- Removed the stale nine-world limit without regressing v0.10 kick, percussion, tempo, and phase-slew behavior
-- Five authored acts per world: Open, Build, Drop, Breakdown and Drive
-- Stagewall now performs twelve readable cue families: columns, diagonals, center-out pressure, checker drives, organic sparse motion, helix flow, split gates, Rare mosaic, waterfall, grouped quadrants, serpentine flow, and compression
-- Every Stagewall panel contains coordinated rotating micro-pixels with independent kick pressure and hi-hat lighting
-- Kinetic Array now uses ten slower cue families and coordinated multi-tile banks
-- Three new stage-led worlds: Matrix Vault, Panel Cascade, and Signal Atrium
-- Bass pumps panel depth, scale, radial light and physical wall pressure without shaking the complete image
-- A dedicated percussion transient drives short face glints and edge lights for hi-hats and fast percussion
-- Original data-vault glyph columns, etched panel detail and brushed procedural surfaces stay crisp at native HD and Ultra 4K render scales
-- Morph Dimension runs substantially slower and changes through deliberate column, diagonal and center-out patterns instead of free-running line motion
-- Pixel Current cells organize into ribbons, diamonds, edge currents and logo assemblies while retaining independent shape, position and depth motion
-- Three additional worlds: Prism Cascade, Kinetic Weave and Rare Eclipse
-- Fast onset analysis gives kicks and drops a dedicated near-real-time path while longer envelopes keep movement smooth
-- Adaptive multi-band onset analysis separates kick and high-percussion evidence while a recent-interval median stabilizes BPM
-- Monotonic phase slewing nudges choreography onto the beat without teleporting visual time or making motion stutter
-- Smart Director can enter Drop immediately when bass, onset and spectral evidence agree; other act changes use shorter confirmation without scene roulette
-- Every world runs on an autonomous visual clock, so silence changes the composition into an idle performance instead of freezing it
-- Destination-authored transitions mapped to each world's visual grammar
-- Dynamic Rare-logo roles including panel mosaic, sliced prism mask, woven carrier, eclipse reveal and DVD-style wall bounce
-- Independently phased cells, motes, filaments and pixel depth keep every world alive during quiet passages
-- Pixel Current can assemble its moving cells into the traveling mark; impacts drive reactive wall light, color washes and a rare corner burst
-- Wall-led world family: Stagewall, Kinetic Array, Lightwell, Pixel Loom, Matrix Vault, Panel Cascade, and Signal Atrium
-- No ray-marched centerpiece, seven-logo pile, repeated watermark stack, global radial-ring template, or universal white transition flash
-- Reduced HDR bloom and a stronger filmic detail pass for crisp stage output
+- Sample-rate-aware 2048-point FFT with 50% overlap, replacing hardcoded FFT-bin ranges
+- Separate sustained bass, kick, snare, and hi-hat transient evidence with independent attack/release behavior
+- Console protocol v3 and live `KICK`, `SNARE`, and `HATS` meters for direct detector feedback
+- Kick controls physical depth and short pressure; bass controls sustained weight; snare flips coordinated banks; hats illuminate edges and micro-faces
+- Stagewall expanded from twelve to sixteen cue families, adding wings, lift, pinwheel, and band-stack formations
+- Kinetic Array expanded from ten to fourteen cue families, adding fan, cross, stagger, and cascade formations
+- Morph Dimension, Rare Biosphere, Celestial Garden, Neon Ocean, Pixel Current, and Rare Eclipse rebuilt as Morph Wall, Bioframe, Celestial Rig, Wavewall, Pixel Bank, and Aperture Stage
+- Each replacement uses distinct stage geometry: morphing panel faces, organic membrane tiles, constellation rigs, kinetic slats, coordinated pixel banks, or articulated iris blades
+- Continuous autonomous motion remains separate from audio, so endings and silent holds stay alive
+- All fifteen worlds, five musical acts, renderer settings, director controls, output controls, telemetry, presets, and safety actions remain controllable from RareStage Console
+- Added a deterministic synthetic kick/snare/hat classifier test to the Windows release gate
 
 The research and design synthesis behind this release is documented in [Stage visual research, 2023–2026](docs/STAGE_VISUAL_RESEARCH_2023_2026.md).
 
@@ -50,7 +32,7 @@ The research and design synthesis behind this release is documented in [Stage vi
 |---|---|
 | Platform | Native Windows x64, C++20, Win32 and DirectX 11 |
 | Audio | WASAPI loopback from the selected active Windows playback device |
-| Analysis | 1024-point FFT, adaptive multi-band spectral flux, bass, mids, highs, RMS, peak, stereo energy, separate kick and percussion transients, robust recent-interval BPM and tempo confidence |
+| Analysis | Sample-rate-aware 2048-point FFT with 50% overlap, adaptive band-limited spectral flux, sustained bass, kick, snare, hats, mids, highs, RMS, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection |
 | Visual system | Fifteen authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
 | Director | Audio/section scoring, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
@@ -64,16 +46,16 @@ The research and design synthesis behind this release is documented in [Stage vi
 
 | Key | World | Visual direction | Rare-mark role |
 |---|---|---|---|
-| `1` | Morph Dimension | Slow circle-to-square fields, controlled negative space and beat-phrased column, diagonal and center-out assembly | A single mark gradually resolves from the field during builds and drops |
-| `2` | Rare Biosphere | Flowing membranes, organic tech filaments, living nodes, tendrils and layered cellular currents | One moving mark is carried through and connected to the ecosystem |
-| `3` | Celestial Garden | Layered hills, aurora ribbons, stars, spores and bioluminescent landscape motion | A small crest lives inside a drifting moon |
-| `4` | Stagewall | A full data-lit cube facade with panel turning, extrusion, disappearance, reassembly and cue-driven column, diagonal, radial, checker and sparse patterns | The mark is distributed across lit panel faces as a mosaic instruction, never pasted over the wall |
-| `5` | Neon Ocean | Flowing currents, animated horizon, aurora sky, wave bands and reflected light | A horizon crest creates a broken reflection across the water |
-| `6` | Pixel Current | Shape-changing cells organized into moving ribbons, diamonds, edge currents, depth layers and smooth dissolution | One mark follows a DVD-style wall-bounce path; impact lighting reacts to the track and rare corner hits receive a larger burst |
+| `1` | Morph Wall | Circle-to-square graphics live on articulated panel faces and move through columns, diagonals, banks and center-out assemblies | The mark resolves as negative space across the complete wall during selected high-energy cues |
+| `2` | Bioframe | Organic membrane tiles hinge in vine and radial formations over flowing filaments and living cellular light | The mark briefly influences the panel field instead of floating above it |
+| `3` | Celestial Rig | A suspended constellation-panel rig performs orbital, row and star formations over a restrained atmospheric landscape | No persistent logo; the environment and moving rig carry the identity |
+| `4` | Stagewall | A full data-lit cube facade with panel turning, extrusion, disappearance and sixteen cue families | The mark is distributed across lit panel faces as a mosaic instruction, never pasted over the wall |
+| `5` | Wavewall | Kinetic vertical slats form waves, curtains and pressure fronts over a fluid light environment | No foreground watermark; Rare color and movement language live in the slat system |
+| `6` | Pixel Bank | Coordinated pixel banks rotate, shift and re-form into ribbons, diamonds, edge currents and depth layers | One mark follows a DVD-style wall-bounce path and conducts bank lighting at impacts |
 | `7` | Prism Cascade | Bold opposing prism shutters, diagonal seams, staggered lane pulses and musical slice movement | A large sliced mark appears through the prism structure during builds, drops and drives |
 | `8` | Kinetic Weave | Seven broad woven ribbons, crossing signal threads, moving junctions and layered occlusion | A moving mark is carried behind the weave and is partially hidden by foreground ribbons |
-| `9` | Rare Eclipse | A drifting eclipse body, changing crescent, asymmetric beam fan, partial arc and horizon light | The mark is revealed inside the moving eclipse only during higher-energy acts |
-| `Q` | Kinetic Array | Articulated tile banks rotate, drift, vanish and reform through columns, diagonals, ripples, orbital patterns, zippers and coordinated sub-pixel motion | The mark appears only as a temporary negative-space formation |
+| `9` | Aperture Stage | Concentric articulated iris blades rotate in coordinated banks around a restrained eclipse light | The mark appears only as brief negative space inside the moving aperture |
+| `Q` | Kinetic Array | Articulated tile banks rotate, drift, vanish and reform through fourteen authored formations and coordinated sub-pixel motion | The mark appears only as a temporary negative-space formation |
 | `W` | Lightwell | Concentric panel rings, counter-rotating sectors, beam fans and a bass-pressurized central halo | A restrained Rare gobo briefly cuts through the light during higher-energy acts |
 | `E` | Pixel Loom | Dense pixels counter-rotate in synchronized groups, then merge into ribbons, diamonds, helixes, curtains and flowing fields | The mark acts as a temporary pixel attractor rather than a composited overlay |
 | `R` | Matrix Vault | Receding architectural frames, grouped data panels, etched glyph light and beat-conducted corridor pressure | The mark appears as temporary negative space inside the vault, never as a foreground watermark |
@@ -115,11 +97,12 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 |---|---|
 | Bass | Sustained structural weight, membrane/floor emphasis, water displacement and broad light pressure |
 | Kick | Near-real-time panel depth, controlled composition pump, radial pressure and short lighting hits |
+| Snare | Coordinated row, bank and face turns that read as one deliberate structural accent |
 | Mids | Flow speed, parallax, ribbons, currents and environment travel |
 | Highs | Fine detail, stars, windows, edges and atmospheric particles |
 | Beat | Pattern-grid timing, phrase boundaries and transition opportunities |
 | Onset | Immediate kick/drop evidence and transient lighting before the longer envelopes catch up |
-| Percussion | Fast hi-hat and percussion edge glints, panel-face specular hits and micro-light accents |
+| Hi-hats | Fast edge glints, panel-face specular hits and micro-light accents without moving complete structures |
 | Spectral flux | Musical-change evidence, build detection and structured signal fragments |
 | BPM/tempo confidence | Stable animation phase, monotonic beat nudging and eight-beat dwell quantization |
 
@@ -191,9 +174,9 @@ When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, and `U` select all f
 
 | Slot | Direction | Starting world | Default dwell / transition |
 |---|---|---|---|
-| `F1` Clean Open | Calm, Rare Cyan | Celestial Garden | 88 sec / 1.8 sec Horizon Rise |
-| `F2` Melodic Bloom | Balanced, Sakura | Morph Dimension | 72 sec / 1.4 sec Signal Veil |
-| `F3` Rare Drop | Stage, Rare Cyan | Rare Biosphere | 56 sec / 1.2 sec Gate Open |
+| `F1` Clean Open | Calm, Rare Cyan | Celestial Rig | 88 sec / 1.8 sec Horizon Rise |
+| `F2` Melodic Bloom | Balanced, Sakura | Morph Wall | 72 sec / 1.4 sec Signal Veil |
+| `F3` Rare Drop | Stage, Rare Cyan | Bioframe | 56 sec / 1.2 sec Gate Open |
 | `F4` Glitch Finale | Aggressive, Nebula, timeline | Stagewall | 48 sec / 0.9 sec Signal Veil |
 
 Saved presets include the current world, reaction tuning, fallback palette, dwell, transition, render profile, output mode, automation, timeline, Spout and monitor.
@@ -223,7 +206,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.10.1 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes, protecting high-refresh stage performance as the wall-led family expands.
+VSync is enabled by default. The 0.10.2 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes, protecting high-refresh stage performance as the wall-led family expands.
 
 ## Build from source
 
@@ -243,16 +226,26 @@ Every push and pull request runs the Windows workflow:
 1. Configure the x64 CMake project.
 2. Build optimized `RareStage.exe`, `RareStageConsole.exe`, and the protocol tests.
 3. Run the Console protocol round-trip tests.
-4. Compile-test every embedded DirectX shader.
-5. Launch-test both native executables with the alpha logo present.
-6. Package the renderer, Console, logo, README and notices.
-7. Upload the portable ZIP.
+4. Run deterministic kick, snare, and hi-hat classifier separation tests.
+5. Compile-test every embedded DirectX shader.
+6. Launch-test both native executables with the alpha logo present.
+7. Package the renderer, Console, logo, README and notices.
+8. Upload the portable ZIP.
 
-Successful pushes to `main` publish or refresh the **v0.10.1** GitHub release automatically.
+Successful pushes to `main` publish or refresh the **v0.10.2** GitHub release automatically.
 
 ## Roadmap
 
-### v0.10.1 — Stagecraft Console (current)
+### v0.10.2 — Stage Systems (current)
+
+- Sample-rate-aware overlapping analysis and separate kick, bass, snare, and hi-hat paths
+- Console protocol v3 with eight live signal meters
+- Sixteen Stagewall cues and fourteen Kinetic Array cues
+- Morph Wall, Bioframe, Celestial Rig, Wavewall, Pixel Bank, and Aperture Stage
+- Snare-led bank choreography and hat-only edge/specular accents across wall systems
+- Deterministic audio-classifier validation in the Windows release workflow
+
+### v0.10.1 — Stagecraft Console
 
 - Fifteen persistent environments with five musical acts each
 - Bundled complete-show Console and protocol v2 telemetry

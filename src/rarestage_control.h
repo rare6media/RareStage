@@ -8,10 +8,10 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v2";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v3";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 2;
+inline constexpr std::uint32_t ProtocolVersion = 3;
 inline constexpr std::uint32_t WorldCount = 15;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -111,6 +111,7 @@ struct alignas(64) SharedState {
     float beat{};
     float onset{};
     float percussion{};
+    float snare{};
     float kick{};
     float energy{};
     float transitionProgress{1.0f};

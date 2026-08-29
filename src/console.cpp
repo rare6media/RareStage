@@ -32,9 +32,9 @@ constexpr COLORREF Amber = RGB(255, 188, 65);
 constexpr COLORREF Red = RGB(255, 55, 91);
 
 constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
-    L"MORPH DIMENSION", L"RARE BIOSPHERE", L"CELESTIAL GARDEN",
-    L"STAGEWALL", L"NEON OCEAN", L"PIXEL CURRENT",
-    L"PRISM CASCADE", L"KINETIC WEAVE", L"RARE ECLIPSE",
+    L"MORPH WALL", L"BIOFRAME", L"CELESTIAL RIG",
+    L"STAGEWALL", L"WAVEWALL", L"PIXEL BANK",
+    L"PRISM CASCADE", L"KINETIC WEAVE", L"APERTURE STAGE",
     L"KINETIC ARRAY", L"LIGHTWELL", L"PIXEL LOOM",
     L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL ATRIUM"
 };
@@ -126,7 +126,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.10.1",
+            0, windowClass.lpszClassName, L"RareStage Console 0.10.2",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -311,7 +311,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.10.1 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.10.2 Console endpoint.";
             }
             return;
         }
@@ -678,15 +678,15 @@ private:
 
         const int meterTop = telemetry.top + scale(35);
         const int gap = scale(12);
-        const int count = 7;
+        const int count = 8;
         const int meterWidth = (telemetry.right - telemetry.left - scale(28) - gap * (count - 1)) / count;
         const std::array<float, count> values{
-            state_.bass, state_.mid, state_.high, state_.kick, state_.percussion, state_.beat, state_.onset
+            state_.bass, state_.mid, state_.high, state_.kick, state_.snare, state_.percussion, state_.beat, state_.onset
         };
         const std::array<const wchar_t*, count> names{
-            L"BASS", L"MIDS", L"HIGHS", L"KICK", L"HATS", L"BEAT", L"ONSET"
+            L"BASS", L"MIDS", L"HIGHS", L"KICK", L"SNARE", L"HATS", L"BEAT", L"ONSET"
         };
-        const std::array<COLORREF, count> colors{Cyan, Purple, Green, Red, Amber, Cyan, Purple};
+        const std::array<COLORREF, count> colors{Cyan, Purple, Green, Red, Purple, Amber, Cyan, Purple};
         for (int index = 0; index < count; ++index) {
             const int x = telemetry.left + scale(14) + index * (meterWidth + gap);
             meter(dc, names[index], connected_ ? values[index] : 0.0f,
@@ -832,7 +832,7 @@ private:
         y += scale(76);
         const int rowHeight = scale(43);
         const int rowGap = scale(7);
-        const std::array<std::wstring, 6> labels{L"SENSITIVITY", L"BASS / KICK", L"MIDS / FLOW", L"HIGHS / DETAIL", L"BEAT / CUES", L"LOGO SCALE"};
+        const std::array<std::wstring, 6> labels{L"SENSITIVITY", L"BASS / KICK", L"MIDS / SNARE", L"HIGHS / HATS", L"BEAT / CUES", L"LOGO SCALE"};
         const std::array<std::wstring, 6> values{
             std::to_wstring(static_cast<int>(std::lround(state_.sensitivity * 100))) + L"%",
             std::to_wstring(static_cast<int>(std::lround(state_.bassGain * 100))) + L"%",
