@@ -19,6 +19,14 @@ jobs:
         run: cmake --build build --config Release --target RareStage RareStageConsole RareStageProtocolTests --parallel
       - name: Control protocol tests
         run: ctest --test-dir build -C Release --output-on-failure
+      - name: Audio classifier self-test
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--audio-self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            Get-Content RareStage-audio-self-test.log -ErrorAction SilentlyContinue
+            throw "Audio classifier self-test failed with exit code $($process.ExitCode)"
+          }
       - name: Shader self-test
         shell: pwsh
         run: |
@@ -71,14 +79,14 @@ jobs:
         with:
           name: RareStage-windows-x64
           path: RareStage-windows-x64.zip
-      - name: Publish v0.10.1 release
+      - name: Publish v0.10.2 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.10.1 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.10.1 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.10.2 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.10.2 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.10.1 RareStage-windows-x64.zip --title "RareStage 0.10.1 — Stagecraft Console" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.10.2 RareStage-windows-x64.zip --title "RareStage 0.10.2 — Stage Systems" --generate-notes --repo $env:GITHUB_REPOSITORY
           }
