@@ -79,14 +79,14 @@ jobs:
         with:
           name: RareStage-windows-x64
           path: RareStage-windows-x64.zip
-      - name: Publish v0.10.2 release
+      - name: Publish v0.10.3 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.10.2 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.10.2 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.10.3 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.10.3 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.10.2 RareStage-windows-x64.zip --title "RareStage 0.10.2 — Stage Systems" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.10.3 RareStage-windows-x64.zip --title "RareStage 0.10.3 — Liquid Stagecraft" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

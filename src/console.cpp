@@ -34,9 +34,9 @@ constexpr COLORREF Red = RGB(255, 55, 91);
 constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
     L"MORPH WALL", L"BIOFRAME", L"CELESTIAL RIG",
     L"STAGEWALL", L"WAVEWALL", L"PIXEL BANK",
-    L"PRISM CASCADE", L"KINETIC WEAVE", L"APERTURE STAGE",
-    L"KINETIC ARRAY", L"LIGHTWELL", L"PIXEL LOOM",
-    L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL ATRIUM"
+    L"PRISM CASCADE", L"KINETIC WEAVE", L"CHROMA BLADES",
+    L"KINETIC ARRAY", L"KINETIC CANOPY", L"PIXEL LOOM",
+    L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL RAIL"
 };
 constexpr std::array<const wchar_t*, rarestage::control::SectionCount> SectionNames{
     L"OPEN", L"BUILD", L"DROP", L"BREAKDOWN", L"DRIVE"
@@ -126,7 +126,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.10.2",
+            0, windowClass.lpszClassName, L"RareStage Console 0.10.3",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -311,7 +311,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.10.2 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.10.3 Console endpoint.";
             }
             return;
         }
