@@ -12,6 +12,8 @@
 #include <cwchar>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -117,6 +119,8 @@ enum class Action {
     Spout,
     AudioProfile,
     ExportTrace,
+    LabelTrace,
+    CaptureFrame,
     AudioDevice,
     Monitor,
     Fullscreen,
@@ -132,9 +136,11 @@ struct HitTarget {
 struct TraceSample {
     float bass{}, mid{}, high{}, kick{}, snare{}, hats{}, onset{};
     float kickEvidence{}, snareEvidence{}, hatEvidence{}, ambiguity{}, threshold{}, stability{};
+    float lowFluxShare{}, midFluxShare{}, highFluxShare{}, lowPowerShare{}, midPowerShare{}, highPowerShare{};
     float bpm{}, tempoConfidence{}, latencyMs{}, sampleRate{};
     std::uint32_t transientClass{}, acceptedKicks{}, acceptedSnares{}, acceptedHats{}, rejected{};
     int requestedProfile{}, resolvedProfile{}, world{}, section{};
+    int expectedClass{-1};
 };
 
 class ConsoleApp {
@@ -156,7 +162,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.10.6",
+            0, windowClass.lpszClassName, L"RareStage Console 0.10.7",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -376,7 +382,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.10.6 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.10.7 Console endpoint.";
             }
             return;
         }
@@ -399,10 +405,12 @@ private:
             lastTraceRevision_ = next.stateRevision;
             trace_.push_back({next.bass, next.mid, next.high, next.kick, next.snare, next.percussion, next.onset,
                               next.kickEvidence, next.snareEvidence, next.hatEvidence, next.transientAmbiguity,
-                              next.detectorThreshold, next.calibrationStability, next.bpm, next.tempoConfidence,
+                              next.detectorThreshold, next.calibrationStability, next.lowFluxShare, next.midFluxShare,
+                              next.highFluxShare, next.lowPowerShare, next.midPowerShare, next.highPowerShare,
+                              next.bpm, next.tempoConfidence,
                               next.analysisLatencyMs, next.sampleRate, next.transientClass, next.acceptedKickCount,
                               next.acceptedSnareCount, next.acceptedHatCount, next.rejectedTransientCount,
-                              next.audioProfile, next.resolvedAudioProfile, next.world, next.songSection});
+                              next.audioProfile, next.resolvedAudioProfile, next.world, next.songSection, -1});
             constexpr std::size_t MaxTraceSamples = 1200;
             if (trace_.size() > MaxTraceSamples) {
                 trace_.erase(trace_.begin(), trace_.begin() + (trace_.size() - MaxTraceSamples));
@@ -548,22 +556,36 @@ private:
             statusText_ = L"Could not write the calibration trace.";
             return;
         }
-        file << "sample,time_ms,requested_profile,resolved_profile,sample_rate,world,section,transient_class,"
+        file << "sample,time_ms,requested_profile,resolved_profile,sample_rate,world,section,transient_class,expected_class,"
                 "bass,mids,highs,kick,snare,hats,onset,kick_evidence,snare_evidence,hat_evidence,"
-                "ambiguity,acceptance_threshold,calibration_stability,bpm,tempo_confidence,analysis_latency_ms,"
+                "ambiguity,acceptance_threshold,calibration_stability,low_flux_share,mid_flux_share,high_flux_share,"
+                "low_power_share,mid_power_share,high_power_share,bpm,tempo_confidence,analysis_latency_ms,"
                 "accepted_kicks,accepted_snares,accepted_hats,rejected_transients\n";
         for (std::size_t index = 0; index < trace_.size(); ++index) {
             const auto& sample = trace_[index];
             file << index << ',' << index * 25 << ',' << sample.requestedProfile << ',' << sample.resolvedProfile << ','
                  << sample.sampleRate << ',' << sample.world << ',' << sample.section << ',' << sample.transientClass << ','
+                 << sample.expectedClass << ','
                  << sample.bass << ',' << sample.mid << ',' << sample.high << ',' << sample.kick << ','
                  << sample.snare << ',' << sample.hats << ',' << sample.onset << ',' << sample.kickEvidence << ','
                  << sample.snareEvidence << ',' << sample.hatEvidence << ',' << sample.ambiguity << ','
-                 << sample.threshold << ',' << sample.stability << ',' << sample.bpm << ',' << sample.tempoConfidence << ','
+                 << sample.threshold << ',' << sample.stability << ',' << sample.lowFluxShare << ','
+                 << sample.midFluxShare << ',' << sample.highFluxShare << ',' << sample.lowPowerShare << ','
+                 << sample.midPowerShare << ',' << sample.highPowerShare << ',' << sample.bpm << ',' << sample.tempoConfidence << ','
                  << sample.latencyMs << ',' << sample.acceptedKicks << ',' << sample.acceptedSnares << ','
                  << sample.acceptedHats << ',' << sample.rejected << '\n';
         }
         statusText_ = L"Calibration trace saved to " + path.wstring();
+    }
+
+    void labelTrace(int expectedClass) {
+        if (trace_.empty()) {
+            statusText_ = L"No live transient is available to label.";
+            return;
+        }
+        trace_.back().expectedClass = std::clamp(expectedClass, 0, 3);
+        static constexpr std::array<const wchar_t*,4> Labels{L"NONE", L"KICK", L"SNARE", L"HI-HAT"};
+        statusText_ = L"Latest detector sample labeled " + std::wstring(Labels[trace_.back().expectedClass]) + L" for replay analysis.";
     }
 
     void handleKey(WPARAM key) {
@@ -590,6 +612,7 @@ private:
         else if (key == L'D') send(Command::CycleAudioDevice, 0, L"Audio device");
         else if (key == L'M') send(Command::CycleMonitor, 0, L"Output monitor");
         else if (key == L'T') send(Command::SetTimeline, flag(rarestage::control::Timeline) ? 0 : 1, L"Show mode");
+        else if (key == L'C') send(Command::CaptureFrame, 0, L"Clean stage capture");
         else if (key >= VK_F1 && key <= VK_F4) {
             const int preset = static_cast<int>(key - VK_F1);
             if (GetKeyState(VK_SHIFT) & 0x8000) send(Command::SavePreset, preset, L"Save preset F" + std::to_wstring(preset + 1));
@@ -682,6 +705,8 @@ private:
                 case Action::Spout: send(Command::SetSpout, flag(rarestage::control::SpoutEnabled) ? 0 : 1, L"Spout output"); break;
                 case Action::AudioProfile: send(Command::SetAudioProfile, target.value, AudioProfileNames[target.value]); break;
                 case Action::ExportTrace: exportTrace(); break;
+                case Action::LabelTrace: labelTrace(target.value); break;
+                case Action::CaptureFrame: send(Command::CaptureFrame, 0, L"Clean stage capture"); break;
                 case Action::AudioDevice: send(Command::CycleAudioDevice, 0, L"Audio device"); break;
                 case Action::Monitor: send(Command::CycleMonitor, 0, L"Output monitor"); break;
                 case Action::Fullscreen: send(Command::SetFullscreen, flag(rarestage::control::Fullscreen) ? 0 : 1, L"Fullscreen"); break;
@@ -783,7 +808,7 @@ private:
 
     void addButton(HDC dc, RECT rect, const std::wstring& label, Action action, int value,
                    bool active = false, COLORREF accent = Cyan, bool danger = false) {
-        const bool local = action == Action::Launch || action == Action::Page || action == Action::ExportTrace;
+        const bool local = action == Action::Launch || action == Action::Page || action == Action::ExportTrace || action == Action::LabelTrace;
         const bool enabled = connected_ || local;
         const bool hovered = enabled && PtInRect(&rect, cursor_);
         COLORREF fill = enabled ? PanelRaised : Panel;
@@ -1199,7 +1224,7 @@ private:
                  DT_LEFT | DT_TOP | DT_WORDBREAK | DT_END_ELLIPSIS);
 
         sectionLabel(dc, L"SIGNAL HISTORY  /  APPROX. 30 SECONDS", right.left + scale(14), right.top + scale(9), right.right - right.left - scale(28));
-        RECT plot{right.left + scale(14), right.top + scale(42), right.right - scale(14), right.bottom - scale(126)};
+        RECT plot{right.left + scale(14), right.top + scale(42), right.right - scale(14), right.bottom - scale(176)};
         fillRound(dc, plot, 7, RGB(3, 11, 18), Line);
         HPEN gridPen = CreatePen(PS_SOLID, 1, RGB(15, 35, 48));
         const auto oldPen = SelectObject(dc, gridPen);
@@ -1222,6 +1247,14 @@ private:
         drawText(dc, L"Accepted hits drive light and depth. Ambiguous transients remain visible in the export without contaminating instrument lanes.",
                  RECT{plot.left, plot.bottom + scale(34), plot.right, plot.bottom + scale(70)}, smallFont_, Text,
                  DT_LEFT | DT_TOP | DT_WORDBREAK);
+        const int labelGap = scale(6);
+        const int labelWidth = (plot.right - plot.left - labelGap * 3) / 4;
+        static constexpr std::array<const wchar_t*,4> Labels{L"LABEL NONE", L"LABEL KICK", L"LABEL SNARE", L"LABEL HAT"};
+        for (int index = 0; index < 4; ++index) {
+            const int x = plot.left + index * (labelWidth + labelGap);
+            addButton(dc, RECT{x, right.bottom - scale(94), x + labelWidth, right.bottom - scale(58)},
+                      Labels[index], Action::LabelTrace, index, false, index == 0 ? Muted : index == 1 ? Red : index == 2 ? Purple : Amber);
+        }
         addButton(dc, RECT{plot.left, right.bottom - scale(52), plot.right, right.bottom - scale(10)},
                   L"EXPORT CALIBRATION TRACE CSV", Action::ExportTrace, 0, false, Green);
     }
@@ -1259,6 +1292,20 @@ private:
                       Action::Quality, index, connected_ && state_.quality == index, Cyan);
         }
 
+        sectionLabel(dc, L"ASYNC GPU FRAME BUDGET", left.left + scale(14), y + scale(58), columnWidth - scale(28));
+        y += scale(87);
+        meter(dc, L"GPU UTILIZATION  /  SELECTED PROFILE", connected_ ? std::clamp(state_.gpuBudgetUtilization, 0.0f, 1.25f) / 1.25f : 0.0f,
+              RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)},
+              connected_ && state_.gpuBudgetUtilization > 1.0f ? Red : Green);
+        y += scale(40);
+        std::wstring gpu = L"CURRENT  --   PEAK  --   BUDGET  --";
+        if (connected_) {
+            const auto tenth=[](float value){wchar_t text[24]{};swprintf_s(text,L"%.1f",value);return std::wstring(text);};
+            gpu = L"CURRENT  " + tenth(state_.gpuFrameMs) + L" MS   /   PEAK  " + tenth(state_.gpuPeakMs) +
+                  L" MS   /   BUDGET  " + tenth(state_.gpuBudgetMs) + L" MS";
+        }
+        drawText(dc, gpu, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(27)}, smallFont_, connected_ ? Text : Muted);
+
         fillRound(dc, right, 11, Panel, Line);
         sectionLabel(dc, L"STAGE OUTPUT", right.left + scale(14), right.top + scale(9), columnWidth - scale(28));
         y = right.top + scale(39);
@@ -1289,6 +1336,11 @@ private:
                   flag(rarestage::control::Timeline) ? L"SHOW TIMELINE MODE" : L"SMART DIRECTOR MODE",
                   Action::Timeline, 0, flag(rarestage::control::Timeline), Green);
 
+        y += rowHeight + rowGap;
+        addButton(dc, RECT{right.left + scale(14), y, right.right - scale(14), y + rowHeight},
+                  flag(rarestage::control::CapturePending) ? L"CAPTURING CLEAN STAGE FRAME..." : L"CAPTURE CLEAN STAGE FRAME",
+                  Action::CaptureFrame, 0, flag(rarestage::control::CapturePending), Purple);
+
         sectionLabel(dc, L"CONNECTED PLAYBACK DEVICE", right.left + scale(14), y + scale(59), columnWidth - scale(28));
         y += scale(88);
         RECT device{right.left + scale(14), y, right.right - scale(14), y + scale(62)};
@@ -1296,6 +1348,10 @@ private:
         drawText(dc, connected_ ? state_.playbackDevice : L"No renderer telemetry",
                  RECT{device.left + scale(12), device.top, device.right - scale(12), device.bottom},
                  bodyFont_, connected_ ? Text : Muted);
+        if (connected_ && state_.captureStatus != 0) {
+            drawText(dc, state_.captureStatus > 0 ? L"LAST CAPTURE  " + std::wstring(state_.lastCapturePath) : L"LAST CAPTURE FAILED",
+                     RECT{device.left, device.bottom + scale(6), device.right, device.bottom + scale(32)}, smallFont_, state_.captureStatus > 0 ? Green : Red);
+        }
 
         RECT closeRect{right.left + scale(14), right.bottom - scale(54), right.right - scale(14), right.bottom - scale(10)};
         addButton(dc, closeRect, L"CLOSE RARESTAGE RENDERER", Action::QuitStage, 0, false, Red, true);
@@ -1390,10 +1446,78 @@ private:
     HFONT smallFont_{};
 };
 
+bool ReplayCalibrationTrace(const std::filesystem::path& path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) return false;
+    auto split=[](const std::string& line) {
+        std::vector<std::string> fields;
+        std::stringstream stream(line);
+        std::string field;
+        while (std::getline(stream, field, ',')) fields.push_back(field);
+        return fields;
+    };
+    std::string line;
+    if (!std::getline(file, line)) return false;
+    const auto header = split(line);
+    const auto findColumn=[&](const char* name) {
+        const auto found=std::find(header.begin(), header.end(), name);
+        return found == header.end() ? -1 : static_cast<int>(std::distance(header.begin(), found));
+    };
+    const int detectedColumn=findColumn("transient_class");
+    const int expectedColumn=findColumn("expected_class");
+    if (detectedColumn < 0 || expectedColumn < 0) return false;
+    std::array<std::array<std::uint32_t,4>,4> confusion{};
+    std::uint32_t labeled=0, correct=0, invalid=0;
+    while (std::getline(file, line)) {
+        const auto fields=split(line);
+        if (detectedColumn >= static_cast<int>(fields.size()) || expectedColumn >= static_cast<int>(fields.size())) {++invalid;continue;}
+        try {
+            const int detected=std::stoi(fields[detectedColumn]);
+            const int expected=std::stoi(fields[expectedColumn]);
+            if (expected < 0) continue;
+            if (detected < 0 || detected > 3 || expected > 3) {++invalid;continue;}
+            ++confusion[expected][detected];
+            ++labeled;
+            if (expected == detected) ++correct;
+        } catch (...) { ++invalid; }
+    }
+    auto reportPath=path;
+    reportPath.replace_extension(".analysis.txt");
+    std::ofstream report(reportPath, std::ios::binary);
+    if (!report) return false;
+    report << "RareStage calibration trace replay\n"
+           << "source=" << path.generic_string() << "\n"
+           << "labeled_samples=" << labeled << "\n"
+           << "correct_samples=" << correct << "\n"
+           << "invalid_rows=" << invalid << "\n"
+           << "accuracy=" << (labeled ? static_cast<double>(correct) / labeled : 0.0) << "\n"
+           << "rows=expected columns=detected [none,kick,snare,hat]\n";
+    for (int expected=0; expected<4; ++expected) {
+        report << expected;
+        for (int detected=0; detected<4; ++detected) report << ',' << confusion[expected][detected];
+        report << '\n';
+    }
+    return labeled > 0 && invalid == 0 && report.good();
+}
+
 } // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+    if (std::wcsstr(GetCommandLineW(), L"--trace-replay-self-test")) {
+        return ReplayCalibrationTrace(L"tests/audio_trace_contract.csv") ? 0 : 3;
+    }
+    int argumentCount=0;
+    LPWSTR* arguments=CommandLineToArgvW(GetCommandLineW(),&argumentCount);
+    if (arguments) {
+        for (int index=1; index+1<argumentCount; ++index) {
+            if (std::wcscmp(arguments[index],L"--trace-replay") != 0) continue;
+            const std::filesystem::path tracePath=arguments[index+1];
+            LocalFree(arguments);
+            return ReplayCalibrationTrace(tracePath) ? 0 : 4;
+        }
+        LocalFree(arguments);
+    }
     ConsoleApp app;
     if (!app.initialize(instance)) {
         MessageBoxW(nullptr, L"RareStage Console could not start.", L"RareStage Console", MB_OK | MB_ICONERROR);
