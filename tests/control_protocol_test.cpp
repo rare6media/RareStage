@@ -16,7 +16,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 6 || AudioProfileCount != 4) {
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 7 || AudioProfileCount != 4) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
@@ -42,6 +42,12 @@ int main() {
     source.detectorThreshold = 0.29f;
     source.calibrationStability = 0.93f;
     source.analysisLatencyMs = 42.67f;
+    source.lowFluxShare = 0.61f;
+    source.midFluxShare = 0.27f;
+    source.highFluxShare = 0.12f;
+    source.lowPowerShare = 0.52f;
+    source.midPowerShare = 0.33f;
+    source.highPowerShare = 0.15f;
     source.transientClass = 1;
     source.acceptedKickCount = 12;
     source.acceptedSnareCount = 8;
@@ -56,7 +62,14 @@ int main() {
     source.directorRunnerUpScore = 1.51f;
     source.sectionEvidence = 0.84f;
     source.endingConfidence = 0.62f;
+    source.gpuFrameMs = 5.25f;
+    source.gpuPeakMs = 7.75f;
+    source.gpuBudgetMs = 8.0f;
+    source.gpuBudgetUtilization = 0.65625f;
+    source.captureCount = 4;
+    source.captureStatus = 1;
     wcscpy_s(source.directorReason, _countof(source.directorReason), L"ENDING HOLD / PRESERVE WORLD");
+    wcscpy_s(source.lastCapturePath, _countof(source.lastCapturePath), L"C:\\RareStage\\Captures\\frame.png");
     source.percussion = 0.50f;
     source.snare = 0.64f;
     source.logoScale = 1.15f;
@@ -79,14 +92,20 @@ int main() {
         copy.kickEvidence != 0.88f || copy.snareEvidence != 0.24f ||
         copy.hatEvidence != 0.11f || copy.transientAmbiguity != 0.08f ||
         copy.detectorThreshold != 0.29f || copy.calibrationStability != 0.93f ||
-        copy.analysisLatencyMs != 42.67f || copy.transientClass != 1 ||
+        copy.analysisLatencyMs != 42.67f || copy.lowFluxShare != 0.61f ||
+        copy.midFluxShare != 0.27f || copy.highFluxShare != 0.12f ||
+        copy.lowPowerShare != 0.52f || copy.midPowerShare != 0.33f ||
+        copy.highPowerShare != 0.15f || copy.transientClass != 1 ||
         copy.acceptedKickCount != 12 || copy.acceptedSnareCount != 8 ||
         copy.acceptedHatCount != 21 || copy.rejectedTransientCount != 3 ||
         copy.audioProfile != 2 || copy.resolvedAudioProfile != 2 || copy.sampleRate != 48000.0f ||
         copy.directorCandidateWorld != 15 || copy.directorRunnerUpWorld != 3 ||
         copy.directorCandidateScore != 1.72f || copy.directorRunnerUpScore != 1.51f ||
         copy.sectionEvidence != 0.84f || copy.endingConfidence != 0.62f ||
+        copy.gpuFrameMs != 5.25f || copy.gpuPeakMs != 7.75f || copy.gpuBudgetMs != 8.0f ||
+        copy.gpuBudgetUtilization != 0.65625f || copy.captureCount != 4 || copy.captureStatus != 1 ||
         std::wcscmp(copy.directorReason, L"ENDING HOLD / PRESERVE WORLD") != 0 ||
+        std::wcscmp(copy.lastCapturePath, L"C:\\RareStage\\Captures\\frame.png") != 0 ||
         copy.logoScale != 1.15f ||
         copy.worldDwellSeconds != 64.0f || copy.transitionSeconds != 1.2f) {
         std::cerr << "Shared-state round trip failed\n";

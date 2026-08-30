@@ -8,10 +8,10 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v6";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v7";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 6;
+inline constexpr std::uint32_t ProtocolVersion = 7;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -55,7 +55,8 @@ enum class Command : std::uint32_t {
     CycleAudioDevice,
     CycleMonitor,
     SetFullscreen,
-    QuitRenderer
+    QuitRenderer,
+    CaptureFrame
 };
 
 enum StateFlag : std::uint32_t {
@@ -71,7 +72,8 @@ enum StateFlag : std::uint32_t {
     ManualSectionOverride = 1u << 9,
     Fullscreen = 1u << 10,
     VsyncEnabled = 1u << 11,
-    MusicalEnding = 1u << 12
+    MusicalEnding = 1u << 12,
+    CapturePending = 1u << 13
 };
 
 enum class CommandStatus : std::int32_t {
@@ -130,6 +132,12 @@ struct alignas(64) SharedState {
     float detectorThreshold{};
     float calibrationStability{};
     float analysisLatencyMs{};
+    float lowFluxShare{};
+    float midFluxShare{};
+    float highFluxShare{};
+    float lowPowerShare{};
+    float midPowerShare{};
+    float highPowerShare{};
     float calibrationProgress{};
     float sampleRate{};
     float energy{};
@@ -147,14 +155,21 @@ struct alignas(64) SharedState {
     float directorRunnerUpScore{};
     float sectionEvidence{};
     float endingConfidence{};
+    float gpuFrameMs{};
+    float gpuPeakMs{};
+    float gpuBudgetMs{};
+    float gpuBudgetUtilization{};
     std::uint32_t transientClass{};
     std::uint32_t acceptedKickCount{};
     std::uint32_t acceptedSnareCount{};
     std::uint32_t acceptedHatCount{};
     std::uint32_t rejectedTransientCount{};
+    std::uint32_t captureCount{};
+    std::int32_t captureStatus{};
     wchar_t playbackDevice[96]{};
     wchar_t worldName[48]{};
     wchar_t directorReason[96]{};
+    wchar_t lastCapturePath[160]{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");
