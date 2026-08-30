@@ -4,22 +4,22 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.7**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.8**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.10.7
+## What changed in 0.10.8
 
-Version 0.10.7 is the **Operator Capture + GPU Budgets release**. It makes performance measurable, clean frames reviewable and Audio Lab traces replayable without compromising the renderer's high-refresh path.
+Version 0.10.8 is the **Set Review + Cue Density release**. It turns Console into a rehearsal evidence surface and adds authored cue-density mastering without compromising continuous high-refresh motion.
 
-- Protocol v7 reports asynchronous Direct3D GPU frame time, rolling peak, selected-profile budget and utilization to Console
-- Timestamp queries are polled without blocking the render thread, preserving smooth stage output
-- Console Output adds a live GPU budget meter and a clean stage-frame capture command
-- Captures exclude the stage HUD and are written as timestamped PNGs under `%LOCALAPPDATA%\RareStage\Captures`
-- CI renders a deterministic 72-frame review set: all eighteen worlds across all four render profiles, with a GPU-budget manifest
-- Audio Lab adds operator labels for none, kick, snare and hi-hat plus the low/mid/high flux and power evidence used by the classifier
-- Exported traces can be replayed into a confusion-matrix report; the bundled test data is explicitly a synthetic contract fixture, not claimed real-set calibration
-- v0.10.6's winner-arbitrated instrument detection, liquid formations and articulated world mastering remain intact
+- Protocol v8 exposes operator cue density, the authored world/act result and rehearsal state to Console
+- A fifth glassmorphic Console page records complete set telemetry, world/act changes, captures and GPU-budget events
+- Smart captures wait briefly after important cues and prefer GPU headroom, avoiding screenshot stalls at the musical hit itself
+- A capture review board supports approve/rework decisions and Too Busy, Too Dark, Logo, Motion and Good tags
+- Ending a rehearsal exports a timeline CSV, review CSV and human-readable Markdown cue summary under `Documents\RareStage\Sessions`
+- Each world and act now has an authored cue-density master; Stagewall/Kinetic/Panel systems can carry more detail while calmer worlds retain negative space
+- Cue density scales transient lighting and detail only. Autonomous and tempo-slewed motion clocks remain continuous at all density settings
+- Deterministic CI contracts validate rehearsal capture behavior and record cue density in the 72-frame reference manifest
 
 The research and design synthesis behind this release is documented in [Stage visual research, 2023–2026](docs/STAGE_VISUAL_RESEARCH_2023_2026.md).
 
@@ -35,6 +35,7 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Director | Audio/section scoring, live choice evidence, ending holds, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Bundled RareStage Console plus a Direct2D/DirectWrite in-renderer overlay |
+| Rehearsal | Telemetry recorder, GPU-aware smart captures, review decisions, reason tags and portable CSV/Markdown session evidence |
 | Output | Borderless stage display, multi-monitor selection and clean Spout2 sender |
 | Performance | 62%, 78%, 100% and 125% HDR render scales; VSync or unlocked output; asynchronous GPU timing and profile budgets |
 | Persistence | Settings and four show presets under `%LOCALAPPDATA%\RareStage` |
@@ -118,8 +119,11 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Mix + Director | Reaction profile, palette direction, sensitivity, bass, mids, highs, beat, logo scale, act override, automatic act resume, Smart Director, and timeline mode |
 | Audio Lab | Auto/EDM/Bass Music/Melodic detector profile, instrument evidence, accepted/rejected diagnostics, adaptive calibration, sample labeling, replay-ready CSV export, and latency |
 | Output | World dwell, transition language, render profile, live GPU budget, clean PNG capture, VSync/high-refresh output, Spout, fullscreen, HUD, device, monitor, timeline mode, and renderer shutdown |
+| Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v7 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector evidence, calibration, Director decisions, GPU timing, capture state and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v8 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector evidence, calibration, Director decisions, GPU timing, cue-density, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+
+Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 
 To replay an exported, operator-labeled trace without launching the UI, run `RareStageConsole.exe --trace-replay <trace.csv>`. A sibling `.analysis.txt` file records the four-class confusion matrix, labeled-sample count and accuracy. RareStage never presents the bundled synthetic contract fixture as real performance calibration.
 
@@ -134,6 +138,7 @@ Press `Tab` to show or hide the in-compositor control panel.
 | Sensitivity | 50–150% |
 | Bass / Mids / Highs / Beat | 50–150% each |
 | Logo | 75–125% |
+| Cue density | 65–125% operator master over authored world/act density |
 | World dwell | 40–120 seconds |
 | Transition | 0.2–3.0 seconds |
 | Transition FX | Morph Match, Horizon Rise, Signal Veil, Gate Open |
@@ -172,7 +177,7 @@ The in-renderer panel and Console manipulate the same settings. Both report the 
 | `F11` or `Alt+Enter` | Toggle borderless fullscreen |
 | `Esc` | Leave fullscreen, or quit when windowed |
 
-When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, `U`, `I`, `O`, and `K` select all eighteen worlds. `A`, `Space`, `B`, `Ctrl+O`, `F`, `H`, `D`, `M`, `T`, `F1`–`F4`, and `Shift+F1`–`Shift+F4` mirror the primary show cues.
+When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, `U`, `I`, `O`, and `K` select all eighteen worlds. `A`, `Space`, `B`, `Ctrl+O`, `F`, `H`, `D`, `M`, `T`, `F1`–`F4`, and `Shift+F1`–`Shift+F4` mirror the primary show cues. `G` starts or stops a rehearsal recording.
 
 ## Factory show presets
 
@@ -210,7 +215,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.10.7 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
+VSync is enabled by default. The 0.10.8 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
 
 ## Build from source
 
@@ -238,7 +243,7 @@ Every push and pull request runs the Windows workflow:
 9. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
 10. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
 
-Successful pushes to `main` publish or refresh the **v0.10.7** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
+Successful pushes to `main` publish or refresh the **v0.10.8** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
@@ -250,21 +255,25 @@ Successful pushes to `main` publish or refresh the **v0.10.7** GitHub release au
 - Predictable Matrix Vault depth travel and scene-specific mastering across all eighteen worlds
 - High-refresh motion traces plus an 18-world/5-act/4-profile mastering reference matrix
 
-### v0.10.7 — Operator Capture + GPU Budgets (current)
+### v0.10.7 — Operator Capture + GPU Budgets (completed)
 
 - Native asynchronous D3D11 timestamp budgets surfaced in Console
 - Clean operator PNG capture controlled from Console
 - Deterministic 72-frame world/profile review artifact and budget manifest
 - Labelable Audio Lab traces with replay/confusion-matrix analysis; real-set thresholds remain data-gated
 
-### v0.10.8 — Set Review + Cue Density
+### v0.10.8 — Set Review + Cue Density (current)
 
-- Tune detector profiles only from labeled real-set traces supplied by operators
-- Attach operator notes and approval state to deterministic reference captures
-- Refine cue density from full-song reviews while preserving deliberate endings and autonomous idle motion
+- Fifth Console page for full-set telemetry recording and a live cue-event timeline
+- GPU-aware smart captures after world/act changes and performance-budget excursions
+- Capture approve/rework decisions plus concise visual reason tags
+- Timeline CSV, review CSV and Markdown session summaries for production review
+- Authored world/act cue-density mastering with a 65–125% operator control
+- Continuous motion protected from density and capture automation
 
 ### v0.11 — Smart Director 2
 
+- Tune detector profiles only from labeled real-set traces produced during actual rehearsals
 - Predictive build/drop pre-roll so transitions land on the next musical boundary
 - Act-aware world memory so a set develops without repeating the same world/act combinations
 - Confidence-aware tempo recovery and predictive ending behavior
