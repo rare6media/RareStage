@@ -4,28 +4,22 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.3**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.4**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.10.3
+## What changed in 0.10.4
 
-Version 0.10.3 is the **Liquid Stagecraft pass**. Stagewall, Kinetic Array and Panel Cascade establish the quality bar; the rest of the show now uses the same production discipline without repeating their exact geometry.
+Version 0.10.4 is the **Live Stage Lab release**. It makes the audio detector visible and tunable from Console, expands the Stagewall-grade architectural family, and adds deterministic motion-reference validation without making music the animation clock.
 
-- Shared eight-beat formation grammar with smooth interpolation and no raw transient-driven position or rotation
-- Kick controls short physical pressure, bass controls sustained depth, snare turns coordinated banks, mids conduct travel, and hats illuminate edges
-- Morph Wall, Bioframe and Celestial Rig rebuilt as cohesive glass-panel systems with far less background clutter
-- Wavewall rebuilt as a controlled articulated-slat stage with six authored depth formations
-- Pixel Bank retains the DVD-style Rare mark but replaces wire waves and drifting confetti with a calm rotating support field
-- Prism Cascade removes logo slicing and background judder in favor of continuous counter-moving shutter layers
-- Kinetic Weave now tells a four-layer visual story: atmosphere, bass pressure, mid-led ribbons and hat detail
-- Aperture Stage replaced by **Chroma Blades**, an eight-formation bank of articulated elongated panels
-- Lightwell replaced by **Kinetic Canopy**, a suspended ceiling-panel and runway-light environment
-- Pixel Loom rebuilt as a 22×14 grouped pixel instrument with eight production cues and negative-space branding
-- Matrix Vault now travels in one slow, predictable direction while preserving its data-lighting language
-- Signal Atrium replaced by **Signal Rail**, a perspective transport system of synchronized light packets and floor rails
-- RareStage Console keeps full control of all fifteen worlds, acts, live mix, Smart Director, output, presets and renderer lifecycle through protocol v3
-- The release gate still includes the Console-owned Stage launch soak test that guards against the launch-and-exit regression
+- Four detector profiles: Auto, EDM, Bass Music and Melodic
+- Live kick, snare and hi-hat confidence plus sample-rate and adaptive-calibration telemetry
+- New Console Audio Lab with a rolling signal trace and one-click CSV export
+- New **Kinetic Facade**, **Suspended Field** and **Void Gates** worlds, each using smooth eight-beat formation choreography and distinct architectural staging
+- Eighteen-world Smart Director affinities and complete four-preset timeline orders
+- Protocol v4 gives Console full control of detector profile, all eighteen worlds, acts, mix, output and renderer lifecycle
+- Deterministic 60/120/144 Hz motion timing capture guards monotonic animation and cue interpolation
+- Console-owned Stage launch soak remains a required release gate, preventing the launch-and-exit regression
 
 The research and design synthesis behind this release is documented in [Stage visual research, 2023–2026](docs/STAGE_VISUAL_RESEARCH_2023_2026.md).
 
@@ -37,7 +31,7 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Audio | WASAPI loopback from the selected active Windows playback device |
 | Analysis | Sample-rate-aware 2048-point FFT with 50% overlap, adaptive band-limited spectral flux, sustained bass, kick, snare, hats, mids, highs, RMS, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection |
-| Visual system | Fifteen authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
+| Visual system | Eighteen authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
 | Director | Audio/section scoring, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Bundled RareStage Console plus a Direct2D/DirectWrite in-renderer overlay |
@@ -64,6 +58,9 @@ The research and design synthesis behind this release is documented in [Stage vi
 | `R` | Matrix Vault | Receding architectural frames move steadily in one direction behind grouped data panels, etched glyph light and corridor pressure | The mark appears as temporary negative space inside the vault, never as a foreground watermark |
 | `Y` | Panel Cascade | Multi-panel banks fold, descend, disappear and reform through row waves, diagonals, curtains, blocks and a Rare formation | The mark becomes one synchronized formation during selected high-energy cues |
 | `U` | Signal Rail | Nine perspective rails carry synchronized light packets from a distant horizon through six phrase formations | No logo; transport motion, lane color and architectural convergence make the world distinct |
+| `I` | Kinetic Facade | A wide articulated-panel elevation performs columns, diagonals, radial pushes, split banks, blocks, fans and cascades | The mark appears only as a distributed negative-space facade formation |
+| `O` | Suspended Field | Suspended tile banks, cables and runway light perform seven ceiling-scale formations with calm physical drift | No foreground mark; the suspended architecture is the identity |
+| `K` | Void Gates | Seven slow receding gates frame side-panel cues and a deliberately large central negative space | A restrained Rare-shaped void appears only during selected acts |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 
@@ -117,11 +114,12 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 
 | Page | Controls |
 |---|---|
-| Show | All fifteen worlds, five act cues, previous/next, Smart Director, automation hold, Clean Open, stage HUD, load/save presets, blackout, and safe fallback |
+| Show | All eighteen worlds, five act cues, previous/next, Smart Director, automation hold, Clean Open, stage HUD, load/save presets, blackout, and safe fallback |
 | Mix + Director | Reaction profile, palette direction, sensitivity, bass, mids, highs, beat, logo scale, act override, automatic act resume, Smart Director, and timeline mode |
+| Audio Lab | Auto/EDM/Bass Music/Melodic detector profile, instrument confidence, adaptive calibration, sample rate, rolling live trace, and CSV export |
 | Output | World dwell, transition duration and language, render profile, VSync/high-refresh output, Spout, fullscreen, HUD, audio device, monitor, timeline mode, and renderer shutdown |
 
-Protocol v3 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports the complete live state—including separate kick, snare and hats meters—back to Console. Engine and Console must come from the same release package.
+Protocol v4 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector-confidence, calibration and renderer state back to Console. Engine and Console must come from the same release package.
 
 ## Show Control
 
@@ -151,6 +149,7 @@ The in-renderer panel and Console manipulate the same settings. Both report the 
 | `1`–`9` | Select worlds 1–9 and enter manual world mode |
 | `Q` / `W` / `E` | Select Kinetic Array, Kinetic Canopy or Pixel Loom |
 | `R` / `Y` / `U` | Select Matrix Vault, Panel Cascade or Signal Rail |
+| `I` / `O` / `K` | Select Kinetic Facade, Suspended Field or Void Gates |
 | `[` / `]` | Previous or next world |
 | `0` or `A` | Toggle Smart Director |
 | `D` | Cycle active Windows playback devices |
@@ -171,7 +170,7 @@ The in-renderer panel and Console manipulate the same settings. Both report the 
 | `F11` or `Alt+Enter` | Toggle borderless fullscreen |
 | `Esc` | Leave fullscreen, or quit when windowed |
 
-When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, and `U` select all fifteen worlds. `A`, `Space`, `B`, `O`, `F`, `H`, `D`, `M`, `T`, `F1`–`F4`, and `Shift+F1`–`Shift+F4` mirror the primary show cues.
+When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, `U`, `I`, `O`, and `K` select all eighteen worlds. `A`, `Space`, `B`, `Ctrl+O`, `F`, `H`, `D`, `M`, `T`, `F1`–`F4`, and `Shift+F1`–`Shift+F4` mirror the primary show cues.
 
 ## Factory show presets
 
@@ -209,7 +208,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.10.3 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes, protecting high-refresh stage performance as the articulated stage family expands.
+VSync is enabled by default. The 0.10.4 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes, protecting high-refresh stage performance as the articulated stage family expands.
 
 ## Build from source
 
@@ -230,41 +229,30 @@ Every push and pull request runs the Windows workflow:
 2. Build optimized `RareStage.exe`, `RareStageConsole.exe`, and the protocol tests.
 3. Run the Console protocol round-trip tests.
 4. Run deterministic kick, snare, and hi-hat classifier separation tests.
-5. Compile-test every embedded DirectX shader.
-6. Launch-test both native executables with the alpha logo present.
-7. Package the renderer, Console, logo, README and notices.
-8. Upload the portable ZIP.
+5. Capture and verify monotonic motion timing at 60, 120 and 144 Hz.
+6. Compile-test every embedded DirectX shader.
+7. Launch-test both native executables with the alpha logo present.
+8. Run the Console-owned Stage launch soak regression.
+9. Package and upload the renderer, Console, logo, README and notices.
 
-Successful pushes to `main` publish or refresh the **v0.10.3** GitHub release automatically.
+Successful pushes to `main` publish or refresh the **v0.10.4** GitHub release automatically.
 
 ## Roadmap
 
-### v0.10.3 — Liquid Stagecraft (current)
+### v0.10.4 — Live Stage Lab (current)
 
-- Scene 1: cohesive glass morph wall; shape changes and bank motion remain liquid between cues
-- Scene 2: retain the glassmorphic material while reducing the background to one authored environment
-- Scene 3: preserve the subtle vibration but coordinate it per bank rather than twitching every tile independently
-- Scene 4: preserve Stagewall and its sixteen proven cue families as a production benchmark
-- Scene 5: replace the overloaded wave treatment with a finished six-formation articulated-slat stage
-- Scene 6: polish the DVD behavior and replace wire/confetti motion with slow rotating support pixels
-- Scene 7: remove sliced-logo glitch and background judder; separate bass, mids and hats across stable prism layers
-- Scene 8: build a smooth narrative stack in which atmosphere, pressure, ribbons and detail each have a musical role
-- Scene 9: replace Aperture Stage completely with the eight-formation Chroma Blades system
-- Scene 10: preserve Kinetic Array and carry its formation discipline into other worlds
-- Scene 11: replace Lightwell completely with Kinetic Canopy and a perspective runway environment
-- Scene 12: rebuild Pixel Loom as a dense, grouped, high-detail stage instrument rather than loose moving pixels
-- Scene 13: keep Matrix Vault's data language while making depth travel slow, monotonic and predictable
-- Scene 14: preserve Panel Cascade as the other production benchmark
-- Scene 15: replace Signal Atrium with a distinct perspective light-transport world, Signal Rail
-- Keep autonomous motion alive during silence; use kicks, bass, snare, mids and hats as conductors rather than animation clocks
-- Preserve complete RareStage Console control and the Console-owned Stage launch soak regression gate
+- Audio Lab signal history, instrument-confidence display and CSV calibration capture
+- Auto, EDM, Bass Music and Melodic detector profiles with sample-rate-aware adaptive calibration
+- Kinetic Facade, Suspended Field and Void Gates at the Stagewall/Kinetic Array production level
+- Eighteen-world Console control, Director affinities and deterministic show timelines through protocol v4
+- High-refresh timing references plus native shader, startup, protocol and Console lifecycle regression gates
 
-### v0.10.4 — Live calibration and stage expansion
+### v0.10.5 — Production tuning
 
-- Capturable per-band traces and detector confidence overlays for real-room kick, snare and hat calibration
-- Automatic device/sample-rate calibration profiles with detector presets for EDM, bass music and melodic sets
-- Additional Stagewall-grade worlds based on kinetic facades, suspended architecture and large-format negative space
-- Reference-frame and timing captures for motion smoothness, cue readability and GPU budget
+- Tune detector-profile thresholds against exported traces from real EDM, bass-music and melodic playback
+- Add Director evidence diagnostics so operators can see why an act or world was accepted or rejected
+- Add GPU timing budgets and representative reference-frame captures for every world and render profile
+- Refine cue density per act so outros retain visual life without presenting drop-level pressure
 
 ### v0.11 — Smart Director 2
 
