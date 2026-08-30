@@ -719,8 +719,8 @@ private:
             lastRehearsalSection_ = next.songSection;
         }
         if (next.directorDecisionRevision != lastDirectorDecisionRevision_) {
-            const bool accepted = next.acceptedDirectorCueCount != lastAcceptedDirectorCueCount ||
-                                  (next.lastDirectorDecision[0] && next.rejectedDirectorCueCount == lastRejectedDirectorCueCount);
+            const bool accepted = next.acceptedDirectorCueCount != lastAcceptedDirectorCueCount_ ||
+                                  (next.lastDirectorDecision[0] && next.rejectedDirectorCueCount == lastRejectedDirectorCueCount_);
             addRehearsalEvent(accepted ? L"DIRECTOR" : L"REJECT", accepted ? std::wstring(next.lastDirectorDecision) : std::wstring(next.lastRejectedCue));
             lastDirectorDecisionRevision_ = next.directorDecisionRevision;
             lastAcceptedDirectorCueCount_ = next.acceptedDirectorCueCount;
