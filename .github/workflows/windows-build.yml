@@ -27,6 +27,13 @@ jobs:
             Get-Content RareStage-audio-self-test.log -ErrorAction SilentlyContinue
             throw "Audio classifier self-test failed with exit code $($process.ExitCode)"
           }
+      - name: Motion timing and reference capture
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--motion-self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Motion timing self-test failed with exit code $($process.ExitCode)"
+          }
       - name: Shader self-test
         shell: pwsh
         run: |
@@ -78,15 +85,17 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: RareStage-windows-x64
-          path: RareStage-windows-x64.zip
-      - name: Publish v0.10.3 release
+          path: |
+            RareStage-windows-x64.zip
+            RareStage-motion-reference.csv
+      - name: Publish v0.10.4 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.10.3 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.10.3 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.10.4 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.10.4 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.10.3 RareStage-windows-x64.zip --title "RareStage 0.10.3 — Liquid Stagecraft" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.10.4 RareStage-windows-x64.zip --title "RareStage 0.10.4 — Live Stage Lab" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

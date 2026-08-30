@@ -15,7 +15,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 15 || SectionCount != 5 || ProtocolVersion != 3) {
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 4 || AudioProfileCount != 4) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
@@ -33,6 +33,10 @@ int main() {
     source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled;
     source.bass = 0.75f;
     source.kick = 0.82f;
+    source.kickConfidence = 0.91f;
+    source.audioProfile = 2;
+    source.resolvedAudioProfile = 2;
+    source.sampleRate = 48000.0f;
     source.percussion = 0.50f;
     source.snare = 0.64f;
     source.logoScale = 1.15f;
@@ -51,7 +55,9 @@ int main() {
         copy.worldCount != WorldCount || copy.sectionCount != SectionCount ||
         copy.world != 13 || copy.songSection != 2 || copy.stateRevision != 9 ||
         copy.lastCommandSerial != serial || copy.lastCommandStatus != CommandStatus::Accepted ||
-        copy.kick != 0.82f || copy.snare != 0.64f || copy.logoScale != 1.15f ||
+        copy.kick != 0.82f || copy.kickConfidence != 0.91f || copy.snare != 0.64f ||
+        copy.audioProfile != 2 || copy.resolvedAudioProfile != 2 || copy.sampleRate != 48000.0f ||
+        copy.logoScale != 1.15f ||
         copy.worldDwellSeconds != 64.0f || copy.transitionSeconds != 1.2f) {
         std::cerr << "Shared-state round trip failed\n";
         return 4;

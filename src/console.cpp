@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cwchar>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -36,7 +37,12 @@ constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
     L"STAGEWALL", L"WAVEWALL", L"PIXEL BANK",
     L"PRISM CASCADE", L"KINETIC WEAVE", L"CHROMA BLADES",
     L"KINETIC ARRAY", L"KINETIC CANOPY", L"PIXEL LOOM",
-    L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL RAIL"
+    L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL RAIL",
+    L"KINETIC FACADE", L"SUSPENDED FIELD", L"VOID GATES"
+};
+constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldKeys{
+    L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8", L"9",
+    L"Q", L"W", L"E", L"R", L"Y", L"U", L"I", L"O", L"K"
 };
 constexpr std::array<const wchar_t*, rarestage::control::SectionCount> SectionNames{
     L"OPEN", L"BUILD", L"DROP", L"BREAKDOWN", L"DRIVE"
@@ -56,8 +62,11 @@ constexpr std::array<const wchar_t*, rarestage::control::TransitionStyleCount> T
 constexpr std::array<const wchar_t*, rarestage::control::QualityCount> QualityNames{
     L"PERFORMANCE", L"BALANCED", L"NATIVE HD", L"ULTRA 4K"
 };
+constexpr std::array<const wchar_t*, rarestage::control::AudioProfileCount> AudioProfileNames{
+    L"AUTO", L"EDM", L"BASS MUSIC", L"MELODIC"
+};
 
-enum class Page { Show, Mix, Output };
+enum class Page { Show, Mix, Audio, Output };
 
 enum class Setting {
     Sensitivity,
@@ -95,6 +104,8 @@ enum class Action {
     Timeline,
     Vsync,
     Spout,
+    AudioProfile,
+    ExportTrace,
     AudioDevice,
     Monitor,
     Fullscreen,
@@ -105,6 +116,10 @@ struct HitTarget {
     RECT rect{};
     Action action{Action::None};
     int value{};
+};
+
+struct TraceSample {
+    float bass{}, mid{}, high{}, kick{}, snare{}, hats{}, onset{};
 };
 
 class ConsoleApp {
@@ -126,7 +141,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.10.3",
+            0, windowClass.lpszClassName, L"RareStage Console 0.10.4",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -311,7 +326,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.10.3 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.10.4 Console endpoint.";
             }
             return;
         }
@@ -330,6 +345,14 @@ private:
                       next.worldCount == rarestage::control::WorldCount &&
                       next.sectionCount == rarestage::control::SectionCount;
         connected_ = compatible_ && (next.flags & rarestage::control::RendererReady);
+        if (connected_ && next.stateRevision != lastTraceRevision_) {
+            lastTraceRevision_ = next.stateRevision;
+            trace_.push_back({next.bass, next.mid, next.high, next.kick, next.snare, next.percussion, next.onset});
+            constexpr std::size_t MaxTraceSamples = 1200;
+            if (trace_.size() > MaxTraceSamples) {
+                trace_.erase(trace_.begin(), trace_.begin() + (trace_.size() - MaxTraceSamples));
+            }
+        }
         if (connected_ && !everConnected_) {
             everConnected_ = true;
             connectedAt_ = now;
@@ -446,6 +469,42 @@ private:
         }
     }
 
+    void exportTrace() {
+        if (trace_.empty()) {
+            statusText_ = L"No live signal history is available yet.";
+            return;
+        }
+        wchar_t profilePath[MAX_PATH]{};
+        std::filesystem::path directory;
+        if (GetEnvironmentVariableW(L"USERPROFILE", profilePath, MAX_PATH) > 0) {
+            directory = std::filesystem::path(profilePath) / L"Documents" / L"RareStage";
+        } else {
+            wchar_t module[MAX_PATH]{};
+            GetModuleFileNameW(nullptr, module, MAX_PATH);
+            directory = std::filesystem::path(module).parent_path();
+        }
+        std::error_code error;
+        std::filesystem::create_directories(directory, error);
+        SYSTEMTIME time{};
+        GetLocalTime(&time);
+        wchar_t filename[96]{};
+        swprintf_s(filename, L"RareStage-calibration-%04u%02u%02u-%02u%02u%02u.csv",
+                   time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond);
+        const auto path = directory / filename;
+        std::ofstream file(path, std::ios::binary);
+        if (!file) {
+            statusText_ = L"Could not write the calibration trace.";
+            return;
+        }
+        file << "sample,bass,mids,highs,kick,snare,hats,onset\n";
+        for (std::size_t index = 0; index < trace_.size(); ++index) {
+            const auto& sample = trace_[index];
+            file << index << ',' << sample.bass << ',' << sample.mid << ',' << sample.high << ','
+                 << sample.kick << ',' << sample.snare << ',' << sample.hats << ',' << sample.onset << '\n';
+        }
+        statusText_ = L"Calibration trace saved to " + path.wstring();
+    }
+
     void handleKey(WPARAM key) {
         if (key >= L'1' && key <= L'9') {
             const int world = static_cast<int>(key - L'1');
@@ -456,12 +515,15 @@ private:
         else if (key == L'R') send(Command::SelectWorld, 12, WorldNames[12]);
         else if (key == L'Y') send(Command::SelectWorld, 13, WorldNames[13]);
         else if (key == L'U') send(Command::SelectWorld, 14, WorldNames[14]);
+        else if (key == L'I') send(Command::SelectWorld, 15, WorldNames[15]);
+        else if (key == L'O' && !(GetKeyState(VK_CONTROL) & 0x8000)) send(Command::SelectWorld, 16, WorldNames[16]);
+        else if (key == L'K') send(Command::SelectWorld, 17, WorldNames[17]);
         else if (key == VK_OEM_4) send(Command::PreviousWorld, 0, L"Previous world");
         else if (key == VK_OEM_6) send(Command::NextWorld, 0, L"Next world");
         else if (key == L'A') send(Command::SetAutomatic, flag(rarestage::control::Automatic) ? 0 : 1, L"Smart Director");
         else if (key == VK_SPACE) send(Command::SetFrozen, flag(rarestage::control::Frozen) ? 0 : 1, L"Automation hold");
         else if (key == L'B') send(Command::SetBlackout, flag(rarestage::control::Blackout) ? 0 : 1, L"Blackout");
-        else if (key == L'O') send(Command::CleanOpen, 0, L"Clean Open");
+        else if (key == L'O' && (GetKeyState(VK_CONTROL) & 0x8000)) send(Command::CleanOpen, 0, L"Clean Open");
         else if (key == L'F') send(Command::Fallback, 0, L"Safe fallback");
         else if (key == L'H') send(Command::SetStageOverlay, flag(rarestage::control::StageOverlayVisible) ? 0 : 1, L"Stage HUD");
         else if (key == L'D') send(Command::CycleAudioDevice, 0, L"Audio device");
@@ -472,7 +534,7 @@ private:
             if (GetKeyState(VK_SHIFT) & 0x8000) send(Command::SavePreset, preset, L"Save preset F" + std::to_wstring(preset + 1));
             else send(Command::LoadPreset, preset, PresetNames[preset]);
         } else if (key == VK_TAB) {
-            page_ = static_cast<Page>((static_cast<int>(page_) + 1) % 3);
+            page_ = static_cast<Page>((static_cast<int>(page_) + 1) % 4);
         }
     }
 
@@ -557,6 +619,8 @@ private:
                 case Action::Timeline: send(Command::SetTimeline, flag(rarestage::control::Timeline) ? 0 : 1, L"Show mode"); break;
                 case Action::Vsync: send(Command::SetVsync, flag(rarestage::control::VsyncEnabled) ? 0 : 1, L"Frame output"); break;
                 case Action::Spout: send(Command::SetSpout, flag(rarestage::control::SpoutEnabled) ? 0 : 1, L"Spout output"); break;
+                case Action::AudioProfile: send(Command::SetAudioProfile, target.value, AudioProfileNames[target.value]); break;
+                case Action::ExportTrace: exportTrace(); break;
                 case Action::AudioDevice: send(Command::CycleAudioDevice, 0, L"Audio device"); break;
                 case Action::Monitor: send(Command::CycleMonitor, 0, L"Output monitor"); break;
                 case Action::Fullscreen: send(Command::SetFullscreen, flag(rarestage::control::Fullscreen) ? 0 : 1, L"Fullscreen"); break;
@@ -600,7 +664,7 @@ private:
 
     void addButton(HDC dc, RECT rect, const std::wstring& label, Action action, int value,
                    bool active = false, COLORREF accent = Cyan, bool danger = false) {
-        const bool local = action == Action::Launch || action == Action::Page;
+        const bool local = action == Action::Launch || action == Action::Page || action == Action::ExportTrace;
         const bool enabled = connected_ || local;
         COLORREF fill = enabled ? PanelRaised : Panel;
         COLORREF border = enabled ? Line : RGB(18, 35, 45);
@@ -657,15 +721,15 @@ private:
                   connected_ ? L"FOCUS STAGE" : L"LAUNCH STAGE", Action::Launch, 0, false, Green);
 
         const int tabTop = scale(68);
-        const int tabWidth = scale(154);
-        const std::array<const wchar_t*, 3> names{L"SHOW", L"MIX + DIRECTOR", L"OUTPUT"};
-        for (int index = 0; index < 3; ++index) {
+        const int tabWidth = scale(142);
+        const std::array<const wchar_t*, 4> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT"};
+        for (int index = 0; index < 4; ++index) {
             addButton(dc, RECT{margin + index * (tabWidth + scale(8)), tabTop,
                                margin + index * (tabWidth + scale(8)) + tabWidth, tabTop + scale(34)},
                       names[index], Action::Page, index, static_cast<int>(page_) == index, Cyan);
         }
         drawText(dc, L"TAB cycles pages  |  F1-F4 load  |  SHIFT+F1-F4 save",
-                 RECT{margin + scale(510), tabTop, client.right - margin, tabTop + scale(34)},
+                 RECT{margin + scale(610), tabTop, client.right - margin, tabTop + scale(34)},
                  smallFont_, Muted, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
     }
 
@@ -713,13 +777,13 @@ private:
         const int leftWidth = static_cast<int>((body.right - body.left) * 0.63f);
         RECT worlds{body.left, body.top, body.left + leftWidth, body.bottom};
         fillRound(dc, worlds, 11, Panel, Line);
-        sectionLabel(dc, L"WORLD CUES  /  FIFTEEN AUTHORED ENVIRONMENTS",
+        sectionLabel(dc, L"WORLD CUES  /  EIGHTEEN AUTHORED ENVIRONMENTS",
                      worlds.left + scale(14), worlds.top + scale(9), worlds.right - worlds.left - scale(28));
 
         const int gridTop = worlds.top + scale(38);
         const int gridGap = scale(8);
         const int columns = 3;
-        const int rows = 5;
+        const int rows = 6;
         const int gridWidth = (worlds.right - worlds.left - scale(28) - gridGap * (columns - 1)) / columns;
         const int gridHeight = (worlds.bottom - gridTop - scale(14) - gridGap * (rows - 1)) / rows;
         for (int index = 0; index < static_cast<int>(WorldNames.size()); ++index) {
@@ -729,7 +793,7 @@ private:
                         gridTop + row * (gridHeight + gridGap),
                         worlds.left + scale(14) + column * (gridWidth + gridGap) + gridWidth,
                         gridTop + row * (gridHeight + gridGap) + gridHeight};
-            const std::wstring label = std::to_wstring(index + 1) + L"  /  " + WorldNames[index];
+            const std::wstring label = std::wstring(WorldKeys[index]) + L"  /  " + WorldNames[index];
             addButton(dc, button, label, Action::World, index, connected_ && state_.world == index, Cyan);
         }
 
@@ -895,6 +959,109 @@ private:
                  RECT{decision.left + scale(14), decision.top + scale(68), decision.right - scale(14), decision.bottom - scale(8)}, smallFont_, Muted);
     }
 
+    void traceLine(HDC dc, RECT plot, float TraceSample::* field, COLORREF color) const {
+        if (trace_.size() < 2) return;
+        constexpr std::size_t VisibleSamples = 900;
+        const std::size_t first = trace_.size() > VisibleSamples ? trace_.size() - VisibleSamples : 0;
+        const std::size_t count = trace_.size() - first;
+        HPEN pen = CreatePen(PS_SOLID, scale(1), color);
+        const auto oldPen = SelectObject(dc, pen);
+        for (std::size_t index = 0; index < count; ++index) {
+            const float x = count > 1 ? static_cast<float>(index) / static_cast<float>(count - 1) : 0.0f;
+            const float value = std::clamp(trace_[first + index].*field, 0.0f, 1.0f);
+            const int px = plot.left + static_cast<int>(x * (plot.right - plot.left));
+            const int py = plot.bottom - static_cast<int>(value * (plot.bottom - plot.top));
+            if (index == 0) MoveToEx(dc, px, py, nullptr);
+            else LineTo(dc, px, py);
+        }
+        SelectObject(dc, oldPen);
+        DeleteObject(pen);
+    }
+
+    void paintAudio(HDC dc, RECT body) {
+        const int gap = scale(12);
+        const int leftWidth = static_cast<int>((body.right - body.left) * .42f);
+        RECT left{body.left, body.top, body.left + leftWidth, body.bottom};
+        RECT right{left.right + gap, body.top, body.right, body.bottom};
+        fillRound(dc, left, 11, Panel, Line);
+        fillRound(dc, right, 11, Panel, Line);
+
+        sectionLabel(dc, L"DETECTOR PROFILE  /  LIVE CALIBRATION", left.left + scale(14), left.top + scale(9), leftWidth - scale(28));
+        const int profileGap = scale(7);
+        const int profileWidth = (leftWidth - scale(35)) / 2;
+        int y = left.top + scale(39);
+        for (int index = 0; index < 4; ++index) {
+            const int column = index % 2;
+            const int row = index / 2;
+            const int x = left.left + scale(14) + column * (profileWidth + profileGap);
+            const int top = y + row * scale(43);
+            addButton(dc, RECT{x, top, x + profileWidth, top + scale(36)}, AudioProfileNames[index],
+                      Action::AudioProfile, index, connected_ && state_.audioProfile == index, index == 0 ? Green : Cyan);
+        }
+
+        y += scale(96);
+        sectionLabel(dc, L"INSTRUMENT CONFIDENCE", left.left + scale(14), y, leftWidth - scale(28));
+        y += scale(28);
+        meter(dc, L"KICK  /  SUB + LOW TRANSIENT", connected_ ? state_.kickConfidence : 0.0f,
+              RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)}, Red);
+        y += scale(47);
+        meter(dc, L"SNARE  /  MID-BAND TRANSIENT", connected_ ? state_.snareConfidence : 0.0f,
+              RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)}, Purple);
+        y += scale(47);
+        meter(dc, L"HI-HAT  /  HIGH-BAND TRANSIENT", connected_ ? state_.hatConfidence : 0.0f,
+              RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)}, Amber);
+
+        y += scale(54);
+        sectionLabel(dc, L"CALIBRATION STATE", left.left + scale(14), y, leftWidth - scale(28));
+        y += scale(28);
+        meter(dc, L"ADAPTIVE FLOOR + CEILING", connected_ ? state_.calibrationProgress : 0.0f,
+              RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)}, Green);
+        y += scale(48);
+        const int requested = std::clamp(state_.audioProfile, 0, 3);
+        const int resolved = std::clamp(state_.resolvedAudioProfile, 0, 3);
+        std::wstring status = L"Launch RareStage to calibrate the active playback device.";
+        if (connected_) {
+            status = L"REQUESTED  ";
+            status += AudioProfileNames[requested];
+            status += L"   /   ACTIVE  ";
+            status += AudioProfileNames[resolved];
+            status += L"   /   ";
+            status += std::to_wstring(static_cast<int>(std::lround(state_.sampleRate)));
+            status += L" HZ";
+        }
+        drawText(dc, status, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(40)}, smallFont_, connected_ ? Text : Muted);
+        y += scale(42);
+        drawText(dc, connected_ ? state_.playbackDevice : L"No playback loopback connected",
+                 RECT{left.left + scale(14), y, left.right - scale(14), y + scale(48)}, smallFont_, connected_ ? Muted : Amber,
+                 DT_LEFT | DT_TOP | DT_WORDBREAK | DT_END_ELLIPSIS);
+
+        sectionLabel(dc, L"SIGNAL HISTORY  /  APPROX. 30 SECONDS", right.left + scale(14), right.top + scale(9), right.right - right.left - scale(28));
+        RECT plot{right.left + scale(14), right.top + scale(42), right.right - scale(14), right.bottom - scale(126)};
+        fillRound(dc, plot, 7, RGB(3, 11, 18), Line);
+        HPEN gridPen = CreatePen(PS_SOLID, 1, RGB(15, 35, 48));
+        const auto oldPen = SelectObject(dc, gridPen);
+        for (int row = 1; row < 4; ++row) {
+            const int py = plot.top + (plot.bottom - plot.top) * row / 4;
+            MoveToEx(dc, plot.left, py, nullptr); LineTo(dc, plot.right, py);
+        }
+        SelectObject(dc, oldPen);
+        DeleteObject(gridPen);
+        traceLine(dc, plot, &TraceSample::bass, Cyan);
+        traceLine(dc, plot, &TraceSample::mid, Purple);
+        traceLine(dc, plot, &TraceSample::high, Green);
+        traceLine(dc, plot, &TraceSample::kick, Red);
+        traceLine(dc, plot, &TraceSample::snare, RGB(220, 140, 255));
+        traceLine(dc, plot, &TraceSample::hats, Amber);
+
+        const std::wstring legend = L"BASS  /  MIDS  /  HIGHS  /  KICK  /  SNARE  /  HATS";
+        drawText(dc, legend, RECT{plot.left, plot.bottom + scale(8), plot.right, plot.bottom + scale(31)}, smallFont_, Muted);
+        drawText(dc, L"Audio profiles change detector thresholds—not the animation clock. Worlds continue moving smoothly through silence.",
+                 RECT{plot.left, plot.bottom + scale(34), plot.right, plot.bottom + scale(70)}, smallFont_, Text,
+                 DT_LEFT | DT_TOP | DT_WORDBREAK);
+        addButton(dc, RECT{plot.left, right.bottom - scale(52), plot.right, right.bottom - scale(10)},
+                  L"EXPORT CALIBRATION TRACE CSV", Action::ExportTrace, 0, false, Green);
+    }
+
     void paintOutput(HDC dc, RECT body) {
         const int gap = scale(12);
         const int columnWidth = (body.right - body.left - gap) / 2;
@@ -994,6 +1161,7 @@ private:
         RECT body{margin, scale(226), client.right - margin, client.bottom - margin - footerHeight - scale(10)};
         if (page_ == Page::Show) paintShow(dc, body);
         else if (page_ == Page::Mix) paintMix(dc, body);
+        else if (page_ == Page::Audio) paintAudio(dc, body);
         else paintOutput(dc, body);
 
         RECT footer{margin, client.bottom - margin - footerHeight, client.right - margin, client.bottom - margin};
@@ -1033,12 +1201,14 @@ private:
     Page page_{Page::Show};
     std::uint32_t commandSerial_{};
     std::uint32_t pendingSerial_{};
+    std::uint64_t lastTraceRevision_{};
     std::uint64_t pendingSentAt_{};
     std::uint64_t soakStartedAt_{};
     std::uint64_t connectedAt_{};
     std::uint32_t paintCount_{};
     std::wstring pendingDescription_;
     std::wstring statusText_;
+    std::vector<TraceSample> trace_;
     std::vector<HitTarget> targets_;
     HFONT titleFont_{};
     HFONT headingFont_{};

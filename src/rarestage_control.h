@@ -8,17 +8,18 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v3";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v4";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 3;
-inline constexpr std::uint32_t WorldCount = 15;
+inline constexpr std::uint32_t ProtocolVersion = 4;
+inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
 inline constexpr std::uint32_t ProfileCount = 4;
 inline constexpr std::uint32_t PresetCount = 4;
 inline constexpr std::uint32_t TransitionStyleCount = 4;
 inline constexpr std::uint32_t QualityCount = 4;
+inline constexpr std::uint32_t AudioProfileCount = 4;
 
 enum class Command : std::uint32_t {
     Ping = 1,
@@ -50,6 +51,7 @@ enum class Command : std::uint32_t {
     SetVsync,
     SetTimeline,
     SetSpout,
+    SetAudioProfile,
     CycleAudioDevice,
     CycleMonitor,
     SetFullscreen,
@@ -98,6 +100,8 @@ struct alignas(64) SharedState {
     std::int32_t fallbackPalette{};
     std::int32_t transitionStyle{};
     std::int32_t quality{};
+    std::int32_t audioProfile{};
+    std::int32_t resolvedAudioProfile{1};
     std::int32_t monitor{};
     std::int32_t monitorCount{1};
     std::uint32_t lastCommandSerial{};
@@ -113,6 +117,11 @@ struct alignas(64) SharedState {
     float percussion{};
     float snare{};
     float kick{};
+    float kickConfidence{};
+    float snareConfidence{};
+    float hatConfidence{};
+    float calibrationProgress{};
+    float sampleRate{};
     float energy{};
     float transitionProgress{1.0f};
     float manualOverrideRemainingSeconds{};
