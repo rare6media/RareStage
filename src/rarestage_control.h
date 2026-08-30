@@ -8,10 +8,10 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v5";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v6";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 5;
+inline constexpr std::uint32_t ProtocolVersion = 6;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -123,6 +123,13 @@ struct alignas(64) SharedState {
     float kickConfidence{};
     float snareConfidence{};
     float hatConfidence{};
+    float kickEvidence{};
+    float snareEvidence{};
+    float hatEvidence{};
+    float transientAmbiguity{};
+    float detectorThreshold{};
+    float calibrationStability{};
+    float analysisLatencyMs{};
     float calibrationProgress{};
     float sampleRate{};
     float energy{};
@@ -140,6 +147,11 @@ struct alignas(64) SharedState {
     float directorRunnerUpScore{};
     float sectionEvidence{};
     float endingConfidence{};
+    std::uint32_t transientClass{};
+    std::uint32_t acceptedKickCount{};
+    std::uint32_t acceptedSnareCount{};
+    std::uint32_t acceptedHatCount{};
+    std::uint32_t rejectedTransientCount{};
     wchar_t playbackDevice[96]{};
     wchar_t worldName[48]{};
     wchar_t directorReason[96]{};

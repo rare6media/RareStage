@@ -17,12 +17,12 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "AntNetwork, L.L.C."
       VALUE "FileDescription", "RareStage Console"
-      VALUE "FileVersion", "0.10.5.0"
+      VALUE "FileVersion", "0.10.6.0"
       VALUE "InternalName", "RareStageConsole"
       VALUE "LegalCopyright", "Copyright (C) 2026 AntNetwork, L.L.C."
       VALUE "OriginalFilename", "RareStageConsole.exe"
       VALUE "ProductName", "RareStage"
-      VALUE "ProductVersion", "0.10.5"
+      VALUE "ProductVersion", "0.10.6"
     END
   END
   BLOCK "VarFileInfo"

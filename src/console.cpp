@@ -131,6 +131,10 @@ struct HitTarget {
 
 struct TraceSample {
     float bass{}, mid{}, high{}, kick{}, snare{}, hats{}, onset{};
+    float kickEvidence{}, snareEvidence{}, hatEvidence{}, ambiguity{}, threshold{}, stability{};
+    float bpm{}, tempoConfidence{}, latencyMs{}, sampleRate{};
+    std::uint32_t transientClass{}, acceptedKicks{}, acceptedSnares{}, acceptedHats{}, rejected{};
+    int requestedProfile{}, resolvedProfile{}, world{}, section{};
 };
 
 class ConsoleApp {
@@ -152,7 +156,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.10.5",
+            0, windowClass.lpszClassName, L"RareStage Console 0.10.6",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -372,7 +376,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.10.5 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.10.6 Console endpoint.";
             }
             return;
         }
@@ -393,7 +397,12 @@ private:
         connected_ = compatible_ && (next.flags & rarestage::control::RendererReady);
         if (connected_ && next.stateRevision != lastTraceRevision_) {
             lastTraceRevision_ = next.stateRevision;
-            trace_.push_back({next.bass, next.mid, next.high, next.kick, next.snare, next.percussion, next.onset});
+            trace_.push_back({next.bass, next.mid, next.high, next.kick, next.snare, next.percussion, next.onset,
+                              next.kickEvidence, next.snareEvidence, next.hatEvidence, next.transientAmbiguity,
+                              next.detectorThreshold, next.calibrationStability, next.bpm, next.tempoConfidence,
+                              next.analysisLatencyMs, next.sampleRate, next.transientClass, next.acceptedKickCount,
+                              next.acceptedSnareCount, next.acceptedHatCount, next.rejectedTransientCount,
+                              next.audioProfile, next.resolvedAudioProfile, next.world, next.songSection});
             constexpr std::size_t MaxTraceSamples = 1200;
             if (trace_.size() > MaxTraceSamples) {
                 trace_.erase(trace_.begin(), trace_.begin() + (trace_.size() - MaxTraceSamples));
@@ -539,11 +548,20 @@ private:
             statusText_ = L"Could not write the calibration trace.";
             return;
         }
-        file << "sample,bass,mids,highs,kick,snare,hats,onset\n";
+        file << "sample,time_ms,requested_profile,resolved_profile,sample_rate,world,section,transient_class,"
+                "bass,mids,highs,kick,snare,hats,onset,kick_evidence,snare_evidence,hat_evidence,"
+                "ambiguity,acceptance_threshold,calibration_stability,bpm,tempo_confidence,analysis_latency_ms,"
+                "accepted_kicks,accepted_snares,accepted_hats,rejected_transients\n";
         for (std::size_t index = 0; index < trace_.size(); ++index) {
             const auto& sample = trace_[index];
-            file << index << ',' << sample.bass << ',' << sample.mid << ',' << sample.high << ','
-                 << sample.kick << ',' << sample.snare << ',' << sample.hats << ',' << sample.onset << '\n';
+            file << index << ',' << index * 25 << ',' << sample.requestedProfile << ',' << sample.resolvedProfile << ','
+                 << sample.sampleRate << ',' << sample.world << ',' << sample.section << ',' << sample.transientClass << ','
+                 << sample.bass << ',' << sample.mid << ',' << sample.high << ',' << sample.kick << ','
+                 << sample.snare << ',' << sample.hats << ',' << sample.onset << ',' << sample.kickEvidence << ','
+                 << sample.snareEvidence << ',' << sample.hatEvidence << ',' << sample.ambiguity << ','
+                 << sample.threshold << ',' << sample.stability << ',' << sample.bpm << ',' << sample.tempoConfidence << ','
+                 << sample.latencyMs << ',' << sample.acceptedKicks << ',' << sample.acceptedSnares << ','
+                 << sample.acceptedHats << ',' << sample.rejected << '\n';
         }
         statusText_ = L"Calibration trace saved to " + path.wstring();
     }
@@ -1139,19 +1157,19 @@ private:
         y += scale(96);
         sectionLabel(dc, L"INSTRUMENT CONFIDENCE", left.left + scale(14), y, leftWidth - scale(28));
         y += scale(28);
-        meter(dc, L"KICK  /  SUB + LOW TRANSIENT", connected_ ? state_.kickConfidence : 0.0f,
+        meter(dc, L"KICK EVIDENCE  /  LOW ONSET", connected_ ? state_.kickEvidence : 0.0f,
               RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)}, Red);
         y += scale(47);
-        meter(dc, L"SNARE  /  MID-BAND TRANSIENT", connected_ ? state_.snareConfidence : 0.0f,
+        meter(dc, L"SNARE EVIDENCE  /  MID ONSET", connected_ ? state_.snareEvidence : 0.0f,
               RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)}, Purple);
         y += scale(47);
-        meter(dc, L"HI-HAT  /  HIGH-BAND TRANSIENT", connected_ ? state_.hatConfidence : 0.0f,
+        meter(dc, L"HI-HAT EVIDENCE  /  AIR ONSET", connected_ ? state_.hatEvidence : 0.0f,
               RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)}, Amber);
 
         y += scale(54);
         sectionLabel(dc, L"CALIBRATION STATE", left.left + scale(14), y, leftWidth - scale(28));
         y += scale(28);
-        meter(dc, L"ADAPTIVE FLOOR + CEILING", connected_ ? state_.calibrationProgress : 0.0f,
+        meter(dc, L"DEVICE CALIBRATION STABILITY", connected_ ? state_.calibrationStability : 0.0f,
               RECT{left.left + scale(14), y, left.right - scale(14), y + scale(35)}, Green);
         y += scale(48);
         const int requested = std::clamp(state_.audioProfile, 0, 3);
@@ -1164,12 +1182,20 @@ private:
             status += AudioProfileNames[resolved];
             status += L"   /   ";
             status += std::to_wstring(static_cast<int>(std::lround(state_.sampleRate)));
-            status += L" HZ";
+            status += L" HZ   /   ";
+            status += std::to_wstring(static_cast<int>(std::lround(state_.analysisLatencyMs)));
+            status += L" MS ANALYSIS";
         }
         drawText(dc, status, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(40)}, smallFont_, connected_ ? Text : Muted);
-        y += scale(42);
+        y += scale(35);
+        const wchar_t* hitName = state_.transientClass == 1 ? L"KICK" : state_.transientClass == 2 ? L"SNARE" : state_.transientClass == 3 ? L"HI-HAT" : L"AMBIGUOUS / NONE";
+        std::wstring decision = L"LAST  "; decision += hitName; decision += L"   /   ACCEPTED ";
+        decision += std::to_wstring(state_.acceptedKickCount + state_.acceptedSnareCount + state_.acceptedHatCount);
+        decision += L"   /   REJECTED "; decision += std::to_wstring(state_.rejectedTransientCount);
+        drawText(dc, decision, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(28)}, smallFont_, state_.transientClass ? Cyan : Amber);
+        y += scale(28);
         drawText(dc, connected_ ? state_.playbackDevice : L"No playback loopback connected",
-                 RECT{left.left + scale(14), y, left.right - scale(14), y + scale(48)}, smallFont_, connected_ ? Muted : Amber,
+                 RECT{left.left + scale(14), y, left.right - scale(14), y + scale(38)}, smallFont_, connected_ ? Muted : Amber,
                  DT_LEFT | DT_TOP | DT_WORDBREAK | DT_END_ELLIPSIS);
 
         sectionLabel(dc, L"SIGNAL HISTORY  /  APPROX. 30 SECONDS", right.left + scale(14), right.top + scale(9), right.right - right.left - scale(28));
@@ -1189,10 +1215,11 @@ private:
         traceLine(dc, plot, &TraceSample::kick, Red);
         traceLine(dc, plot, &TraceSample::snare, RGB(220, 140, 255));
         traceLine(dc, plot, &TraceSample::hats, Amber);
+        traceLine(dc, plot, &TraceSample::threshold, RGB(85, 105, 116));
 
-        const std::wstring legend = L"BASS  /  MIDS  /  HIGHS  /  KICK  /  SNARE  /  HATS";
+        const std::wstring legend = L"BASS / MIDS / HIGHS / ACCEPTED KICK / SNARE / HATS / THRESHOLD";
         drawText(dc, legend, RECT{plot.left, plot.bottom + scale(8), plot.right, plot.bottom + scale(31)}, smallFont_, Muted);
-        drawText(dc, L"Audio profiles change detector thresholds—not the animation clock. Worlds continue moving smoothly through silence.",
+        drawText(dc, L"Accepted hits drive light and depth. Ambiguous transients remain visible in the export without contaminating instrument lanes.",
                  RECT{plot.left, plot.bottom + scale(34), plot.right, plot.bottom + scale(70)}, smallFont_, Text,
                  DT_LEFT | DT_TOP | DT_WORDBREAK);
         addButton(dc, RECT{plot.left, right.bottom - scale(52), plot.right, right.bottom - scale(10)},

@@ -16,7 +16,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 5 || AudioProfileCount != 4) {
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 6 || AudioProfileCount != 4) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
@@ -35,6 +35,18 @@ int main() {
     source.bass = 0.75f;
     source.kick = 0.82f;
     source.kickConfidence = 0.91f;
+    source.kickEvidence = 0.88f;
+    source.snareEvidence = 0.24f;
+    source.hatEvidence = 0.11f;
+    source.transientAmbiguity = 0.08f;
+    source.detectorThreshold = 0.29f;
+    source.calibrationStability = 0.93f;
+    source.analysisLatencyMs = 42.67f;
+    source.transientClass = 1;
+    source.acceptedKickCount = 12;
+    source.acceptedSnareCount = 8;
+    source.acceptedHatCount = 21;
+    source.rejectedTransientCount = 3;
     source.audioProfile = 2;
     source.resolvedAudioProfile = 2;
     source.sampleRate = 48000.0f;
@@ -64,6 +76,12 @@ int main() {
         copy.world != 13 || copy.songSection != 2 || copy.stateRevision != 9 ||
         copy.lastCommandSerial != serial || copy.lastCommandStatus != CommandStatus::Accepted ||
         copy.kick != 0.82f || copy.kickConfidence != 0.91f || copy.snare != 0.64f ||
+        copy.kickEvidence != 0.88f || copy.snareEvidence != 0.24f ||
+        copy.hatEvidence != 0.11f || copy.transientAmbiguity != 0.08f ||
+        copy.detectorThreshold != 0.29f || copy.calibrationStability != 0.93f ||
+        copy.analysisLatencyMs != 42.67f || copy.transientClass != 1 ||
+        copy.acceptedKickCount != 12 || copy.acceptedSnareCount != 8 ||
+        copy.acceptedHatCount != 21 || copy.rejectedTransientCount != 3 ||
         copy.audioProfile != 2 || copy.resolvedAudioProfile != 2 || copy.sampleRate != 48000.0f ||
         copy.directorCandidateWorld != 15 || copy.directorRunnerUpWorld != 3 ||
         copy.directorCandidateScore != 1.72f || copy.directorRunnerUpScore != 1.51f ||
