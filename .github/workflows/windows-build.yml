@@ -25,8 +25,8 @@ jobs:
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.10.7") {
-              throw "$binary is missing the expected publisher or v0.10.7 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.10.8") {
+              throw "$binary is missing the expected publisher or v0.10.8 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -106,6 +106,17 @@ jobs:
           if ($process.ExitCode -ne 0 -or -not (Test-Path tests/audio_trace_contract.analysis.txt)) {
             throw "Calibration trace replay contract failed with exit code $($process.ExitCode)"
           }
+      - name: Rehearsal recorder contract
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--rehearsal-self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0 -or -not (Test-Path RareStage-rehearsal-contract.csv) -or -not (Test-Path RareStage-rehearsal-contract.md)) {
+            throw "Rehearsal recorder contract failed with exit code $($process.ExitCode)"
+          }
+          $rows = @(Import-Csv RareStage-rehearsal-contract.csv)
+          if ($rows.Count -ne 6 -or @($rows | Where-Object event -eq "smart_capture").Count -ne 2) {
+            throw "Rehearsal contract did not preserve deterministic capture events"
+          }
       - name: Console launches Stage soak test
         shell: pwsh
         run: |
@@ -132,7 +143,8 @@ jobs:
           }
           $captures = @(Get-ChildItem RareStage-reference-captures -Filter *.png)
           $manifest = @(Import-Csv RareStage-reference-captures.csv)
-          if ($captures.Count -ne 72 -or $manifest.Count -ne 72 -or @($manifest | Where-Object status -ne "captured").Count -ne 0) {
+          if ($captures.Count -ne 72 -or $manifest.Count -ne 72 -or @($manifest | Where-Object status -ne "captured").Count -ne 0 -or
+              @($manifest | Where-Object { [double]$_.cue_density -lt 0.55 -or [double]$_.cue_density -gt 1.35 }).Count -ne 0) {
             throw "Expected 72 clean reference captures and complete GPU budget rows"
           }
       - name: Package portable build
@@ -150,7 +162,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.10.7"
+            version = "0.10.8"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -175,15 +187,17 @@ jobs:
             RareStage-world-reference.csv
             RareStage-reference-captures.csv
             RareStage-reference-captures/*.png
+            RareStage-rehearsal-contract.csv
+            RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.10.7 release
+      - name: Publish v0.10.8 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.10.7 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.10.7 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.10.8 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.10.8 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.10.7 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.10.7 — Operator Capture + GPU Budgets" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.10.8 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.10.8 — Set Review + Cue Density" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

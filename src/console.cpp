@@ -79,7 +79,7 @@ constexpr std::array<const wchar_t*, rarestage::control::AudioProfileCount> Audi
     L"AUTO", L"EDM", L"BASS MUSIC", L"MELODIC"
 };
 
-enum class Page { Show, Mix, Audio, Output };
+enum class Page { Show, Mix, Audio, Output, Rehearsal };
 
 enum class Setting {
     Sensitivity,
@@ -89,7 +89,8 @@ enum class Setting {
     Beat,
     Logo,
     Dwell,
-    Transition
+    Transition,
+    CueDensity
 };
 
 enum class Action {
@@ -121,6 +122,14 @@ enum class Action {
     ExportTrace,
     LabelTrace,
     CaptureFrame,
+    ToggleRehearsal,
+    ToggleSmartCapture,
+    ReviewPrevious,
+    ReviewNext,
+    ReviewApprove,
+    ReviewRework,
+    ReviewTag,
+    ExportSession,
     AudioDevice,
     Monitor,
     Fullscreen,
@@ -143,9 +152,32 @@ struct TraceSample {
     int expectedClass{-1};
 };
 
+struct RehearsalSample {
+    std::uint64_t timeMs{};
+    int world{}, section{}, palette{}, quality{};
+    std::uint32_t transientClass{}, flags{};
+    float bpm{}, tempoConfidence{}, bass{}, mid{}, high{}, kick{}, snare{}, hats{}, onset{}, energy{};
+    float gpuMs{}, gpuBudgetMs{}, cueDensity{}, worldCueDensity{};
+};
+
+struct RehearsalEvent {
+    std::uint64_t timeMs{};
+    std::wstring kind;
+    std::wstring detail;
+};
+
+struct ReviewItem {
+    std::uint64_t timeMs{};
+    std::wstring path;
+    std::wstring reason;
+    std::wstring tag{L"UNTAGGED"};
+    int world{}, section{}, status{};
+};
+
 class ConsoleApp {
 public:
     ~ConsoleApp() {
+        if (rehearsalActive_) finishRehearsal(false);
         disconnect();
         closeRendererProcessHandle();
         destroyFonts();
@@ -162,7 +194,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.10.7",
+            0, windowClass.lpszClassName, L"RareStage Console 0.10.8",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -382,7 +414,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.10.7 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.10.8 Console endpoint.";
             }
             return;
         }
@@ -415,6 +447,7 @@ private:
             if (trace_.size() > MaxTraceSamples) {
                 trace_.erase(trace_.begin(), trace_.begin() + (trace_.size() - MaxTraceSamples));
             }
+            updateRehearsal(next, now);
         }
         if (connected_ && !everConnected_) {
             everConnected_ = true;
@@ -588,6 +621,204 @@ private:
         statusText_ = L"Latest detector sample labeled " + std::wstring(Labels[trace_.back().expectedClass]) + L" for replay analysis.";
     }
 
+    static std::string narrow(const std::wstring& value) {
+        return std::string(value.begin(), value.end());
+    }
+
+    static std::string csv(const std::wstring& value) {
+        std::string result = narrow(value);
+        std::string escaped;
+        for (char character : result) {
+            if (character == '"') escaped += "\"\"";
+            else escaped += character;
+        }
+        return '"' + escaped + '"';
+    }
+
+    static std::filesystem::path sessionDirectory() {
+        wchar_t profilePath[MAX_PATH]{};
+        if (GetEnvironmentVariableW(L"USERPROFILE", profilePath, MAX_PATH) > 0) {
+            return std::filesystem::path(profilePath) / L"Documents" / L"RareStage" / L"Sessions";
+        }
+        wchar_t module[MAX_PATH]{};
+        GetModuleFileNameW(nullptr, module, MAX_PATH);
+        return std::filesystem::path(module).parent_path() / L"Sessions";
+    }
+
+    static std::wstring clockText(std::uint64_t milliseconds) {
+        const auto totalSeconds = milliseconds / 1000;
+        wchar_t text[32]{};
+        swprintf_s(text, L"%02llu:%02llu", totalSeconds / 60, totalSeconds % 60);
+        return text;
+    }
+
+    void addRehearsalEvent(const std::wstring& kind, const std::wstring& detail) {
+        if (!rehearsalActive_) return;
+        rehearsalEvents_.push_back({GetTickCount64() - rehearsalStartedAt_, kind, detail});
+    }
+
+    void startRehearsal() {
+        if (!connected_) {
+            statusText_ = L"Launch RareStage before starting a rehearsal session.";
+            return;
+        }
+        rehearsalSamples_.clear();
+        rehearsalEvents_.clear();
+        reviewItems_.clear();
+        reviewIndex_ = 0;
+        rehearsalStartedAt_ = GetTickCount64();
+        rehearsalActive_ = true;
+        lastRehearsalWorld_ = state_.world;
+        lastRehearsalSection_ = state_.songSection;
+        lastRehearsalCaptureCount_ = state_.captureCount;
+        lastGpuUtilization_ = state_.gpuBudgetUtilization;
+        smartCaptureDue_ = smartCaptureDeadline_ = 0;
+        captureReasonInFlight_.clear();
+        SYSTEMTIME time{};
+        GetLocalTime(&time);
+        wchar_t stamp[40]{};
+        swprintf_s(stamp, L"%04u%02u%02u-%02u%02u%02u", time.wYear, time.wMonth, time.wDay,
+                   time.wHour, time.wMinute, time.wSecond);
+        sessionStamp_ = stamp;
+        addRehearsalEvent(L"SESSION", L"Recording started");
+        send(Command::SetRehearsalActive, 1, L"Rehearsal recorder");
+    }
+
+    void scheduleSmartCapture(const std::wstring& reason, std::uint64_t now, std::uint64_t delayMs = 900) {
+        if (!rehearsalActive_ || !smartCapture_) return;
+        if (now - lastSmartCaptureAt_ < 3500) return;
+        if (!smartCaptureDue_) {
+            smartCaptureDue_ = now + delayMs;
+            smartCaptureDeadline_ = now + delayMs + 3000;
+            pendingCaptureReason_ = reason;
+        }
+    }
+
+    void updateRehearsal(const SharedState& next, std::uint64_t now) {
+        if (!rehearsalActive_) return;
+        const std::uint64_t timeMs = now - rehearsalStartedAt_;
+        rehearsalSamples_.push_back({timeMs, next.world, next.songSection, next.directorPalette, next.quality,
+            next.transientClass, next.flags, next.bpm, next.tempoConfidence, next.bass, next.mid, next.high,
+            next.kick, next.snare, next.percussion, next.onset, next.energy, next.gpuFrameMs, next.gpuBudgetMs,
+            next.cueDensity, next.worldCueDensity});
+        constexpr std::size_t MaxSessionSamples = 144000;
+        if (rehearsalSamples_.size() > MaxSessionSamples) rehearsalSamples_.erase(rehearsalSamples_.begin(), rehearsalSamples_.begin() + 1200);
+
+        if (next.world != lastRehearsalWorld_) {
+            addRehearsalEvent(L"WORLD", std::wstring(WorldNames[std::clamp(next.world, 0, 17)]) + L" entered");
+            scheduleSmartCapture(L"world change", now, 1100);
+            lastRehearsalWorld_ = next.world;
+        }
+        if (next.songSection != lastRehearsalSection_) {
+            addRehearsalEvent(L"ACT", std::wstring(SectionNames[std::clamp(next.songSection, 0, 4)]) + L" detected");
+            scheduleSmartCapture(L"act change", now, 850);
+            lastRehearsalSection_ = next.songSection;
+        }
+        if (next.gpuBudgetUtilization > 1.05f && lastGpuUtilization_ <= 1.05f && now - lastGpuCaptureAt_ > 15000) {
+            addRehearsalEvent(L"GPU", L"Frame budget exceeded");
+            scheduleSmartCapture(L"GPU budget spike", now, 1400);
+            lastGpuCaptureAt_ = now;
+        }
+        lastGpuUtilization_ = next.gpuBudgetUtilization;
+
+        if (next.captureCount != lastRehearsalCaptureCount_) {
+            if (next.lastCapturePath[0]) {
+                ReviewItem item{timeMs, next.lastCapturePath,
+                    captureReasonInFlight_.empty() ? L"manual capture" : captureReasonInFlight_, L"UNTAGGED",
+                    next.world, next.songSection, 0};
+                reviewItems_.push_back(std::move(item));
+                reviewIndex_ = reviewItems_.size() - 1;
+                addRehearsalEvent(L"CAPTURE", reviewItems_.back().reason);
+            }
+            lastRehearsalCaptureCount_ = next.captureCount;
+            captureReasonInFlight_.clear();
+        }
+
+        if (smartCaptureDue_ && now >= smartCaptureDue_ && now - lastSmartCaptureAt_ >= 3500 &&
+            (next.gpuBudgetUtilization < .90f || now >= smartCaptureDeadline_)) {
+            captureReasonInFlight_ = pendingCaptureReason_;
+            send(Command::CaptureFrame, 0, L"Rehearsal smart capture");
+            lastSmartCaptureAt_ = now;
+            smartCaptureDue_ = smartCaptureDeadline_ = 0;
+            pendingCaptureReason_.clear();
+        }
+    }
+
+    bool saveRehearsalSession() {
+        if (rehearsalSamples_.empty()) return false;
+        const auto directory = sessionDirectory();
+        std::error_code error;
+        std::filesystem::create_directories(directory, error);
+        if (error) return false;
+        const auto base = directory / (L"RareStage-session-" + sessionStamp_);
+        const auto timelinePath = std::filesystem::path(base.wstring() + L"-timeline.csv");
+        const auto reviewPath = std::filesystem::path(base.wstring() + L"-review.csv");
+        const auto summaryPath = std::filesystem::path(base.wstring() + L"-summary.md");
+        std::ofstream timeline(timelinePath, std::ios::binary);
+        std::ofstream review(reviewPath, std::ios::binary);
+        std::ofstream summary(summaryPath, std::ios::binary);
+        if (!timeline || !review || !summary) return false;
+        timeline << "time_ms,world,act,palette,quality,transient_class,bpm,tempo_confidence,bass,mids,highs,kick,snare,hats,onset,energy,gpu_ms,gpu_budget_ms,cue_density,world_cue_density,flags\n";
+        std::array<bool, rarestage::control::WorldCount> worlds{};
+        double gpuTotal = 0.0;
+        float gpuPeak = 0.0f;
+        for (const auto& sample : rehearsalSamples_) {
+            worlds[std::clamp(sample.world, 0, 17)] = true;
+            gpuTotal += sample.gpuMs;
+            gpuPeak = std::max(gpuPeak, sample.gpuMs);
+            timeline << sample.timeMs << ',' << sample.world << ',' << sample.section << ',' << sample.palette << ',' << sample.quality << ','
+                     << sample.transientClass << ',' << sample.bpm << ',' << sample.tempoConfidence << ',' << sample.bass << ',' << sample.mid << ','
+                     << sample.high << ',' << sample.kick << ',' << sample.snare << ',' << sample.hats << ',' << sample.onset << ',' << sample.energy << ','
+                     << sample.gpuMs << ',' << sample.gpuBudgetMs << ',' << sample.cueDensity << ',' << sample.worldCueDensity << ',' << sample.flags << '\n';
+        }
+        review << "time_ms,world,act,reason,status,tag,file\n";
+        int approved = 0, rework = 0;
+        for (const auto& item : reviewItems_) {
+            if (item.status == 1) ++approved;
+            if (item.status == 2) ++rework;
+            review << item.timeMs << ',' << item.world << ',' << item.section << ',' << csv(item.reason) << ','
+                   << (item.status == 1 ? "approved" : item.status == 2 ? "rework" : "pending") << ','
+                   << csv(item.tag) << ',' << csv(item.path) << '\n';
+        }
+        const auto duration = rehearsalSamples_.back().timeMs;
+        const auto worldCount = std::count(worlds.begin(), worlds.end(), true);
+        summary << "# RareStage rehearsal " << narrow(sessionStamp_) << "\n\n"
+                << "- Duration: " << narrow(clockText(duration)) << "\n"
+                << "- Telemetry samples: " << rehearsalSamples_.size() << "\n"
+                << "- Worlds exercised: " << worldCount << " / " << worlds.size() << "\n"
+                << "- Captures: " << reviewItems_.size() << " (" << approved << " approved, " << rework << " rework)\n"
+                << "- Average GPU frame: " << gpuTotal / rehearsalSamples_.size() << " ms\n"
+                << "- Peak GPU frame: " << gpuPeak << " ms\n\n"
+                << "## Cue timeline\n\n";
+        for (const auto& event : rehearsalEvents_) summary << "- " << narrow(clockText(event.timeMs)) << " — " << narrow(event.kind) << ": " << narrow(event.detail) << "\n";
+        lastSessionSummaryPath_ = summaryPath.wstring();
+        return timeline.good() && review.good() && summary.good();
+    }
+
+    void finishRehearsal(bool notifyRenderer = true) {
+        if (!rehearsalActive_) return;
+        addRehearsalEvent(L"SESSION", L"Recording stopped");
+        rehearsalActive_ = false;
+        if (notifyRenderer && connected_) send(Command::SetRehearsalActive, 0, L"Rehearsal recorder");
+        if (saveRehearsalSession()) statusText_ = L"Rehearsal package saved to " + lastSessionSummaryPath_;
+        else statusText_ = L"Rehearsal ended, but its session package could not be written.";
+    }
+
+    void reviewCurrent(int status) {
+        if (reviewItems_.empty()) { statusText_ = L"No rehearsal captures are waiting for review."; return; }
+        reviewIndex_ = std::min(reviewIndex_, reviewItems_.size() - 1);
+        reviewItems_[reviewIndex_].status = status;
+        statusText_ = status == 1 ? L"Capture approved." : L"Capture marked for rework.";
+    }
+
+    void tagCurrent(int tag) {
+        if (reviewItems_.empty()) { statusText_ = L"No rehearsal capture is selected."; return; }
+        static constexpr std::array<const wchar_t*,5> Tags{L"TOO BUSY", L"TOO DARK", L"LOGO", L"MOTION", L"GOOD"};
+        reviewIndex_ = std::min(reviewIndex_, reviewItems_.size() - 1);
+        reviewItems_[reviewIndex_].tag = Tags[std::clamp(tag, 0, 4)];
+        statusText_ = L"Review tag set to " + reviewItems_[reviewIndex_].tag + L".";
+    }
+
     void handleKey(WPARAM key) {
         if (key >= L'1' && key <= L'9') {
             const int world = static_cast<int>(key - L'1');
@@ -613,12 +844,13 @@ private:
         else if (key == L'M') send(Command::CycleMonitor, 0, L"Output monitor");
         else if (key == L'T') send(Command::SetTimeline, flag(rarestage::control::Timeline) ? 0 : 1, L"Show mode");
         else if (key == L'C') send(Command::CaptureFrame, 0, L"Clean stage capture");
+        else if (key == L'G') { if (rehearsalActive_) finishRehearsal(); else startRehearsal(); }
         else if (key >= VK_F1 && key <= VK_F4) {
             const int preset = static_cast<int>(key - VK_F1);
             if (GetKeyState(VK_SHIFT) & 0x8000) send(Command::SavePreset, preset, L"Save preset F" + std::to_wstring(preset + 1));
             else send(Command::LoadPreset, preset, PresetNames[preset]);
         } else if (key == VK_TAB) {
-            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 4));
+            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 5));
         }
     }
 
@@ -669,6 +901,11 @@ private:
                      std::clamp(static_cast<int>(std::lround(state_.transitionSeconds * 10)) + delta, 2, 30),
                      L"Transition time");
                 break;
+            case Setting::CueDensity:
+                send(Command::SetCueDensityPercent,
+                     std::clamp(static_cast<int>(std::lround(state_.cueDensity * 100)) + delta * 5, 65, 125),
+                     L"Cue density");
+                break;
         }
     }
 
@@ -707,6 +944,14 @@ private:
                 case Action::ExportTrace: exportTrace(); break;
                 case Action::LabelTrace: labelTrace(target.value); break;
                 case Action::CaptureFrame: send(Command::CaptureFrame, 0, L"Clean stage capture"); break;
+                case Action::ToggleRehearsal: if (rehearsalActive_) finishRehearsal(); else startRehearsal(); break;
+                case Action::ToggleSmartCapture: smartCapture_ = !smartCapture_; statusText_ = smartCapture_ ? L"Smart captures armed." : L"Smart captures disabled."; break;
+                case Action::ReviewPrevious: if (!reviewItems_.empty()) reviewIndex_ = (reviewIndex_ + reviewItems_.size() - 1) % reviewItems_.size(); break;
+                case Action::ReviewNext: if (!reviewItems_.empty()) reviewIndex_ = (reviewIndex_ + 1) % reviewItems_.size(); break;
+                case Action::ReviewApprove: reviewCurrent(1); break;
+                case Action::ReviewRework: reviewCurrent(2); break;
+                case Action::ReviewTag: tagCurrent(target.value); break;
+                case Action::ExportSession: if (saveRehearsalSession()) statusText_ = L"Rehearsal package updated at " + lastSessionSummaryPath_; else statusText_ = L"No rehearsal data is available to export."; break;
                 case Action::AudioDevice: send(Command::CycleAudioDevice, 0, L"Audio device"); break;
                 case Action::Monitor: send(Command::CycleMonitor, 0, L"Output monitor"); break;
                 case Action::Fullscreen: send(Command::SetFullscreen, flag(rarestage::control::Fullscreen) ? 0 : 1, L"Fullscreen"); break;
@@ -808,7 +1053,10 @@ private:
 
     void addButton(HDC dc, RECT rect, const std::wstring& label, Action action, int value,
                    bool active = false, COLORREF accent = Cyan, bool danger = false) {
-        const bool local = action == Action::Launch || action == Action::Page || action == Action::ExportTrace || action == Action::LabelTrace;
+        const bool local = action == Action::Launch || action == Action::Page || action == Action::ExportTrace || action == Action::LabelTrace ||
+                           action == Action::ToggleRehearsal || action == Action::ToggleSmartCapture || action == Action::ReviewPrevious ||
+                           action == Action::ReviewNext || action == Action::ReviewApprove || action == Action::ReviewRework ||
+                           action == Action::ReviewTag || action == Action::ExportSession;
         const bool enabled = connected_ || local;
         const bool hovered = enabled && PtInRect(&rect, cursor_);
         COLORREF fill = enabled ? PanelRaised : Panel;
@@ -887,15 +1135,15 @@ private:
                   connected_ ? L"FOCUS STAGE" : L"LAUNCH STAGE", Action::Launch, 0, false, Green);
 
         const int tabTop = scale(68);
-        const int tabWidth = scale(142);
-        const std::array<const wchar_t*, 4> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT"};
-        for (int index = 0; index < 4; ++index) {
-            addButton(dc, RECT{margin + index * (tabWidth + scale(8)), tabTop,
-                               margin + index * (tabWidth + scale(8)) + tabWidth, tabTop + scale(34)},
+        const int tabWidth = scale(122);
+        const std::array<const wchar_t*, 5> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"REHEARSAL"};
+        for (int index = 0; index < 5; ++index) {
+            addButton(dc, RECT{margin + index * (tabWidth + scale(7)), tabTop,
+                               margin + index * (tabWidth + scale(7)) + tabWidth, tabTop + scale(34)},
                       names[index], Action::Page, index, static_cast<int>(page_) == index, Cyan);
         }
-        drawText(dc, L"TAB cycles pages  |  F1-F4 load  |  SHIFT+F1-F4 save",
-                 RECT{margin + scale(610), tabTop, client.right - margin, tabTop + scale(34)},
+        drawText(dc, L"TAB pages  |  G rehearsal  |  F1-F4 presets",
+                 RECT{margin + scale(665), tabTop, client.right - margin, tabTop + scale(34)},
                  smallFont_, Muted, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
     }
 
@@ -1357,6 +1605,114 @@ private:
         addButton(dc, closeRect, L"CLOSE RARESTAGE RENDERER", Action::QuitStage, 0, false, Red, true);
     }
 
+    void paintRehearsal(HDC dc, RECT body) {
+        const int gap = scale(12);
+        const int leftWidth = static_cast<int>((body.right - body.left) * .43f);
+        RECT recorder{body.left, body.top, body.left + leftWidth, body.bottom};
+        RECT review{recorder.right + gap, body.top, body.right, body.top + scale(324)};
+        RECT events{review.left, review.bottom + gap, body.right, body.bottom};
+        fillRound(dc, recorder, 11, Panel, Line);
+        fillRound(dc, review, 11, Panel, Line);
+        fillRound(dc, events, 11, Panel, Line);
+
+        sectionLabel(dc, L"SET REVIEW  /  EVIDENCE RECORDER", recorder.left + scale(14), recorder.top + scale(9), leftWidth - scale(28));
+        int y = recorder.top + scale(38);
+        addButton(dc, RECT{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(48)},
+                  rehearsalActive_ ? L"STOP + SAVE REHEARSAL" : L"START REHEARSAL RECORDING",
+                  Action::ToggleRehearsal, 0, rehearsalActive_, rehearsalActive_ ? Red : Green, rehearsalActive_);
+        y += scale(57);
+        addButton(dc, RECT{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(42)},
+                  smartCapture_ ? L"SMART CAPTURES / ARMED" : L"SMART CAPTURES / OFF",
+                  Action::ToggleSmartCapture, 0, smartCapture_, Purple);
+
+        y += scale(53);
+        RECT stats{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(83)};
+        fillRound(dc, stats, 8, PanelRaised, Line);
+        std::array<bool, rarestage::control::WorldCount> exercised{};
+        for (const auto& sample : rehearsalSamples_) exercised[std::clamp(sample.world, 0, 17)] = true;
+        const auto duration = rehearsalActive_ ? GetTickCount64() - rehearsalStartedAt_ :
+            (rehearsalSamples_.empty() ? 0 : rehearsalSamples_.back().timeMs);
+        drawText(dc, rehearsalActive_ ? L"RECORDING  " + clockText(duration) : L"SESSION  " + clockText(duration),
+                 RECT{stats.left + scale(12), stats.top + scale(5), stats.right - scale(12), stats.top + scale(29)}, headingFont_, rehearsalActive_ ? Green : Text);
+        drawText(dc, L"SAMPLES  " + std::to_wstring(rehearsalSamples_.size()) + L"   /   WORLDS  " +
+                     std::to_wstring(std::count(exercised.begin(), exercised.end(), true)) + L" / 18",
+                 RECT{stats.left + scale(12), stats.top + scale(30), stats.right - scale(12), stats.top + scale(54)}, smallFont_, Muted);
+        drawText(dc, L"CAPTURES  " + std::to_wstring(reviewItems_.size()) + L"   /   EVENTS  " + std::to_wstring(rehearsalEvents_.size()),
+                 RECT{stats.left + scale(12), stats.top + scale(54), stats.right - scale(12), stats.bottom - scale(5)}, smallFont_, Cyan);
+
+        y += scale(96);
+        sectionLabel(dc, L"CUE DENSITY MASTER", recorder.left + scale(14), y, leftWidth - scale(28));
+        y += scale(27);
+        parameterRow(dc, RECT{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(45)},
+                     L"OPERATOR MASTER", std::to_wstring(static_cast<int>(std::lround(state_.cueDensity * 100))) + L"%", Setting::CueDensity);
+        y += scale(53);
+        drawText(dc, L"AUTHORED WORLD / ACT RESULT  " + std::to_wstring(static_cast<int>(std::lround(state_.worldCueDensity * 100))) + L"%",
+                 RECT{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(23)}, smallFont_, Purple);
+        y += scale(31);
+        meter(dc, L"GPU FRAME BUDGET", connected_ ? std::min(state_.gpuBudgetUtilization, 1.25f) / 1.25f : 0.f,
+              RECT{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(35)},
+              state_.gpuBudgetUtilization > 1.f ? Red : Green);
+
+        y += scale(49);
+        sectionLabel(dc, L"RECORDING CONTRACT", recorder.left + scale(14), y, leftWidth - scale(28));
+        y += scale(25);
+        drawText(dc, L"Telemetry stays continuous. Captures wait for GPU headroom after world and act changes, so review evidence does not stall the drop. Density changes light and cue detail—not motion time.",
+                 RECT{recorder.left + scale(14), y, recorder.right - scale(14), recorder.bottom - scale(66)}, smallFont_, Muted,
+                 DT_LEFT | DT_TOP | DT_WORDBREAK);
+        addButton(dc, RECT{recorder.left + scale(14), recorder.bottom - scale(54), recorder.right - scale(14), recorder.bottom - scale(10)},
+                  L"EXPORT / UPDATE SESSION PACKAGE", Action::ExportSession, 0, false, Cyan);
+
+        sectionLabel(dc, L"CAPTURE REVIEW BOARD", review.left + scale(14), review.top + scale(9), review.right - review.left - scale(28));
+        if (reviewItems_.empty()) {
+            drawText(dc, L"Smart captures appear here after important world or act changes. Each frame can be approved, tagged, or marked for rework.",
+                     RECT{review.left + scale(14), review.top + scale(48), review.right - scale(14), review.top + scale(108)}, bodyFont_, Muted,
+                     DT_LEFT | DT_TOP | DT_WORDBREAK);
+        } else {
+            reviewIndex_ = std::min(reviewIndex_, reviewItems_.size() - 1);
+            const auto& item = reviewItems_[reviewIndex_];
+            const std::wstring status = item.status == 1 ? L"APPROVED" : item.status == 2 ? L"REWORK" : L"PENDING";
+            const COLORREF statusColor = item.status == 1 ? Green : item.status == 2 ? Red : Amber;
+            drawText(dc, L"FRAME " + std::to_wstring(reviewIndex_ + 1) + L" / " + std::to_wstring(reviewItems_.size()) + L"   " + status,
+                     RECT{review.left + scale(14), review.top + scale(38), review.right - scale(14), review.top + scale(65)}, headingFont_, statusColor);
+            drawText(dc, std::wstring(WorldNames[std::clamp(item.world, 0, 17)]) + L"  /  " + SectionNames[std::clamp(item.section, 0, 4)] +
+                         L"  /  " + clockText(item.timeMs) + L"  /  " + item.reason,
+                     RECT{review.left + scale(14), review.top + scale(65), review.right - scale(14), review.top + scale(91)}, smallFont_, Cyan);
+            drawText(dc, item.path, RECT{review.left + scale(14), review.top + scale(91), review.right - scale(14), review.top + scale(120)}, smallFont_, Muted);
+        }
+        const int navY = review.top + scale(127);
+        const int half = (review.right - review.left - scale(35)) / 2;
+        addButton(dc, RECT{review.left + scale(14), navY, review.left + scale(14) + half, navY + scale(36)}, L"PREVIOUS", Action::ReviewPrevious, 0);
+        addButton(dc, RECT{review.left + scale(21) + half, navY, review.right - scale(14), navY + scale(36)}, L"NEXT", Action::ReviewNext, 0);
+        addButton(dc, RECT{review.left + scale(14), navY + scale(43), review.left + scale(14) + half, navY + scale(82)}, L"APPROVE", Action::ReviewApprove, 0, false, Green);
+        addButton(dc, RECT{review.left + scale(21) + half, navY + scale(43), review.right - scale(14), navY + scale(82)}, L"MARK REWORK", Action::ReviewRework, 0, false, Red, true);
+        const int tagY = navY + scale(91);
+        const int tagGap = scale(5);
+        const int tagWidth = (review.right - review.left - scale(28) - tagGap * 4) / 5;
+        static constexpr std::array<const wchar_t*,5> Tags{L"TOO BUSY", L"TOO DARK", L"LOGO", L"MOTION", L"GOOD"};
+        for (int index = 0; index < 5; ++index) {
+            const int x = review.left + scale(14) + index * (tagWidth + tagGap);
+            const bool active = !reviewItems_.empty() && reviewItems_[reviewIndex_].tag == Tags[index];
+            addButton(dc, RECT{x, tagY, x + tagWidth, tagY + scale(35)}, Tags[index], Action::ReviewTag, index, active, index == 4 ? Green : Purple);
+        }
+
+        sectionLabel(dc, L"LIVE CUE TIMELINE", events.left + scale(14), events.top + scale(9), events.right - events.left - scale(28));
+        if (rehearsalEvents_.empty()) {
+            drawText(dc, L"Start recording to collect world, act, capture, and GPU-budget evidence.",
+                     RECT{events.left + scale(14), events.top + scale(42), events.right - scale(14), events.top + scale(72)}, bodyFont_, Muted);
+        } else {
+            const int maxRows = std::max(1, (events.bottom - events.top - scale(51)) / scale(28));
+            const int first = std::max(0, static_cast<int>(rehearsalEvents_.size()) - maxRows);
+            int rowY = events.top + scale(38);
+            for (int index = first; index < static_cast<int>(rehearsalEvents_.size()); ++index) {
+                const auto& event = rehearsalEvents_[index];
+                drawText(dc, clockText(event.timeMs), RECT{events.left + scale(14), rowY, events.left + scale(76), rowY + scale(24)}, smallFont_, Cyan);
+                drawText(dc, event.kind, RECT{events.left + scale(78), rowY, events.left + scale(146), rowY + scale(24)}, smallFont_, Purple);
+                drawText(dc, event.detail, RECT{events.left + scale(150), rowY, events.right - scale(14), rowY + scale(24)}, smallFont_, Text);
+                rowY += scale(28);
+            }
+        }
+    }
+
     void paint() {
         PAINTSTRUCT paintStruct{};
         HDC target = BeginPaint(window_, &paintStruct);
@@ -1384,7 +1740,8 @@ private:
         if (page_ == Page::Show) paintShow(dc, body);
         else if (page_ == Page::Mix) paintMix(dc, body);
         else if (page_ == Page::Audio) paintAudio(dc, body);
-        else paintOutput(dc, body);
+        else if (page_ == Page::Output) paintOutput(dc, body);
+        else paintRehearsal(dc, body);
 
         RECT footer{margin, client.bottom - margin - footerHeight, client.right - margin, client.bottom - margin};
         fillRound(dc, footer, 9, Panel, Line);
@@ -1421,6 +1778,8 @@ private:
     bool closeStageAfterSoak_{};
     bool launchFocusPending_{};
     bool trackingMouse_{};
+    bool rehearsalActive_{};
+    bool smartCapture_{true};
     int exitCode_{};
     UINT dpi_{96};
     Page page_{Page::Show};
@@ -1435,10 +1794,27 @@ private:
     std::uint64_t soakStartedAt_{};
     std::uint64_t connectedAt_{};
     std::uint64_t animationTick_{};
+    std::uint64_t rehearsalStartedAt_{};
+    std::uint64_t smartCaptureDue_{};
+    std::uint64_t smartCaptureDeadline_{};
+    std::uint64_t lastSmartCaptureAt_{};
+    std::uint64_t lastGpuCaptureAt_{};
     std::uint32_t paintCount_{};
+    std::uint32_t lastRehearsalCaptureCount_{};
+    int lastRehearsalWorld_{-1};
+    int lastRehearsalSection_{-1};
+    float lastGpuUtilization_{};
+    std::size_t reviewIndex_{};
     std::wstring pendingDescription_;
     std::wstring statusText_;
+    std::wstring sessionStamp_;
+    std::wstring lastSessionSummaryPath_;
+    std::wstring pendingCaptureReason_;
+    std::wstring captureReasonInFlight_;
     std::vector<TraceSample> trace_;
+    std::vector<RehearsalSample> rehearsalSamples_;
+    std::vector<RehearsalEvent> rehearsalEvents_;
+    std::vector<ReviewItem> reviewItems_;
     std::vector<HitTarget> targets_;
     HFONT titleFont_{};
     HFONT headingFont_{};
@@ -1503,12 +1879,40 @@ bool ReplayCalibrationTrace(const std::filesystem::path& path) {
     return labeled > 0 && invalid == 0 && report.good();
 }
 
+bool RehearsalContractTest() {
+    struct Fixture { std::uint64_t time; int world, act; float gpu, budget, density; const char* event; };
+    constexpr std::array<Fixture,6> fixture{{
+        {0,3,0,4.1f,8.0f,.76f,"session_start"},
+        {1000,9,1,5.0f,8.0f,.98f,"world_change"},
+        {1800,9,2,7.6f,8.0f,1.16f,"drop"},
+        {2100,9,2,5.1f,8.0f,1.16f,"smart_capture"},
+        {4200,13,4,4.8f,8.0f,1.05f,"world_change"},
+        {5300,13,4,4.4f,8.0f,1.05f,"smart_capture"}
+    }};
+    std::ofstream timeline("RareStage-rehearsal-contract.csv",std::ios::binary);
+    std::ofstream summary("RareStage-rehearsal-contract.md",std::ios::binary);
+    if(!timeline||!summary)return false;
+    timeline<<"time_ms,world,act,gpu_ms,gpu_budget_ms,world_cue_density,event\n";
+    int captures=0;std::uint64_t lastCapture=0;
+    for(const auto& row:fixture){
+        timeline<<row.time<<','<<row.world<<','<<row.act<<','<<row.gpu<<','<<row.budget<<','<<row.density<<','<<row.event<<'\n';
+        if(std::strcmp(row.event,"smart_capture")==0){if(row.gpu/row.budget>=.90f||row.time-lastCapture<2000)return false;lastCapture=row.time;++captures;}
+        if(row.density<.55f||row.density>1.35f)return false;
+    }
+    summary<<"# RareStage rehearsal contract\n\n- samples: "<<fixture.size()<<"\n- captures: "<<captures
+           <<"\n- rule: captures wait for GPU headroom\n- rule: cue density never drives motion time\n";
+    return captures==2&&timeline.good()&&summary.good();
+}
+
 } // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
     if (std::wcsstr(GetCommandLineW(), L"--trace-replay-self-test")) {
         return ReplayCalibrationTrace(L"tests/audio_trace_contract.csv") ? 0 : 3;
+    }
+    if (std::wcsstr(GetCommandLineW(), L"--rehearsal-self-test")) {
+        return RehearsalContractTest() ? 0 : 5;
     }
     int argumentCount=0;
     LPWSTR* arguments=CommandLineToArgvW(GetCommandLineW(),&argumentCount);

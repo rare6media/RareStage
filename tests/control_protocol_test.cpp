@@ -16,7 +16,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 7 || AudioProfileCount != 4) {
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 8 || AudioProfileCount != 4) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
@@ -31,7 +31,7 @@ int main() {
     source.stateRevision = 9;
     source.world = 13;
     source.songSection = 2;
-    source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled;
+    source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled | RehearsalActive;
     source.bass = 0.75f;
     source.kick = 0.82f;
     source.kickConfidence = 0.91f;
@@ -66,7 +66,11 @@ int main() {
     source.gpuPeakMs = 7.75f;
     source.gpuBudgetMs = 8.0f;
     source.gpuBudgetUtilization = 0.65625f;
+    source.cueDensity = 1.15f;
+    source.worldCueDensity = 1.21f;
+    source.rehearsalSeconds = 321.5f;
     source.captureCount = 4;
+    source.rehearsalRevision = 2;
     source.captureStatus = 1;
     wcscpy_s(source.directorReason, _countof(source.directorReason), L"ENDING HOLD / PRESERVE WORLD");
     wcscpy_s(source.lastCapturePath, _countof(source.lastCapturePath), L"C:\\RareStage\\Captures\\frame.png");
@@ -103,7 +107,10 @@ int main() {
         copy.directorCandidateScore != 1.72f || copy.directorRunnerUpScore != 1.51f ||
         copy.sectionEvidence != 0.84f || copy.endingConfidence != 0.62f ||
         copy.gpuFrameMs != 5.25f || copy.gpuPeakMs != 7.75f || copy.gpuBudgetMs != 8.0f ||
-        copy.gpuBudgetUtilization != 0.65625f || copy.captureCount != 4 || copy.captureStatus != 1 ||
+        copy.gpuBudgetUtilization != 0.65625f || copy.cueDensity != 1.15f ||
+        copy.worldCueDensity != 1.21f || copy.rehearsalSeconds != 321.5f ||
+        copy.captureCount != 4 || copy.rehearsalRevision != 2 || copy.captureStatus != 1 ||
+        !(copy.flags & RehearsalActive) ||
         std::wcscmp(copy.directorReason, L"ENDING HOLD / PRESERVE WORLD") != 0 ||
         std::wcscmp(copy.lastCapturePath, L"C:\\RareStage\\Captures\\frame.png") != 0 ||
         copy.logoScale != 1.15f ||

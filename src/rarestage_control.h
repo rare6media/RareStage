@@ -8,10 +8,10 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v7";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v8";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 7;
+inline constexpr std::uint32_t ProtocolVersion = 8;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -56,7 +56,9 @@ enum class Command : std::uint32_t {
     CycleMonitor,
     SetFullscreen,
     QuitRenderer,
-    CaptureFrame
+    CaptureFrame,
+    SetCueDensityPercent,
+    SetRehearsalActive
 };
 
 enum StateFlag : std::uint32_t {
@@ -73,7 +75,8 @@ enum StateFlag : std::uint32_t {
     Fullscreen = 1u << 10,
     VsyncEnabled = 1u << 11,
     MusicalEnding = 1u << 12,
-    CapturePending = 1u << 13
+    CapturePending = 1u << 13,
+    RehearsalActive = 1u << 14
 };
 
 enum class CommandStatus : std::int32_t {
@@ -159,12 +162,16 @@ struct alignas(64) SharedState {
     float gpuPeakMs{};
     float gpuBudgetMs{};
     float gpuBudgetUtilization{};
+    float cueDensity{1.0f};
+    float worldCueDensity{1.0f};
+    float rehearsalSeconds{};
     std::uint32_t transientClass{};
     std::uint32_t acceptedKickCount{};
     std::uint32_t acceptedSnareCount{};
     std::uint32_t acceptedHatCount{};
     std::uint32_t rejectedTransientCount{};
     std::uint32_t captureCount{};
+    std::uint32_t rehearsalRevision{};
     std::int32_t captureStatus{};
     wchar_t playbackDevice[96]{};
     wchar_t worldName[48]{};
