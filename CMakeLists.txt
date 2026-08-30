@@ -8,6 +8,7 @@ target_compile_features(RareStage PRIVATE cxx_std_20)
 target_compile_definitions(RareStage PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
 if(MSVC)
   target_compile_options(RareStage PRIVATE /W4 /permissive- /EHsc /utf-8)
+  target_link_options(RareStage PRIVATE /MANIFEST:NO)
 endif()
 target_link_libraries(RareStage PRIVATE d3d11 dxgi d3dcompiler d2d1 dwrite ole32 avrt uuid windowscodecs gdi32)
 
@@ -17,6 +18,7 @@ target_compile_definitions(RareStageConsole PRIVATE UNICODE _UNICODE NOMINMAX WI
 target_link_libraries(RareStageConsole PRIVATE dwmapi gdi32 user32 shell32)
 if(MSVC)
   target_compile_options(RareStageConsole PRIVATE /W4 /permissive- /EHsc /utf-8)
+  target_link_options(RareStageConsole PRIVATE /MANIFEST:NO)
 endif()
 
 include(CTest)
