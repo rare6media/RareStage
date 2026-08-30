@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <dwmapi.h>
+#include <shellapi.h>
 
 #include "rarestage_control.h"
 
@@ -31,6 +32,16 @@ constexpr COLORREF Green = RGB(108, 246, 163);
 constexpr COLORREF Purple = RGB(157, 101, 255);
 constexpr COLORREF Amber = RGB(255, 188, 65);
 constexpr COLORREF Red = RGB(255, 55, 91);
+
+COLORREF blendColor(COLORREF from, COLORREF to, float amount) {
+    amount = std::clamp(amount, 0.0f, 1.0f);
+    const auto channel = [amount](BYTE a, BYTE b) {
+        return static_cast<BYTE>(std::lround(a + (b - a) * amount));
+    };
+    return RGB(channel(GetRValue(from), GetRValue(to)),
+               channel(GetGValue(from), GetGValue(to)),
+               channel(GetBValue(from), GetBValue(to)));
+}
 
 constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
     L"MORPH WALL", L"BIOFRAME", L"CELESTIAL RIG",
@@ -141,7 +152,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.10.4",
+            0, windowClass.lpszClassName, L"RareStage Console 0.10.5",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -149,6 +160,10 @@ public:
 
         const BOOL dark = TRUE;
         DwmSetWindowAttribute(window_, 20, &dark, sizeof(dark));
+        const DWORD roundedCorners = 2;
+        const DWORD backdrop = 2;
+        DwmSetWindowAttribute(window_, 33, &roundedCorners, sizeof(roundedCorners));
+        DwmSetWindowAttribute(window_, 38, &backdrop, sizeof(backdrop));
         dpi_ = GetDpiForWindow(window_);
         createFonts();
         SetTimer(window_, 1, 33, nullptr);
@@ -195,6 +210,7 @@ private:
     LRESULT handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
         switch (message) {
             case WM_TIMER:
+                updateAnimation();
                 updateConnection();
                 InvalidateRect(window, nullptr, FALSE);
                 updateSoakTest();
@@ -206,6 +222,19 @@ private:
                 return 1;
             case WM_LBUTTONUP:
                 activate(POINT{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+                return 0;
+            case WM_MOUSEMOVE: {
+                cursor_ = POINT{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                if (!trackingMouse_) {
+                    TRACKMOUSEEVENT tracking{sizeof(tracking), TME_LEAVE, window, 0};
+                    TrackMouseEvent(&tracking);
+                    trackingMouse_ = true;
+                }
+                return 0;
+            }
+            case WM_MOUSELEAVE:
+                cursor_ = POINT{-10000, -10000};
+                trackingMouse_ = false;
                 return 0;
             case WM_KEYDOWN:
                 handleKey(wParam);
@@ -249,6 +278,23 @@ private:
 
     int scale(int value) const {
         return MulDiv(value, static_cast<int>(dpi_), 96);
+    }
+
+    void updateAnimation() {
+        const std::uint64_t now = GetTickCount64();
+        if (!animationTick_) animationTick_ = now;
+        const float dt = std::clamp(static_cast<float>(now - animationTick_) * .001f, 0.0f, .10f);
+        animationTick_ = now;
+        animationTime_ += dt;
+        pageTransition_ = std::min(1.0f, pageTransition_ + dt * 5.2f);
+        const float connectedTarget = connected_ ? 1.0f : 0.0f;
+        connectionEase_ += (connectedTarget - connectionEase_) * std::min(1.0f, dt * 6.0f);
+    }
+
+    void selectPage(Page next) {
+        if (next == page_) return;
+        page_ = next;
+        pageTransition_ = 0.0f;
     }
 
     HFONT makeFont(int points, int weight) const {
@@ -326,7 +372,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.10.4 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.10.5 Console endpoint.";
             }
             return;
         }
@@ -448,19 +494,16 @@ private:
             return;
         }
 
-        std::wstring commandLine = L"\"" + executable.wstring() + L"\"";
-        std::vector<wchar_t> mutableCommand(commandLine.begin(), commandLine.end());
-        mutableCommand.push_back(L'\0');
-        STARTUPINFOW startup{};
-        startup.cb = sizeof(startup);
-        startup.dwFlags = STARTF_USESHOWWINDOW;
-        startup.wShowWindow = SW_SHOWNOACTIVATE;
-        PROCESS_INFORMATION process{};
-        if (CreateProcessW(executable.c_str(), mutableCommand.data(), nullptr, nullptr, FALSE,
-                           CREATE_NEW_PROCESS_GROUP,
-                           nullptr, directory.c_str(), &startup, &process)) {
-            CloseHandle(process.hThread);
-            rendererProcess_ = process.hProcess;
+        SHELLEXECUTEINFOW execute{};
+        execute.cbSize = sizeof(execute);
+        execute.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
+        execute.hwnd = window_;
+        execute.lpVerb = L"open";
+        execute.lpFile = executable.c_str();
+        execute.lpDirectory = directory.c_str();
+        execute.nShow = SW_SHOWNOACTIVATE;
+        if (ShellExecuteExW(&execute) && execute.hProcess) {
+            rendererProcess_ = execute.hProcess;
             launchFocusPending_ = true;
             statusText_ = L"RareStage is starting. Console will remain in operator focus.";
         } else {
@@ -534,7 +577,7 @@ private:
             if (GetKeyState(VK_SHIFT) & 0x8000) send(Command::SavePreset, preset, L"Save preset F" + std::to_wstring(preset + 1));
             else send(Command::LoadPreset, preset, PresetNames[preset]);
         } else if (key == VK_TAB) {
-            page_ = static_cast<Page>((static_cast<int>(page_) + 1) % 4);
+            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 4));
         }
     }
 
@@ -593,7 +636,7 @@ private:
             if (!PtInRect(&target.rect, point)) continue;
             switch (target.action) {
                 case Action::Launch: launchRenderer(); break;
-                case Action::Page: page_ = static_cast<Page>(target.value); break;
+                case Action::Page: selectPage(static_cast<Page>(target.value)); break;
                 case Action::World: send(Command::SelectWorld, target.value, WorldNames[target.value]); break;
                 case Action::Section: send(Command::ForceSection, target.value, SectionNames[target.value]); break;
                 case Action::ClearSection: send(Command::ClearSectionOverride, 0, L"Automatic act detection"); break;
@@ -632,6 +675,19 @@ private:
     }
 
     void fillRound(HDC dc, RECT rect, int radius, COLORREF fill, COLORREF outline = Line, int width = 1) const {
+        if (fill == Panel) {
+            RECT shadow = rect;
+            OffsetRect(&shadow, 0, scale(3));
+            HBRUSH shadowBrush = CreateSolidBrush(RGB(1, 5, 10));
+            HPEN shadowPen = CreatePen(PS_NULL, 0, RGB(1, 5, 10));
+            const auto oldShadowBrush = SelectObject(dc, shadowBrush);
+            const auto oldShadowPen = SelectObject(dc, shadowPen);
+            RoundRect(dc, shadow.left, shadow.top, shadow.right, shadow.bottom, scale(radius), scale(radius));
+            SelectObject(dc, oldShadowPen);
+            SelectObject(dc, oldShadowBrush);
+            DeleteObject(shadowPen);
+            DeleteObject(shadowBrush);
+        }
         HBRUSH brush = CreateSolidBrush(fill);
         HPEN pen = CreatePen(PS_SOLID, scale(width), outline);
         const auto oldBrush = SelectObject(dc, brush);
@@ -641,12 +697,57 @@ private:
         SelectObject(dc, oldBrush);
         DeleteObject(pen);
         DeleteObject(brush);
+        if (fill == Panel || fill == PanelRaised) {
+            HPEN highlight = CreatePen(PS_SOLID, 1, blendColor(outline, Text, fill == Panel ? .16f : .10f));
+            const auto oldHighlight = SelectObject(dc, highlight);
+            MoveToEx(dc, rect.left + scale(radius), rect.top + 1, nullptr);
+            LineTo(dc, rect.right - scale(radius), rect.top + 1);
+            SelectObject(dc, oldHighlight);
+            DeleteObject(highlight);
+        }
     }
 
     void fillRect(HDC dc, RECT rect, COLORREF color) const {
         HBRUSH brush = CreateSolidBrush(color);
         FillRect(dc, &rect, brush);
         DeleteObject(brush);
+    }
+
+    void paintAmbientGlow(HDC dc, int centerX, int centerY, int radius, COLORREF color, float strength) const {
+        constexpr int Rings = 15;
+        for (int ring = Rings; ring >= 1; --ring) {
+            const float normalized = static_cast<float>(ring) / Rings;
+            const int extent = static_cast<int>(radius * normalized);
+            const float weight = strength * std::pow(1.0f - normalized, 2.0f);
+            const COLORREF shade = blendColor(Background, color, weight);
+            HBRUSH brush = CreateSolidBrush(shade);
+            HPEN pen = CreatePen(PS_NULL, 0, shade);
+            const auto oldBrush = SelectObject(dc, brush);
+            const auto oldPen = SelectObject(dc, pen);
+            Ellipse(dc, centerX - extent, centerY - extent, centerX + extent, centerY + extent);
+            SelectObject(dc, oldPen);
+            SelectObject(dc, oldBrush);
+            DeleteObject(pen);
+            DeleteObject(brush);
+        }
+    }
+
+    void paintAtmosphere(HDC dc, RECT client) const {
+        fillRect(dc, client, Background);
+        const float t = animationTime_;
+        const int width = client.right - client.left;
+        const int height = client.bottom - client.top;
+        paintAmbientGlow(dc,
+                         static_cast<int>(width * (.18f + .055f * std::sin(t * .19f))),
+                         static_cast<int>(height * (.26f + .045f * std::cos(t * .15f))),
+                         scale(360), Cyan, .105f + connectionEase_ * .025f);
+        paintAmbientGlow(dc,
+                         static_cast<int>(width * (.80f + .045f * std::cos(t * .13f))),
+                         static_cast<int>(height * (.72f + .055f * std::sin(t * .17f))),
+                         scale(420), Purple, .080f);
+        paintAmbientGlow(dc,
+                         static_cast<int>(width * (.58f + .025f * std::sin(t * .11f))),
+                         static_cast<int>(height * .10f), scale(250), Green, .035f + connectionEase_ * .018f);
     }
 
     void drawText(HDC dc, const std::wstring& value, RECT rect, HFONT font, COLORREF color,
@@ -666,6 +767,7 @@ private:
                    bool active = false, COLORREF accent = Cyan, bool danger = false) {
         const bool local = action == Action::Launch || action == Action::Page || action == Action::ExportTrace;
         const bool enabled = connected_ || local;
+        const bool hovered = enabled && PtInRect(&rect, cursor_);
         COLORREF fill = enabled ? PanelRaised : Panel;
         COLORREF border = enabled ? Line : RGB(18, 35, 45);
         COLORREF text = enabled ? Text : RGB(67, 88, 98);
@@ -673,7 +775,16 @@ private:
             fill = danger ? RGB(71, 14, 29) : RGB(11, 46, 60);
             border = accent;
         }
+        if (hovered) {
+            const float shimmer = .075f + .025f * (.5f + .5f * std::sin(animationTime_ * 3.2f));
+            fill = blendColor(fill, accent, shimmer);
+            border = blendColor(border, accent, .52f);
+        }
         fillRound(dc, rect, 7, fill, border, active ? 2 : 1);
+        if (active && enabled) {
+            RECT rail{rect.left + scale(9), rect.bottom - scale(3), rect.right - scale(9), rect.bottom - scale(2)};
+            fillRect(dc, rail, blendColor(accent, Text, .14f + .08f * (.5f + .5f * std::sin(animationTime_ * 2.1f))));
+        }
         drawText(dc, label, rect, bodyFont_, text, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
         if (enabled) targets_.push_back({rect, action, value});
     }
@@ -713,6 +824,18 @@ private:
 
         const std::wstring connection = connected_ ? L"ENGINE CONNECTED" :
             rendererWindow_ ? L"ENGINE INCOMPATIBLE" : L"ENGINE OFFLINE";
+        const int pulseRadius = scale(4 + static_cast<int>(connectionEase_ * (1.0f + .5f * std::sin(animationTime_ * 2.4f))));
+        const int dotX = client.right - margin - scale(374);
+        const int dotY = (header.top + header.bottom) / 2;
+        HBRUSH statusBrush = CreateSolidBrush(connected_ ? Green : Amber);
+        HPEN statusPen = CreatePen(PS_NULL, 0, connected_ ? Green : Amber);
+        const auto oldStatusBrush = SelectObject(dc, statusBrush);
+        const auto oldStatusPen = SelectObject(dc, statusPen);
+        Ellipse(dc, dotX - pulseRadius, dotY - pulseRadius, dotX + pulseRadius, dotY + pulseRadius);
+        SelectObject(dc, oldStatusPen);
+        SelectObject(dc, oldStatusBrush);
+        DeleteObject(statusPen);
+        DeleteObject(statusBrush);
         drawText(dc, connection,
                  RECT{client.right - margin - scale(360), header.top, client.right - margin - scale(145), header.bottom},
                  bodyFont_, connected_ ? Green : Amber, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
@@ -950,13 +1073,27 @@ private:
         const std::wstring activeWorld = connected_
             ? WorldNames[std::clamp(state_.world, 0, static_cast<int>(WorldNames.size()) - 1)]
             : L"NO ACTIVE WORLD";
-        drawText(dc, activeWorld, RECT{decision.left + scale(14), decision.top + scale(8), decision.right - scale(14), decision.top + scale(38)}, headingFont_, Text);
-        drawText(dc, connected_ ? SectionNames[std::clamp(state_.songSection, 0, 4)] : L"OFFLINE",
-                 RECT{decision.left + scale(14), decision.top + scale(38), decision.right - scale(14), decision.top + scale(66)}, bodyFont_, Cyan);
+        const std::wstring candidate = connected_
+            ? WorldNames[std::clamp(state_.directorCandidateWorld, 0, static_cast<int>(WorldNames.size()) - 1)]
+            : L"---";
+        const std::wstring runner = connected_
+            ? WorldNames[std::clamp(state_.directorRunnerUpWorld, 0, static_cast<int>(WorldNames.size()) - 1)]
+            : L"---";
+        drawText(dc, L"ACTIVE  " + activeWorld + L"  /  " +
+                     (connected_ ? SectionNames[std::clamp(state_.songSection, 0, 4)] : L"OFFLINE"),
+                 RECT{decision.left + scale(14), decision.top + scale(6), decision.right - scale(14), decision.top + scale(31)}, headingFont_, Text);
+        drawText(dc, L"NEXT  " + candidate + L"  " +
+                     std::to_wstring(static_cast<int>(std::lround(std::clamp(state_.sectionEvidence, 0.0f, 1.0f) * 100))) +
+                     L"% EVIDENCE   /   ALT  " + runner,
+                 RECT{decision.left + scale(14), decision.top + scale(31), decision.right - scale(14), decision.top + scale(56)}, smallFont_, Cyan);
+        drawText(dc, connected_ && state_.directorReason[0] ? state_.directorReason : L"DIRECTOR TELEMETRY STARTING",
+                 RECT{decision.left + scale(14), decision.top + scale(56), decision.right - scale(14), decision.top + scale(81)}, smallFont_,
+                 flag(rarestage::control::MusicalEnding) ? Amber : Muted);
         drawText(dc, L"ENERGY " + std::to_wstring(static_cast<int>(std::lround(state_.energy * 100))) +
-                     L"%  |  TEMPO LOCK " + std::to_wstring(static_cast<int>(std::lround(state_.tempoConfidence * 100))) +
-                     L"%  |  PALETTE " + PaletteNames[std::clamp(state_.directorPalette, 0, 3)],
-                 RECT{decision.left + scale(14), decision.top + scale(68), decision.right - scale(14), decision.bottom - scale(8)}, smallFont_, Muted);
+                     L"%   TEMPO " + std::to_wstring(static_cast<int>(std::lround(state_.tempoConfidence * 100))) +
+                     L"%   ENDING " + std::to_wstring(static_cast<int>(std::lround(state_.endingConfidence * 100))) +
+                     L"%   " + PaletteNames[std::clamp(state_.directorPalette, 0, 3)],
+                 RECT{decision.left + scale(14), decision.top + scale(81), decision.right - scale(14), decision.bottom - scale(5)}, smallFont_, Muted);
     }
 
     void traceLine(HDC dc, RECT plot, float TraceSample::* field, COLORREF color) const {
@@ -1150,7 +1287,7 @@ private:
         HDC dc = CreateCompatibleDC(target);
         HBITMAP bitmap = CreateCompatibleBitmap(target, client.right, client.bottom);
         const auto oldBitmap = SelectObject(dc, bitmap);
-        fillRect(dc, client, Background);
+        paintAtmosphere(dc, client);
         targets_.clear();
 
         paintHeader(dc, client);
@@ -1159,6 +1296,8 @@ private:
         const int margin = scale(20);
         const int footerHeight = scale(42);
         RECT body{margin, scale(226), client.right - margin, client.bottom - margin - footerHeight - scale(10)};
+        const float easedPage = 1.0f - std::pow(1.0f - pageTransition_, 3.0f);
+        OffsetRect(&body, static_cast<int>(scale(18) * (1.0f - easedPage)), 0);
         if (page_ == Page::Show) paintShow(dc, body);
         else if (page_ == Page::Mix) paintMix(dc, body);
         else if (page_ == Page::Audio) paintAudio(dc, body);
@@ -1169,11 +1308,13 @@ private:
         drawText(dc, statusText_.empty() ? L"Waiting for RareStage..." : statusText_,
                  RECT{footer.left + scale(13), footer.top, footer.right - scale(285), footer.bottom},
                  smallFont_, connected_ ? Muted : Amber);
-        const std::wstring mode = flag(rarestage::control::ManualSectionOverride)
+        const std::wstring mode = flag(rarestage::control::MusicalEnding)
+            ? L"ENDING HOLD / WORLD PRESERVED"
+            : flag(rarestage::control::ManualSectionOverride)
             ? L"MANUAL ACT  " + std::to_wstring(static_cast<int>(std::ceil(state_.manualOverrideRemainingSeconds))) + L"S"
             : flag(rarestage::control::Automatic) ? L"SMART DIRECTOR ARMED" : L"MANUAL WORLD";
         drawText(dc, mode, RECT{footer.right - scale(275), footer.top, footer.right - scale(13), footer.bottom},
-                 headingFont_, flag(rarestage::control::ManualSectionOverride) ? Amber : Cyan,
+                 headingFont_, flag(rarestage::control::MusicalEnding) || flag(rarestage::control::ManualSectionOverride) ? Amber : Cyan,
                  DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
 
         BitBlt(target, 0, 0, client.right, client.bottom, dc, 0, 0, SRCCOPY);
@@ -1196,15 +1337,21 @@ private:
     bool soakTest_{};
     bool closeStageAfterSoak_{};
     bool launchFocusPending_{};
+    bool trackingMouse_{};
     int exitCode_{};
     UINT dpi_{96};
     Page page_{Page::Show};
+    POINT cursor_{-10000, -10000};
+    float animationTime_{};
+    float pageTransition_{1.0f};
+    float connectionEase_{};
     std::uint32_t commandSerial_{};
     std::uint32_t pendingSerial_{};
     std::uint64_t lastTraceRevision_{};
     std::uint64_t pendingSentAt_{};
     std::uint64_t soakStartedAt_{};
     std::uint64_t connectedAt_{};
+    std::uint64_t animationTick_{};
     std::uint32_t paintCount_{};
     std::wstring pendingDescription_;
     std::wstring statusText_;
