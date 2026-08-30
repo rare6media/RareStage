@@ -3,8 +3,8 @@
 1 24 "rarestage.manifest"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,10,8,0
- PRODUCTVERSION 0,10,8,0
+ FILEVERSION 0,11,0,0
+ PRODUCTVERSION 0,11,0,0
  FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
  FILEFLAGS 0
  FILEOS VOS_NT_WINDOWS32
@@ -17,12 +17,12 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "AntNetwork, L.L.C."
       VALUE "FileDescription", "RareStage Console"
-      VALUE "FileVersion", "0.10.8.0"
+      VALUE "FileVersion", "0.11.0.0"
       VALUE "InternalName", "RareStageConsole"
       VALUE "LegalCopyright", "Copyright (C) 2026 AntNetwork, L.L.C."
       VALUE "OriginalFilename", "RareStageConsole.exe"
       VALUE "ProductName", "RareStage"
-      VALUE "ProductVersion", "0.10.8"
+      VALUE "ProductVersion", "0.11.0"
     END
   END
   BLOCK "VarFileInfo"
