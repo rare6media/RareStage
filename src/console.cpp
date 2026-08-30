@@ -1700,7 +1700,7 @@ private:
             drawText(dc, L"Start recording to collect world, act, capture, and GPU-budget evidence.",
                      RECT{events.left + scale(14), events.top + scale(42), events.right - scale(14), events.top + scale(72)}, bodyFont_, Muted);
         } else {
-            const int maxRows = std::max(1, (events.bottom - events.top - scale(51)) / scale(28));
+            const int maxRows = std::max(1, static_cast<int>((events.bottom - events.top - scale(51)) / scale(28)));
             const int first = std::max(0, static_cast<int>(rehearsalEvents_.size()) - maxRows);
             int rowY = events.top + scale(38);
             for (int index = first; index < static_cast<int>(rehearsalEvents_.size()); ++index) {
