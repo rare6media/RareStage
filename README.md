@@ -4,22 +4,22 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.8**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.11.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.10.8
+## What changed in 0.11.0
 
-Version 0.10.8 is the **Set Review + Cue Density release**. It turns Console into a rehearsal evidence surface and adds authored cue-density mastering without compromising continuous high-refresh motion.
+Version 0.11.0 is the **Smart Director 2 release**. It lets the automatic show prepare its next visual chapter before the musical boundary while keeping the current world fluid, stable and useful through quiet passages.
 
-- Protocol v8 exposes operator cue density, the authored world/act result and rehearsal state to Console
-- A fifth glassmorphic Console page records complete set telemetry, world/act changes, captures and GPU-budget events
-- Smart captures wait briefly after important cues and prefer GPU headroom, avoiding screenshot stalls at the musical hit itself
-- A capture review board supports approve/rework decisions and Too Busy, Too Dark, Logo, Motion and Good tags
-- Ending a rehearsal exports a timeline CSV, review CSV and human-readable Markdown cue summary under `Documents\RareStage\Sessions`
-- Each world and act now has an authored cue-density master; Stagewall/Kinetic/Panel systems can carry more detail while calmer worlds retain negative space
-- Cue density scales transient lighting and detail only. Autonomous and tempo-slewed motion clocks remain continuous at all density settings
-- Deterministic CI contracts validate rehearsal capture behavior and record cue density in the 72-frame reference manifest
+- Smart Director forecasts Build, Drop, Breakdown and Drive evidence, preselects a suitable world and commits only on a confirmed musical opportunity
+- Set-wide world/act memory discourages repeating the same visual role, not merely the same world
+- Reliable tempo is held through brief confidence loss, then eased toward a neutral fallback instead of visibly snapping animation speed
+- Adaptive cue density opens or restrains detail from sustained musical pressure while preserving the operator master and each authored world/act master
+- Protocol v9 exposes the predicted act, prepared world, confidence, lead beats, tempo recovery, cue density and Director decision history
+- Console shows live forecast evidence and records accepted, prepared and rejected Director decisions in rehearsal timelines
+- Threshold tuning remains evidence-gated: synthetic CI fixtures validate behavior but do not masquerade as real-show calibration
+- A deterministic Smart Director 2 trace validates pre-roll timing, density bounds, tempo recovery and set-memory selection on every Windows build
 
 The research and design synthesis behind this release is documented in [Stage visual research, 2023–2026](docs/STAGE_VISUAL_RESEARCH_2023_2026.md).
 
@@ -32,7 +32,7 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Analysis | Sample-rate-aware 2048-point FFT with 50% overlap, adaptive band-limited spectral flux, sustained bass, kick, snare, hats, mids, highs, RMS, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection plus a sustained musical-ending confidence state |
 | Visual system | Eighteen authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
-| Director | Audio/section scoring, live choice evidence, ending holds, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
+| Director | Musical-stage prediction, prepared-world pre-roll, live choice evidence, ending holds, world dwell, set-wide world/act memory, tempo recovery, adaptive cue density, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Bundled RareStage Console plus a Direct2D/DirectWrite in-renderer overlay |
 | Rehearsal | Telemetry recorder, GPU-aware smart captures, review decisions, reason tags and portable CSV/Markdown session evidence |
@@ -67,9 +67,9 @@ Every world contains five acts. An Open establishes form; Build assembles and ad
 
 ## Smart Director
 
-Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. A section change transforms the **current world first**. Cross-world changes are considered only at a fresh Open, Drop or Breakdown after the minimum dwell, or at the 120-second safety limit. When BPM confidence is usable, the requested dwell is quantized to eight-beat phrases and the final change waits briefly for a beat/spectral opportunity.
+Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. Its prediction layer can arm an approaching Build, Drop, Breakdown or Drive, prepare the next world and palette, then commit only when the musical evidence confirms the boundary. A section change still transforms the **current world first**. Cross-world changes remain protected by dwell, ending holds, phrase timing and recent-use rules.
 
-World selection scores current energy, band balance and musical act, penalizes the active and recently used worlds, and retains deterministic Show Timeline mode for rehearsed playback. Palettes morph continuously rather than cutting when the director changes color direction.
+World selection scores current energy, band balance and the predicted musical act, penalizes the active and recently used worlds, then also accounts for how often each world has already served that act during the set. Palettes begin morphing during a qualified pre-roll rather than cutting at the drop. If tempo confidence disappears, a stable BPM hold and gradual recovery protect continuous animation. Deterministic Show Timeline mode remains available for rehearsed playback.
 
 ```text
 Windows playback device
@@ -121,7 +121,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Output | World dwell, transition language, render profile, live GPU budget, clean PNG capture, VSync/high-refresh output, Spout, fullscreen, HUD, device, monitor, timeline mode, and renderer shutdown |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v8 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector evidence, calibration, Director decisions, GPU timing, cue-density, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v9 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector evidence, calibration, Director forecasts and decisions, GPU timing, adaptive cue density, tempo recovery, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
 
 Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 
@@ -215,7 +215,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.10.8 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
+VSync is enabled by default. The 0.11.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
 
 ## Build from source
 
@@ -243,7 +243,7 @@ Every push and pull request runs the Windows workflow:
 9. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
 10. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
 
-Successful pushes to `main` publish or refresh the **v0.10.8** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
+Successful pushes to `main` publish or refresh the **v0.11.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
@@ -262,7 +262,7 @@ Successful pushes to `main` publish or refresh the **v0.10.8** GitHub release au
 - Deterministic 72-frame world/profile review artifact and budget manifest
 - Labelable Audio Lab traces with replay/confusion-matrix analysis; real-set thresholds remain data-gated
 
-### v0.10.8 — Set Review + Cue Density (current)
+### v0.10.8 — Set Review + Cue Density (completed)
 
 - Fifth Console page for full-set telemetry recording and a live cue-event timeline
 - GPU-aware smart captures after world/act changes and performance-budget excursions
@@ -271,13 +271,15 @@ Successful pushes to `main` publish or refresh the **v0.10.8** GitHub release au
 - Authored world/act cue-density mastering with a 65–125% operator control
 - Continuous motion protected from density and capture automation
 
-### v0.11 — Smart Director 2
+### v0.11.0 — Smart Director 2 (current)
 
-- Tune detector profiles only from labeled real-set traces produced during actual rehearsals
-- Predictive build/drop pre-roll so transitions land on the next musical boundary
-- Act-aware world memory so a set develops without repeating the same world/act combinations
-- Confidence-aware tempo recovery and predictive ending behavior
-- Director diagnostics for palette choice and rejected-transition history
+- Predictive musical-stage pre-roll with prepared world and palette selection
+- Confirmed-hit commits protected by section hysteresis, dwell and ending holds
+- Act-aware set memory that avoids repeating the same world/act roles
+- Confidence-aware tempo hold and gradual fallback for uninterrupted motion
+- Adaptive cue density layered over operator and authored world/act mastering
+- Live and exported Console evidence for accepted, prepared and rejected Director decisions
+- Detector thresholds remain reserved for labeled real-set rehearsal traces
 
 ### v0.12 — Stage Production Pack
 
@@ -285,6 +287,7 @@ Successful pushes to `main` publish or refresh the **v0.10.8** GitHub release au
 - Alternate stage aspect ratios and mapped-panel compositions
 - NDI output and synchronized multi-machine playback groundwork
 - Production presets for open, support, peak, breakdown and closing duties
+- Rehearsal-driven detector tuning once representative real-set labels exist
 
 ### v0.13 — Show authoring
 

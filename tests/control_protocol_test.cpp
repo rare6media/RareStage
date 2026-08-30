@@ -16,7 +16,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 8 || AudioProfileCount != 4) {
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 9 || AudioProfileCount != 4) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
@@ -31,7 +31,7 @@ int main() {
     source.stateRevision = 9;
     source.world = 13;
     source.songSection = 2;
-    source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled | RehearsalActive;
+    source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled | RehearsalActive | PredictiveCueArmed;
     source.bass = 0.75f;
     source.kick = 0.82f;
     source.kickConfidence = 0.91f;
@@ -71,9 +71,20 @@ int main() {
     source.rehearsalSeconds = 321.5f;
     source.captureCount = 4;
     source.rehearsalRevision = 2;
+    source.predictedSection = 2;
+    source.preparedWorld = 9;
+    source.predictedSectionConfidence = 0.84f;
+    source.predictionLeadBeats = 2.5f;
+    source.adaptiveCueDensity = 1.08f;
+    source.tempoRecoveryConfidence = 0.72f;
+    source.directorDecisionRevision = 7;
+    source.acceptedDirectorCueCount = 4;
+    source.rejectedDirectorCueCount = 3;
     source.captureStatus = 1;
     wcscpy_s(source.directorReason, _countof(source.directorReason), L"ENDING HOLD / PRESERVE WORLD");
     wcscpy_s(source.lastCapturePath, _countof(source.lastCapturePath), L"C:\\RareStage\\Captures\\frame.png");
+    wcscpy_s(source.lastDirectorDecision, _countof(source.lastDirectorDecision), L"PREPARED / KINETIC ARRAY / DROP");
+    wcscpy_s(source.lastRejectedCue, _countof(source.lastRejectedCue), L"WAITING FOR MUSICAL CHAPTER");
     source.percussion = 0.50f;
     source.snare = 0.64f;
     source.logoScale = 1.15f;
@@ -110,9 +121,15 @@ int main() {
         copy.gpuBudgetUtilization != 0.65625f || copy.cueDensity != 1.15f ||
         copy.worldCueDensity != 1.21f || copy.rehearsalSeconds != 321.5f ||
         copy.captureCount != 4 || copy.rehearsalRevision != 2 || copy.captureStatus != 1 ||
-        !(copy.flags & RehearsalActive) ||
+        copy.predictedSection != 2 || copy.preparedWorld != 9 || copy.predictedSectionConfidence != 0.84f ||
+        copy.predictionLeadBeats != 2.5f || copy.adaptiveCueDensity != 1.08f ||
+        copy.tempoRecoveryConfidence != 0.72f || copy.directorDecisionRevision != 7 ||
+        copy.acceptedDirectorCueCount != 4 || copy.rejectedDirectorCueCount != 3 ||
+        !(copy.flags & RehearsalActive) || !(copy.flags & PredictiveCueArmed) ||
         std::wcscmp(copy.directorReason, L"ENDING HOLD / PRESERVE WORLD") != 0 ||
         std::wcscmp(copy.lastCapturePath, L"C:\\RareStage\\Captures\\frame.png") != 0 ||
+        std::wcscmp(copy.lastDirectorDecision, L"PREPARED / KINETIC ARRAY / DROP") != 0 ||
+        std::wcscmp(copy.lastRejectedCue, L"WAITING FOR MUSICAL CHAPTER") != 0 ||
         copy.logoScale != 1.15f ||
         copy.worldDwellSeconds != 64.0f || copy.transitionSeconds != 1.2f) {
         std::cerr << "Shared-state round trip failed\n";

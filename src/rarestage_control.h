@@ -8,10 +8,10 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v8";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v9";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 8;
+inline constexpr std::uint32_t ProtocolVersion = 9;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -76,7 +76,8 @@ enum StateFlag : std::uint32_t {
     VsyncEnabled = 1u << 11,
     MusicalEnding = 1u << 12,
     CapturePending = 1u << 13,
-    RehearsalActive = 1u << 14
+    RehearsalActive = 1u << 14,
+    PredictiveCueArmed = 1u << 15
 };
 
 enum class CommandStatus : std::int32_t {
@@ -112,6 +113,8 @@ struct alignas(64) SharedState {
     std::int32_t monitorCount{1};
     std::int32_t directorCandidateWorld{};
     std::int32_t directorRunnerUpWorld{};
+    std::int32_t predictedSection{};
+    std::int32_t preparedWorld{-1};
     std::uint32_t lastCommandSerial{};
     CommandStatus lastCommandStatus{CommandStatus::None};
     float fps{};
@@ -165,6 +168,10 @@ struct alignas(64) SharedState {
     float cueDensity{1.0f};
     float worldCueDensity{1.0f};
     float rehearsalSeconds{};
+    float predictedSectionConfidence{};
+    float predictionLeadBeats{};
+    float adaptiveCueDensity{1.0f};
+    float tempoRecoveryConfidence{};
     std::uint32_t transientClass{};
     std::uint32_t acceptedKickCount{};
     std::uint32_t acceptedSnareCount{};
@@ -172,11 +179,16 @@ struct alignas(64) SharedState {
     std::uint32_t rejectedTransientCount{};
     std::uint32_t captureCount{};
     std::uint32_t rehearsalRevision{};
+    std::uint32_t directorDecisionRevision{};
+    std::uint32_t acceptedDirectorCueCount{};
+    std::uint32_t rejectedDirectorCueCount{};
     std::int32_t captureStatus{};
     wchar_t playbackDevice[96]{};
     wchar_t worldName[48]{};
     wchar_t directorReason[96]{};
     wchar_t lastCapturePath[160]{};
+    wchar_t lastDirectorDecision[96]{};
+    wchar_t lastRejectedCue[96]{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");

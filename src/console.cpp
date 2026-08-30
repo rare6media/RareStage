@@ -154,10 +154,10 @@ struct TraceSample {
 
 struct RehearsalSample {
     std::uint64_t timeMs{};
-    int world{}, section{}, palette{}, quality{};
-    std::uint32_t transientClass{}, flags{};
+    int world{}, section{}, predictedSection{}, preparedWorld{}, palette{}, quality{};
+    std::uint32_t transientClass{}, flags{}, directorDecisionRevision{};
     float bpm{}, tempoConfidence{}, bass{}, mid{}, high{}, kick{}, snare{}, hats{}, onset{}, energy{};
-    float gpuMs{}, gpuBudgetMs{}, cueDensity{}, worldCueDensity{};
+    float gpuMs{}, gpuBudgetMs{}, cueDensity{}, worldCueDensity{}, predictionConfidence{}, predictionLeadBeats{}, adaptiveDensity{}, tempoRecovery{};
 };
 
 struct RehearsalEvent {
@@ -194,7 +194,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.10.8",
+            0, windowClass.lpszClassName, L"RareStage Console 0.11.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -414,7 +414,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.10.8 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.11 Console endpoint.";
             }
             return;
         }
@@ -671,6 +671,9 @@ private:
         lastRehearsalWorld_ = state_.world;
         lastRehearsalSection_ = state_.songSection;
         lastRehearsalCaptureCount_ = state_.captureCount;
+        lastDirectorDecisionRevision_ = state_.directorDecisionRevision;
+        lastAcceptedDirectorCueCount_ = state_.acceptedDirectorCueCount;
+        lastRejectedDirectorCueCount_ = state_.rejectedDirectorCueCount;
         lastGpuUtilization_ = state_.gpuBudgetUtilization;
         smartCaptureDue_ = smartCaptureDeadline_ = 0;
         captureReasonInFlight_.clear();
@@ -697,10 +700,11 @@ private:
     void updateRehearsal(const SharedState& next, std::uint64_t now) {
         if (!rehearsalActive_) return;
         const std::uint64_t timeMs = now - rehearsalStartedAt_;
-        rehearsalSamples_.push_back({timeMs, next.world, next.songSection, next.directorPalette, next.quality,
-            next.transientClass, next.flags, next.bpm, next.tempoConfidence, next.bass, next.mid, next.high,
+        rehearsalSamples_.push_back({timeMs, next.world, next.songSection, next.predictedSection, next.preparedWorld, next.directorPalette, next.quality,
+            next.transientClass, next.flags, next.directorDecisionRevision, next.bpm, next.tempoConfidence, next.bass, next.mid, next.high,
             next.kick, next.snare, next.percussion, next.onset, next.energy, next.gpuFrameMs, next.gpuBudgetMs,
-            next.cueDensity, next.worldCueDensity});
+            next.cueDensity, next.worldCueDensity, next.predictedSectionConfidence, next.predictionLeadBeats,
+            next.adaptiveCueDensity, next.tempoRecoveryConfidence});
         constexpr std::size_t MaxSessionSamples = 144000;
         if (rehearsalSamples_.size() > MaxSessionSamples) rehearsalSamples_.erase(rehearsalSamples_.begin(), rehearsalSamples_.begin() + 1200);
 
@@ -713,6 +717,14 @@ private:
             addRehearsalEvent(L"ACT", std::wstring(SectionNames[std::clamp(next.songSection, 0, 4)]) + L" detected");
             scheduleSmartCapture(L"act change", now, 850);
             lastRehearsalSection_ = next.songSection;
+        }
+        if (next.directorDecisionRevision != lastDirectorDecisionRevision_) {
+            const bool accepted = next.acceptedDirectorCueCount != lastAcceptedDirectorCueCount_ ||
+                                  (next.lastDirectorDecision[0] && next.rejectedDirectorCueCount == lastRejectedDirectorCueCount_);
+            addRehearsalEvent(accepted ? L"DIRECTOR" : L"REJECT", accepted ? std::wstring(next.lastDirectorDecision) : std::wstring(next.lastRejectedCue));
+            lastDirectorDecisionRevision_ = next.directorDecisionRevision;
+            lastAcceptedDirectorCueCount_ = next.acceptedDirectorCueCount;
+            lastRejectedDirectorCueCount_ = next.rejectedDirectorCueCount;
         }
         if (next.gpuBudgetUtilization > 1.05f && lastGpuUtilization_ <= 1.05f && now - lastGpuCaptureAt_ > 15000) {
             addRehearsalEvent(L"GPU", L"Frame budget exceeded");
@@ -758,7 +770,7 @@ private:
         std::ofstream review(reviewPath, std::ios::binary);
         std::ofstream summary(summaryPath, std::ios::binary);
         if (!timeline || !review || !summary) return false;
-        timeline << "time_ms,world,act,palette,quality,transient_class,bpm,tempo_confidence,bass,mids,highs,kick,snare,hats,onset,energy,gpu_ms,gpu_budget_ms,cue_density,world_cue_density,flags\n";
+        timeline << "time_ms,world,act,predicted_act,prepared_world,palette,quality,transient_class,director_revision,bpm,tempo_confidence,bass,mids,highs,kick,snare,hats,onset,energy,gpu_ms,gpu_budget_ms,cue_density,world_cue_density,prediction_confidence,prediction_lead_beats,adaptive_density,tempo_recovery,flags\n";
         std::array<bool, rarestage::control::WorldCount> worlds{};
         double gpuTotal = 0.0;
         float gpuPeak = 0.0f;
@@ -766,10 +778,11 @@ private:
             worlds[std::clamp(sample.world, 0, 17)] = true;
             gpuTotal += sample.gpuMs;
             gpuPeak = std::max(gpuPeak, sample.gpuMs);
-            timeline << sample.timeMs << ',' << sample.world << ',' << sample.section << ',' << sample.palette << ',' << sample.quality << ','
-                     << sample.transientClass << ',' << sample.bpm << ',' << sample.tempoConfidence << ',' << sample.bass << ',' << sample.mid << ','
+            timeline << sample.timeMs << ',' << sample.world << ',' << sample.section << ',' << sample.predictedSection << ',' << sample.preparedWorld << ',' << sample.palette << ',' << sample.quality << ','
+                     << sample.transientClass << ',' << sample.directorDecisionRevision << ',' << sample.bpm << ',' << sample.tempoConfidence << ',' << sample.bass << ',' << sample.mid << ','
                      << sample.high << ',' << sample.kick << ',' << sample.snare << ',' << sample.hats << ',' << sample.onset << ',' << sample.energy << ','
-                     << sample.gpuMs << ',' << sample.gpuBudgetMs << ',' << sample.cueDensity << ',' << sample.worldCueDensity << ',' << sample.flags << '\n';
+                     << sample.gpuMs << ',' << sample.gpuBudgetMs << ',' << sample.cueDensity << ',' << sample.worldCueDensity << ','
+                     << sample.predictionConfidence << ',' << sample.predictionLeadBeats << ',' << sample.adaptiveDensity << ',' << sample.tempoRecovery << ',' << sample.flags << '\n';
         }
         review << "time_ms,world,act,reason,status,tag,file\n";
         int approved = 0, rework = 0;
@@ -787,6 +800,7 @@ private:
                 << "- Telemetry samples: " << rehearsalSamples_.size() << "\n"
                 << "- Worlds exercised: " << worldCount << " / " << worlds.size() << "\n"
                 << "- Captures: " << reviewItems_.size() << " (" << approved << " approved, " << rework << " rework)\n"
+                << "- Director cues: " << state_.acceptedDirectorCueCount << " accepted, " << state_.rejectedDirectorCueCount << " rejected\n"
                 << "- Average GPU frame: " << gpuTotal / rehearsalSamples_.size() << " ms\n"
                 << "- Peak GPU frame: " << gpuPeak << " ms\n\n"
                 << "## Cue timeline\n\n";
@@ -1380,10 +1394,11 @@ private:
         drawText(dc, connected_ && state_.directorReason[0] ? state_.directorReason : L"DIRECTOR TELEMETRY STARTING",
                  RECT{decision.left + scale(14), decision.top + scale(56), decision.right - scale(14), decision.top + scale(81)}, smallFont_,
                  flag(rarestage::control::MusicalEnding) ? Amber : Muted);
-        drawText(dc, L"ENERGY " + std::to_wstring(static_cast<int>(std::lround(state_.energy * 100))) +
-                     L"%   TEMPO " + std::to_wstring(static_cast<int>(std::lround(state_.tempoConfidence * 100))) +
-                     L"%   ENDING " + std::to_wstring(static_cast<int>(std::lround(state_.endingConfidence * 100))) +
-                     L"%   " + PaletteNames[std::clamp(state_.directorPalette, 0, 3)],
+        drawText(dc, L"FORECAST  " + std::wstring(SectionNames[std::clamp(state_.predictedSection, 0, 4)]) + L"  " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.predictedSectionConfidence * 100))) + L"%   /   LEAD " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.predictionLeadBeats * 10))) + L"/10 BEATS   /   DENSITY " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.worldCueDensity * 100))) + L"%   /   TEMPO HOLD " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.tempoRecoveryConfidence * 100))) + L"%",
                  RECT{decision.left + scale(14), decision.top + scale(81), decision.right - scale(14), decision.bottom - scale(5)}, smallFont_, Muted);
     }
 
@@ -1637,7 +1652,8 @@ private:
         drawText(dc, L"SAMPLES  " + std::to_wstring(rehearsalSamples_.size()) + L"   /   WORLDS  " +
                      std::to_wstring(std::count(exercised.begin(), exercised.end(), true)) + L" / 18",
                  RECT{stats.left + scale(12), stats.top + scale(30), stats.right - scale(12), stats.top + scale(54)}, smallFont_, Muted);
-        drawText(dc, L"CAPTURES  " + std::to_wstring(reviewItems_.size()) + L"   /   EVENTS  " + std::to_wstring(rehearsalEvents_.size()),
+        drawText(dc, L"CAPTURES  " + std::to_wstring(reviewItems_.size()) + L"   /   DIRECTOR  " +
+                     std::to_wstring(state_.acceptedDirectorCueCount) + L"A / " + std::to_wstring(state_.rejectedDirectorCueCount) + L"R",
                  RECT{stats.left + scale(12), stats.top + scale(54), stats.right - scale(12), stats.bottom - scale(5)}, smallFont_, Cyan);
 
         y += scale(96);
@@ -1646,7 +1662,8 @@ private:
         parameterRow(dc, RECT{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(45)},
                      L"OPERATOR MASTER", std::to_wstring(static_cast<int>(std::lround(state_.cueDensity * 100))) + L"%", Setting::CueDensity);
         y += scale(53);
-        drawText(dc, L"AUTHORED WORLD / ACT RESULT  " + std::to_wstring(static_cast<int>(std::lround(state_.worldCueDensity * 100))) + L"%",
+        drawText(dc, L"MASTERED RESULT  " + std::to_wstring(static_cast<int>(std::lround(state_.worldCueDensity * 100))) +
+                     L"%   /   ADAPTIVE  " + std::to_wstring(static_cast<int>(std::lround(state_.adaptiveCueDensity * 100))) + L"%",
                  RECT{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(23)}, smallFont_, Purple);
         y += scale(31);
         meter(dc, L"GPU FRAME BUDGET", connected_ ? std::min(state_.gpuBudgetUtilization, 1.25f) / 1.25f : 0.f,
@@ -1752,6 +1769,8 @@ private:
             ? L"ENDING HOLD / WORLD PRESERVED"
             : flag(rarestage::control::ManualSectionOverride)
             ? L"MANUAL ACT  " + std::to_wstring(static_cast<int>(std::ceil(state_.manualOverrideRemainingSeconds))) + L"S"
+            : flag(rarestage::control::PredictiveCueArmed)
+            ? L"PREDICTIVE CUE / " + std::wstring(SectionNames[std::clamp(state_.predictedSection, 0, 4)])
             : flag(rarestage::control::Automatic) ? L"SMART DIRECTOR ARMED" : L"MANUAL WORLD";
         drawText(dc, mode, RECT{footer.right - scale(275), footer.top, footer.right - scale(13), footer.bottom},
                  headingFont_, flag(rarestage::control::MusicalEnding) || flag(rarestage::control::ManualSectionOverride) ? Amber : Cyan,
@@ -1801,6 +1820,9 @@ private:
     std::uint64_t lastGpuCaptureAt_{};
     std::uint32_t paintCount_{};
     std::uint32_t lastRehearsalCaptureCount_{};
+    std::uint32_t lastDirectorDecisionRevision_{};
+    std::uint32_t lastAcceptedDirectorCueCount_{};
+    std::uint32_t lastRejectedDirectorCueCount_{};
     int lastRehearsalWorld_{-1};
     int lastRehearsalSection_{-1};
     float lastGpuUtilization_{};
