@@ -8,10 +8,10 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v4";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v5";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 4;
+inline constexpr std::uint32_t ProtocolVersion = 5;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -70,7 +70,8 @@ enum StateFlag : std::uint32_t {
     AudioAvailable = 1u << 8,
     ManualSectionOverride = 1u << 9,
     Fullscreen = 1u << 10,
-    VsyncEnabled = 1u << 11
+    VsyncEnabled = 1u << 11,
+    MusicalEnding = 1u << 12
 };
 
 enum class CommandStatus : std::int32_t {
@@ -104,6 +105,8 @@ struct alignas(64) SharedState {
     std::int32_t resolvedAudioProfile{1};
     std::int32_t monitor{};
     std::int32_t monitorCount{1};
+    std::int32_t directorCandidateWorld{};
+    std::int32_t directorRunnerUpWorld{};
     std::uint32_t lastCommandSerial{};
     CommandStatus lastCommandStatus{CommandStatus::None};
     float fps{};
@@ -133,8 +136,13 @@ struct alignas(64) SharedState {
     float logoScale{1.0f};
     float worldDwellSeconds{72.0f};
     float transitionSeconds{1.4f};
+    float directorCandidateScore{};
+    float directorRunnerUpScore{};
+    float sectionEvidence{};
+    float endingConfidence{};
     wchar_t playbackDevice[96]{};
     wchar_t worldName[48]{};
+    wchar_t directorReason[96]{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");

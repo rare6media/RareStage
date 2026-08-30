@@ -11,12 +11,52 @@ on:
 jobs:
   build:
     runs-on: windows-2025
+    env:
+      RARESTAGE_SIGNING_CERTIFICATE: ${{ secrets.RARESTAGE_SIGNING_CERTIFICATE }}
+      RARESTAGE_SIGNING_PASSWORD: ${{ secrets.RARESTAGE_SIGNING_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - name: Configure
         run: cmake -S . -B build -A x64
       - name: Build
         run: cmake --build build --config Release --target RareStage RareStageConsole RareStageProtocolTests --parallel
+      - name: Verify Windows identity metadata
+        shell: pwsh
+        run: |
+          foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
+            $version = (Get-Item $binary).VersionInfo
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.10.5") {
+              throw "$binary is missing the expected publisher or v0.10.5 product metadata"
+            }
+          }
+          $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
+          foreach ($forbidden in @("CreateProcessW", "WinExec", "powershell.exe", "cmd.exe", "URLDownloadToFile")) {
+            if ($consoleImage.Contains($forbidden)) {
+              throw "RareStageConsole.exe contains forbidden launcher/import marker: $forbidden"
+            }
+          }
+      - name: Sign release executables when certificate is configured
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RARESTAGE_SIGNING_CERTIFICATE)) {
+            Write-Host "Signing certificate is not configured; publishing checksummed unsigned binaries."
+            exit 0
+          }
+          $certificatePath = Join-Path $env:RUNNER_TEMP "RareStage-signing.pfx"
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:RARESTAGE_SIGNING_CERTIFICATE))
+          try {
+            $signTool = Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/signtool.exe" |
+              Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+            if (-not $signTool) { throw "signtool.exe was not found" }
+            foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
+              & $signTool sign /fd SHA256 /f $certificatePath /p $env:RARESTAGE_SIGNING_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $binary
+              if ($LASTEXITCODE -ne 0) { throw "Authenticode signing failed for $binary" }
+              & $signTool verify /pa /all $binary
+              if ($LASTEXITCODE -ne 0) { throw "Authenticode verification failed for $binary" }
+            }
+          } finally {
+            Remove-Item $certificatePath -Force -ErrorAction SilentlyContinue
+          }
       - name: Control protocol tests
         run: ctest --test-dir build -C Release --output-on-failure
       - name: Audio classifier self-test
@@ -80,22 +120,44 @@ jobs:
           Copy-Item build/Release/RareStage.exe dist/RareStage/RareStage.exe
           Copy-Item build/Release/RareStageConsole.exe dist/RareStage/RareStageConsole.exe
           Copy-Item assets/rare-logo.png dist/RareStage/assets/rare-logo.png
-          Copy-Item README.md,THIRD_PARTY_NOTICES.md dist/RareStage/
+          Copy-Item README.md,SECURITY.md,THIRD_PARTY_NOTICES.md dist/RareStage/
+          $binarySums = @(
+            "$(Get-FileHash dist/RareStage/RareStage.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)  RareStage.exe",
+            "$(Get-FileHash dist/RareStage/RareStageConsole.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)  RareStageConsole.exe"
+          )
+          $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
+          $provenance = [ordered]@{
+            product = "RareStage"
+            version = "0.10.5"
+            commit = $env:GITHUB_SHA
+            workflow_run = $env:GITHUB_RUN_ID
+            spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
+            authenticode_signed = -not [string]::IsNullOrWhiteSpace($env:RARESTAGE_SIGNING_CERTIFICATE)
+          }
+          $provenance | ConvertTo-Json | Set-Content dist/RareStage/RareStage-build-provenance.json
+          Copy-Item dist/RareStage/RareStage-build-provenance.json RareStage-build-provenance.json
           Compress-Archive -Path dist/RareStage -DestinationPath RareStage-windows-x64.zip -Force
+          @(
+            "$(Get-FileHash RareStage-windows-x64.zip -Algorithm SHA256 | Select-Object -ExpandProperty Hash)  RareStage-windows-x64.zip",
+            "$(Get-FileHash dist/RareStage/RareStage.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)  RareStage.exe",
+            "$(Get-FileHash dist/RareStage/RareStageConsole.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)  RareStageConsole.exe"
+          ) | Set-Content RareStage-SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: RareStage-windows-x64
           path: |
             RareStage-windows-x64.zip
+            RareStage-SHA256SUMS.txt
+            RareStage-build-provenance.json
             RareStage-motion-reference.csv
-      - name: Publish v0.10.4 release
+      - name: Publish v0.10.5 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.10.4 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.10.4 RareStage-windows-x64.zip --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.10.5 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.10.5 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.10.4 RareStage-windows-x64.zip --title "RareStage 0.10.4 — Live Stage Lab" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.10.5 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.10.5 — Production Tuning" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

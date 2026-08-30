@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <cwchar>
 #include <iostream>
 
 int main() {
@@ -15,7 +16,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 4 || AudioProfileCount != 4) {
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 5 || AudioProfileCount != 4) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
@@ -37,6 +38,13 @@ int main() {
     source.audioProfile = 2;
     source.resolvedAudioProfile = 2;
     source.sampleRate = 48000.0f;
+    source.directorCandidateWorld = 15;
+    source.directorRunnerUpWorld = 3;
+    source.directorCandidateScore = 1.72f;
+    source.directorRunnerUpScore = 1.51f;
+    source.sectionEvidence = 0.84f;
+    source.endingConfidence = 0.62f;
+    wcscpy_s(source.directorReason, _countof(source.directorReason), L"ENDING HOLD / PRESERVE WORLD");
     source.percussion = 0.50f;
     source.snare = 0.64f;
     source.logoScale = 1.15f;
@@ -57,6 +65,10 @@ int main() {
         copy.lastCommandSerial != serial || copy.lastCommandStatus != CommandStatus::Accepted ||
         copy.kick != 0.82f || copy.kickConfidence != 0.91f || copy.snare != 0.64f ||
         copy.audioProfile != 2 || copy.resolvedAudioProfile != 2 || copy.sampleRate != 48000.0f ||
+        copy.directorCandidateWorld != 15 || copy.directorRunnerUpWorld != 3 ||
+        copy.directorCandidateScore != 1.72f || copy.directorRunnerUpScore != 1.51f ||
+        copy.sectionEvidence != 0.84f || copy.endingConfidence != 0.62f ||
+        std::wcscmp(copy.directorReason, L"ENDING HOLD / PRESERVE WORLD") != 0 ||
         copy.logoScale != 1.15f ||
         copy.worldDwellSeconds != 64.0f || copy.transitionSeconds != 1.2f) {
         std::cerr << "Shared-state round trip failed\n";

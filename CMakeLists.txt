@@ -1,22 +1,24 @@
 cmake_minimum_required(VERSION 3.24)
-project(RareStage VERSION 0.10.4 LANGUAGES CXX)
+project(RareStage VERSION 0.10.5 LANGUAGES CXX)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-add_executable(RareStage WIN32 src/main.cpp)
+add_executable(RareStage WIN32 src/main.cpp src/rarestage.rc)
 target_compile_features(RareStage PRIVATE cxx_std_20)
 target_compile_definitions(RareStage PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
 if(MSVC)
   target_compile_options(RareStage PRIVATE /W4 /permissive- /EHsc /utf-8)
+  target_link_options(RareStage PRIVATE /MANIFEST:NO)
 endif()
 target_link_libraries(RareStage PRIVATE d3d11 dxgi d3dcompiler d2d1 dwrite ole32 avrt uuid windowscodecs gdi32)
 
-add_executable(RareStageConsole WIN32 src/console.cpp)
+add_executable(RareStageConsole WIN32 src/console.cpp src/rarestage_console.rc)
 target_compile_features(RareStageConsole PRIVATE cxx_std_20)
 target_compile_definitions(RareStageConsole PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
-target_link_libraries(RareStageConsole PRIVATE dwmapi gdi32 user32)
+target_link_libraries(RareStageConsole PRIVATE dwmapi gdi32 user32 shell32)
 if(MSVC)
   target_compile_options(RareStageConsole PRIVATE /W4 /permissive- /EHsc /utf-8)
+  target_link_options(RareStageConsole PRIVATE /MANIFEST:NO)
 endif()
 
 include(CTest)
@@ -39,7 +41,7 @@ if(RARESTAGE_ENABLE_SPOUT)
   FetchContent_Declare(
     spout2
     GIT_REPOSITORY https://github.com/leadedge/Spout2.git
-    GIT_TAG master
+    GIT_TAG c2bcc12147711d12ace7d5f08e869d774d840f8a
     GIT_SHALLOW TRUE
   )
   FetchContent_MakeAvailable(spout2)

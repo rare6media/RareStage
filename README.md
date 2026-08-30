@@ -4,22 +4,23 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.4**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.10.5**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.10.4
+## What changed in 0.10.5
 
-Version 0.10.4 is the **Live Stage Lab release**. It makes the audio detector visible and tunable from Console, expands the Stagewall-grade architectural family, and adds deterministic motion-reference validation without making music the animation clock.
+Version 0.10.5 is the **Production Tuning release**. It makes Smart Director decisions inspectable, gives musical endings a deliberate low-pressure state, and hardens the complete native release path after the Windows Security report without asking operators to weaken antivirus protection.
 
-- Four detector profiles: Auto, EDM, Bass Music and Melodic
-- Live kick, snare and hi-hat confidence plus sample-rate and adaptive-calibration telemetry
-- New Console Audio Lab with a rolling signal trace and one-click CSV export
-- New **Kinetic Facade**, **Suspended Field** and **Void Gates** worlds, each using smooth eight-beat formation choreography and distinct architectural staging
-- Eighteen-world Smart Director affinities and complete four-preset timeline orders
-- Protocol v4 gives Console full control of detector profile, all eighteen worlds, acts, mix, output and renderer lifecycle
-- Deterministic 60/120/144 Hz motion timing capture guards monotonic animation and cue interpolation
-- Console-owned Stage launch soak remains a required release gate, preventing the launch-and-exit regression
+- Console now shows the leading and runner-up world, musical-act evidence, ending confidence and the Director's actual hold/switch reason
+- Console receives a modern glass-stage polish with slow ambient light, eased connection feedback, animated active rails, hover response and smooth page entrances
+- Smart Director detects sustained musical endings, preserves the current world and smoothly removes drop-level pressure while autonomous motion continues
+- Protocol v5 carries complete decision telemetry while retaining control of every world, act, detector, mix, output and lifecycle setting
+- Console launches the adjacent Stage through the standard Windows shell and retains its tested operator-focus/lifecycle behavior
+- Both executables carry explicit publisher, product, version, privilege and Windows-compatibility metadata
+- Spout2 is pinned to an exact reviewed commit instead of a moving branch
+- Every package includes binary SHA-256 values and machine-readable build provenance; protected Authenticode signing is used when configured
+- The native build, protocol, classifier, motion, shader, Stage startup, Console startup and Console-owned launch soak remain release gates
 
 The research and design synthesis behind this release is documented in [Stage visual research, 2023–2026](docs/STAGE_VISUAL_RESEARCH_2023_2026.md).
 
@@ -30,9 +31,9 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Platform | Native Windows x64, C++20, Win32 and DirectX 11 |
 | Audio | WASAPI loopback from the selected active Windows playback device |
 | Analysis | Sample-rate-aware 2048-point FFT with 50% overlap, adaptive band-limited spectral flux, sustained bass, kick, snare, hats, mids, highs, RMS, robust recent-interval BPM and tempo confidence |
-| Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection |
+| Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection plus a sustained musical-ending confidence state |
 | Visual system | Eighteen authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
-| Director | Audio/section scoring, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
+| Director | Audio/section scoring, live choice evidence, ending holds, world dwell, recent-world memory, phrase timing, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Bundled RareStage Console plus a Direct2D/DirectWrite in-renderer overlay |
 | Output | Borderless stage display, multi-monitor selection and clean Spout2 sender |
@@ -119,7 +120,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Audio Lab | Auto/EDM/Bass Music/Melodic detector profile, instrument confidence, adaptive calibration, sample rate, rolling live trace, and CSV export |
 | Output | World dwell, transition duration and language, render profile, VSync/high-refresh output, Spout, fullscreen, HUD, audio device, monitor, timeline mode, and renderer shutdown |
 
-Protocol v4 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector-confidence, calibration and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v5 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector confidence, calibration, Director candidates, act evidence, ending confidence and renderer state back to Console. Engine and Console must come from the same release package.
 
 ## Show Control
 
@@ -208,7 +209,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.10.4 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes, protecting high-refresh stage performance as the articulated stage family expands.
+VSync is enabled by default. The 0.10.5 shader uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes, protecting high-refresh stage performance as the articulated stage family expands.
 
 ## Build from source
 
@@ -233,33 +234,33 @@ Every push and pull request runs the Windows workflow:
 6. Compile-test every embedded DirectX shader.
 7. Launch-test both native executables with the alpha logo present.
 8. Run the Console-owned Stage launch soak regression.
-9. Package and upload the renderer, Console, logo, README and notices.
+9. Verify embedded publisher/product/version metadata and optionally apply protected Authenticode signing.
+10. Package the renderer, Console, logo, documentation, binary SHA-256 values and build provenance.
 
-Successful pushes to `main` publish or refresh the **v0.10.4** GitHub release automatically.
+Successful pushes to `main` publish or refresh the **v0.10.5** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
-### v0.10.4 — Live Stage Lab (current)
+### v0.10.5 — Production Tuning (current)
 
-- Audio Lab signal history, instrument-confidence display and CSV calibration capture
-- Auto, EDM, Bass Music and Melodic detector profiles with sample-rate-aware adaptive calibration
-- Kinetic Facade, Suspended Field and Void Gates at the Stagewall/Kinetic Array production level
-- Eighteen-world Console control, Director affinities and deterministic show timelines through protocol v4
+- Live Director candidate, runner-up, section-evidence, ending-confidence and decision-reason diagnostics in Console
+- A confidence-driven musical-ending hold that keeps visual life while easing kick, transient and drop pressure
+- Protocol v5 and complete Console control of all eighteen worlds, acts, detector profiles, mix, output and lifecycle
+- Standard-shell Stage launch, embedded Windows identity manifests, pinned Spout2 and reproducible release checksums/provenance
 - High-refresh timing references plus native shader, startup, protocol and Console lifecycle regression gates
 
-### v0.10.5 — Production tuning
+### v0.10.6 — Field calibration
 
 - Tune detector-profile thresholds against exported traces from real EDM, bass-music and melodic playback
-- Add Director evidence diagnostics so operators can see why an act or world was accepted or rejected
 - Add GPU timing budgets and representative reference-frame captures for every world and render profile
-- Refine cue density per act so outros retain visual life without presenting drop-level pressure
+- Refine per-world cue density from full-set operator notes while preserving the v0.10.5 ending behavior
 
 ### v0.11 — Smart Director 2
 
 - Predictive build/drop pre-roll so transitions land on the next musical boundary
 - Act-aware world memory so a set develops without repeating the same world/act combinations
-- Confidence-aware tempo recovery and musical-ending behavior
-- Director diagnostics for world choice, palette choice, section evidence and rejected transitions
+- Confidence-aware tempo recovery and predictive ending behavior
+- Director diagnostics for palette choice and rejected-transition history
 
 ### v0.12 — Stage Production Pack
 
