@@ -25,8 +25,8 @@ jobs:
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.10.5") {
-              throw "$binary is missing the expected publisher or v0.10.5 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.10.6") {
+              throw "$binary is missing the expected publisher or v0.10.6 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -128,7 +128,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.10.5"
+            version = "0.10.6"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -150,14 +150,15 @@ jobs:
             RareStage-SHA256SUMS.txt
             RareStage-build-provenance.json
             RareStage-motion-reference.csv
-      - name: Publish v0.10.5 release
+            RareStage-world-reference.csv
+      - name: Publish v0.10.6 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.10.5 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.10.5 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.10.6 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.10.6 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.10.5 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.10.5 — Production Tuning" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.10.6 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.10.6 — Field Calibration + Scene Mastering" --generate-notes --repo $env:GITHUB_REPOSITORY
           }
