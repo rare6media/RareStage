@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(RareStage VERSION 0.11.0 LANGUAGES CXX)
+project(RareStage VERSION 0.12.0 LANGUAGES CXX)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -10,7 +10,7 @@ if(MSVC)
   target_compile_options(RareStage PRIVATE /W4 /permissive- /EHsc /utf-8)
   target_link_options(RareStage PRIVATE /MANIFEST:NO)
 endif()
-target_link_libraries(RareStage PRIVATE d3d11 dxgi d3dcompiler d2d1 dwrite ole32 avrt uuid windowscodecs gdi32)
+target_link_libraries(RareStage PRIVATE d3d11 dxgi d3dcompiler d2d1 dwrite ole32 avrt uuid windowscodecs gdi32 ws2_32)
 
 add_executable(RareStageConsole WIN32 src/console.cpp src/rarestage_console.rc)
 target_compile_features(RareStageConsole PRIVATE cxx_std_20)

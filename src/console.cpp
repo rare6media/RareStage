@@ -78,8 +78,20 @@ constexpr std::array<const wchar_t*, rarestage::control::QualityCount> QualityNa
 constexpr std::array<const wchar_t*, rarestage::control::AudioProfileCount> AudioProfileNames{
     L"AUTO", L"EDM", L"BASS MUSIC", L"MELODIC"
 };
+constexpr std::array<const wchar_t*, rarestage::control::MasteringProfileCount> MasteringNames{
+    L"STUDIO", L"LED SAFE", L"ARENA", L"BROADCAST"
+};
+constexpr std::array<const wchar_t*, rarestage::control::StageLayoutCount> StageLayoutNames{
+    L"FULL FRAME", L"ULTRAWIDE", L"TRIPTYCH", L"LED FACADE"
+};
+constexpr std::array<const wchar_t*, rarestage::control::ProductionDutyCount> ProductionDutyNames{
+    L"OPEN", L"SUPPORT", L"PEAK", L"BREAKDOWN", L"CLOSING"
+};
+constexpr std::array<const wchar_t*, rarestage::control::SyncModeCount> SyncModeNames{
+    L"LOCAL", L"LEADER", L"FOLLOWER"
+};
 
-enum class Page { Show, Mix, Audio, Output, Rehearsal };
+enum class Page { Show, Mix, Audio, Output, Production, Rehearsal };
 
 enum class Setting {
     Sensitivity,
@@ -90,7 +102,9 @@ enum class Setting {
     Logo,
     Dwell,
     Transition,
-    CueDensity
+    CueDensity,
+    MasterBrightness,
+    SyncGroup
 };
 
 enum class Action {
@@ -133,6 +147,10 @@ enum class Action {
     AudioDevice,
     Monitor,
     Fullscreen,
+    MasteringProfile,
+    StageLayout,
+    ProductionDuty,
+    SyncMode,
     QuitStage
 };
 
@@ -154,10 +172,10 @@ struct TraceSample {
 
 struct RehearsalSample {
     std::uint64_t timeMs{};
-    int world{}, section{}, predictedSection{}, preparedWorld{}, palette{}, quality{};
+    int world{}, section{}, predictedSection{}, preparedWorld{}, masteringProfile{}, stageLayout{}, productionDuty{}, syncMode{}, syncGroup{}, palette{}, quality{};
     std::uint32_t transientClass{}, flags{}, directorDecisionRevision{};
     float bpm{}, tempoConfidence{}, bass{}, mid{}, high{}, kick{}, snare{}, hats{}, onset{}, energy{};
-    float gpuMs{}, gpuBudgetMs{}, cueDensity{}, worldCueDensity{}, predictionConfidence{}, predictionLeadBeats{}, adaptiveDensity{}, tempoRecovery{};
+    float gpuMs{}, gpuBudgetMs{}, cueDensity{}, worldCueDensity{}, predictionConfidence{}, predictionLeadBeats{}, adaptiveDensity{}, tempoRecovery{}, masterBrightness{}, syncPacketAge{};
 };
 
 struct RehearsalEvent {
@@ -194,7 +212,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.11.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.12.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -414,7 +432,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.11 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.12 Console endpoint.";
             }
             return;
         }
@@ -700,11 +718,11 @@ private:
     void updateRehearsal(const SharedState& next, std::uint64_t now) {
         if (!rehearsalActive_) return;
         const std::uint64_t timeMs = now - rehearsalStartedAt_;
-        rehearsalSamples_.push_back({timeMs, next.world, next.songSection, next.predictedSection, next.preparedWorld, next.directorPalette, next.quality,
+        rehearsalSamples_.push_back({timeMs, next.world, next.songSection, next.predictedSection, next.preparedWorld, next.masteringProfile, next.stageLayout, next.productionDuty, next.syncMode, next.syncGroup, next.directorPalette, next.quality,
             next.transientClass, next.flags, next.directorDecisionRevision, next.bpm, next.tempoConfidence, next.bass, next.mid, next.high,
             next.kick, next.snare, next.percussion, next.onset, next.energy, next.gpuFrameMs, next.gpuBudgetMs,
             next.cueDensity, next.worldCueDensity, next.predictedSectionConfidence, next.predictionLeadBeats,
-            next.adaptiveCueDensity, next.tempoRecoveryConfidence});
+            next.adaptiveCueDensity, next.tempoRecoveryConfidence, next.masterBrightness, next.syncPacketAgeMs});
         constexpr std::size_t MaxSessionSamples = 144000;
         if (rehearsalSamples_.size() > MaxSessionSamples) rehearsalSamples_.erase(rehearsalSamples_.begin(), rehearsalSamples_.begin() + 1200);
 
@@ -770,7 +788,7 @@ private:
         std::ofstream review(reviewPath, std::ios::binary);
         std::ofstream summary(summaryPath, std::ios::binary);
         if (!timeline || !review || !summary) return false;
-        timeline << "time_ms,world,act,predicted_act,prepared_world,palette,quality,transient_class,director_revision,bpm,tempo_confidence,bass,mids,highs,kick,snare,hats,onset,energy,gpu_ms,gpu_budget_ms,cue_density,world_cue_density,prediction_confidence,prediction_lead_beats,adaptive_density,tempo_recovery,flags\n";
+        timeline << "time_ms,world,act,predicted_act,prepared_world,mastering_profile,stage_layout,production_duty,sync_mode,sync_group,palette,quality,transient_class,director_revision,bpm,tempo_confidence,bass,mids,highs,kick,snare,hats,onset,energy,gpu_ms,gpu_budget_ms,cue_density,world_cue_density,prediction_confidence,prediction_lead_beats,adaptive_density,tempo_recovery,master_brightness,sync_packet_age_ms,flags\n";
         std::array<bool, rarestage::control::WorldCount> worlds{};
         double gpuTotal = 0.0;
         float gpuPeak = 0.0f;
@@ -778,11 +796,11 @@ private:
             worlds[std::clamp(sample.world, 0, 17)] = true;
             gpuTotal += sample.gpuMs;
             gpuPeak = std::max(gpuPeak, sample.gpuMs);
-            timeline << sample.timeMs << ',' << sample.world << ',' << sample.section << ',' << sample.predictedSection << ',' << sample.preparedWorld << ',' << sample.palette << ',' << sample.quality << ','
+            timeline << sample.timeMs << ',' << sample.world << ',' << sample.section << ',' << sample.predictedSection << ',' << sample.preparedWorld << ',' << sample.masteringProfile << ',' << sample.stageLayout << ',' << sample.productionDuty << ',' << sample.syncMode << ',' << sample.syncGroup << ',' << sample.palette << ',' << sample.quality << ','
                      << sample.transientClass << ',' << sample.directorDecisionRevision << ',' << sample.bpm << ',' << sample.tempoConfidence << ',' << sample.bass << ',' << sample.mid << ','
                      << sample.high << ',' << sample.kick << ',' << sample.snare << ',' << sample.hats << ',' << sample.onset << ',' << sample.energy << ','
                      << sample.gpuMs << ',' << sample.gpuBudgetMs << ',' << sample.cueDensity << ',' << sample.worldCueDensity << ','
-                     << sample.predictionConfidence << ',' << sample.predictionLeadBeats << ',' << sample.adaptiveDensity << ',' << sample.tempoRecovery << ',' << sample.flags << '\n';
+                     << sample.predictionConfidence << ',' << sample.predictionLeadBeats << ',' << sample.adaptiveDensity << ',' << sample.tempoRecovery << ',' << sample.masterBrightness << ',' << sample.syncPacketAge << ',' << sample.flags << '\n';
         }
         review << "time_ms,world,act,reason,status,tag,file\n";
         int approved = 0, rework = 0;
@@ -864,7 +882,7 @@ private:
             if (GetKeyState(VK_SHIFT) & 0x8000) send(Command::SavePreset, preset, L"Save preset F" + std::to_wstring(preset + 1));
             else send(Command::LoadPreset, preset, PresetNames[preset]);
         } else if (key == VK_TAB) {
-            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 5));
+            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 6));
         }
     }
 
@@ -920,6 +938,16 @@ private:
                      std::clamp(static_cast<int>(std::lround(state_.cueDensity * 100)) + delta * 5, 65, 125),
                      L"Cue density");
                 break;
+            case Setting::MasterBrightness:
+                send(Command::SetMasterBrightnessPercent,
+                     std::clamp(static_cast<int>(std::lround(state_.masterBrightness * 100)) + delta * 5, 65, 100),
+                     L"Master brightness");
+                break;
+            case Setting::SyncGroup:
+                send(Command::SetSyncGroup,
+                     std::clamp(state_.syncGroup + delta, 1, 9999),
+                     L"Sync group");
+                break;
         }
     }
 
@@ -969,6 +997,10 @@ private:
                 case Action::AudioDevice: send(Command::CycleAudioDevice, 0, L"Audio device"); break;
                 case Action::Monitor: send(Command::CycleMonitor, 0, L"Output monitor"); break;
                 case Action::Fullscreen: send(Command::SetFullscreen, flag(rarestage::control::Fullscreen) ? 0 : 1, L"Fullscreen"); break;
+                case Action::MasteringProfile: send(Command::SetMasteringProfile, target.value, MasteringNames[target.value]); break;
+                case Action::StageLayout: send(Command::SetStageLayout, target.value, StageLayoutNames[target.value]); break;
+                case Action::ProductionDuty: send(Command::ApplyProductionDuty, target.value, ProductionDutyNames[target.value] + std::wstring(L" production duty")); break;
+                case Action::SyncMode: send(Command::SetSyncMode, target.value, SyncModeNames[target.value] + std::wstring(L" sync mode")); break;
                 case Action::QuitStage: send(Command::QuitRenderer, 0, L"Close stage"); break;
                 default: break;
             }
@@ -1149,15 +1181,15 @@ private:
                   connected_ ? L"FOCUS STAGE" : L"LAUNCH STAGE", Action::Launch, 0, false, Green);
 
         const int tabTop = scale(68);
-        const int tabWidth = scale(122);
-        const std::array<const wchar_t*, 5> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"REHEARSAL"};
-        for (int index = 0; index < 5; ++index) {
+        const int tabWidth = scale(108);
+        const std::array<const wchar_t*, 6> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"PRODUCTION", L"REHEARSAL"};
+        for (int index = 0; index < 6; ++index) {
             addButton(dc, RECT{margin + index * (tabWidth + scale(7)), tabTop,
                                margin + index * (tabWidth + scale(7)) + tabWidth, tabTop + scale(34)},
                       names[index], Action::Page, index, static_cast<int>(page_) == index, Cyan);
         }
         drawText(dc, L"TAB pages  |  G rehearsal  |  F1-F4 presets",
-                 RECT{margin + scale(665), tabTop, client.right - margin, tabTop + scale(34)},
+                 RECT{margin + scale(705), tabTop, client.right - margin, tabTop + scale(34)},
                  smallFont_, Muted, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
     }
 
@@ -1620,6 +1652,106 @@ private:
         addButton(dc, closeRect, L"CLOSE RARESTAGE RENDERER", Action::QuitStage, 0, false, Red, true);
     }
 
+    void paintProduction(HDC dc, RECT body) {
+        const int gap = scale(12);
+        const int columnWidth = (body.right - body.left - gap) / 2;
+        RECT left{body.left, body.top, body.left + columnWidth, body.bottom};
+        RECT right{left.right + gap, body.top, body.right, body.bottom};
+        fillRound(dc, left, 11, Panel, Line);
+        fillRound(dc, right, 11, Panel, Line);
+
+        sectionLabel(dc, L"PRODUCTION DUTY  /  ONE-TOUCH SHOW MASTER", left.left + scale(14), left.top + scale(9), columnWidth - scale(28));
+        int y = left.top + scale(39);
+        const int dutyGap = scale(6);
+        const int dutyWidth = (columnWidth - scale(28) - dutyGap * 4) / 5;
+        for (int index = 0; index < 5; ++index) {
+            const int x = left.left + scale(14) + index * (dutyWidth + dutyGap);
+            addButton(dc, RECT{x, y, x + dutyWidth, y + scale(44)}, ProductionDutyNames[index],
+                      Action::ProductionDuty, index, connected_ && state_.productionDuty == index,
+                      index == 2 ? Red : index == 3 ? Purple : Green, index == 2);
+        }
+
+        sectionLabel(dc, L"OUTPUT MASTERING", left.left + scale(14), y + scale(58), columnWidth - scale(28));
+        y += scale(88);
+        const int optionGap = scale(7);
+        const int optionWidth = (columnWidth - scale(28) - optionGap * 3) / 4;
+        for (int index = 0; index < 4; ++index) {
+            const int x = left.left + scale(14) + index * (optionWidth + optionGap);
+            addButton(dc, RECT{x, y, x + optionWidth, y + scale(44)}, MasteringNames[index],
+                      Action::MasteringProfile, index, connected_ && state_.masteringProfile == index,
+                      index == 1 ? Green : index == 2 ? Amber : Cyan);
+        }
+        y += scale(54);
+        parameterRow(dc, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(45)},
+                     L"MASTER BRIGHTNESS", std::to_wstring(static_cast<int>(std::lround(state_.masterBrightness * 100))) + L"%",
+                     Setting::MasterBrightness);
+
+        sectionLabel(dc, L"MAPPED STAGE COMPOSITION", left.left + scale(14), y + scale(59), columnWidth - scale(28));
+        y += scale(89);
+        for (int index = 0; index < 4; ++index) {
+            const int x = left.left + scale(14) + index * (optionWidth + optionGap);
+            addButton(dc, RECT{x, y, x + optionWidth, y + scale(48)}, StageLayoutNames[index],
+                      Action::StageLayout, index, connected_ && state_.stageLayout == index, Purple);
+        }
+        y += scale(62);
+        RECT masteringNote{left.left + scale(14), y, left.right - scale(14), left.bottom - scale(14)};
+        fillRound(dc, masteringNote, 8, PanelRaised, Line);
+        drawText(dc, L"LED SAFE rolls highlights before clipping. ARENA preserves saturation and impact. BROADCAST keeps the signal inside a restrained display range. Layout masks are applied after bloom so panel gaps remain truly black.",
+                 RECT{masteringNote.left + scale(13), masteringNote.top + scale(10), masteringNote.right - scale(13), masteringNote.bottom - scale(10)},
+                 smallFont_, Muted, DT_LEFT | DT_TOP | DT_WORDBREAK);
+
+        sectionLabel(dc, L"MULTI-MACHINE SHOW CLOCK", right.left + scale(14), right.top + scale(9), columnWidth - scale(28));
+        y = right.top + scale(39);
+        const int syncGap = scale(8);
+        const int syncWidth = (columnWidth - scale(28) - syncGap * 2) / 3;
+        for (int index = 0; index < 3; ++index) {
+            const int x = right.left + scale(14) + index * (syncWidth + syncGap);
+            addButton(dc, RECT{x, y, x + syncWidth, y + scale(46)}, SyncModeNames[index],
+                      Action::SyncMode, index, connected_ && state_.syncMode == index,
+                      index == 1 ? Green : index == 2 ? Purple : Cyan);
+        }
+        y += scale(60);
+        parameterRow(dc, RECT{right.left + scale(14), y, right.right - scale(14), y + scale(43)},
+                     L"SYNC GROUP", std::to_wstring(std::clamp(state_.syncGroup, 1, 9999)), Setting::SyncGroup);
+        y += scale(51);
+        RECT syncCard{right.left + scale(14), y, right.right - scale(14), y + scale(126)};
+        fillRound(dc, syncCard, 9, PanelRaised, flag(rarestage::control::SyncConnected) ? Green : Line);
+        drawText(dc, state_.syncStatus[0] ? state_.syncStatus : L"LOCAL / STANDALONE",
+                 RECT{syncCard.left + scale(13), syncCard.top + scale(8), syncCard.right - scale(13), syncCard.top + scale(34)},
+                 headingFont_, flag(rarestage::control::SyncConnected) ? Green : Amber);
+        drawText(dc, L"PACKET  " + std::to_wstring(state_.syncSequence) + L"   /   AGE  " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.syncPacketAgeMs))) + L" MS   /   PHASE ERROR  " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.syncPhaseErrorMs))) + L" MS",
+                 RECT{syncCard.left + scale(13), syncCard.top + scale(38), syncCard.right - scale(13), syncCard.top + scale(65)}, smallFont_, Cyan);
+        drawText(dc, L"Leader broadcasts world, act, palette, tempo phase, cue density and output treatment on UDP 47712. Followers preserve continuous motion if the leader disappears instead of freezing or blacking out.",
+                 RECT{syncCard.left + scale(13), syncCard.top + scale(69), syncCard.right - scale(13), syncCard.bottom - scale(8)}, smallFont_, Muted,
+                 DT_LEFT | DT_TOP | DT_WORDBREAK);
+
+        sectionLabel(dc, L"CURRENT PRODUCTION PACK", right.left + scale(14), syncCard.bottom + scale(17), columnWidth - scale(28));
+        y = syncCard.bottom + scale(47);
+        RECT pack{right.left + scale(14), y, right.right - scale(14), y + scale(154)};
+        fillRound(dc, pack, 9, PanelRaised, Line);
+        const int safeDuty = std::clamp(state_.productionDuty, 0, 4);
+        const int safeMaster = std::clamp(state_.masteringProfile, 0, 3);
+        const int safeLayout = std::clamp(state_.stageLayout, 0, 3);
+        drawText(dc, ProductionDutyNames[safeDuty] + std::wstring(L" DUTY"), RECT{pack.left + scale(13), pack.top + scale(8), pack.right - scale(13), pack.top + scale(36)}, headingFont_, Text);
+        drawText(dc, L"MASTER  " + std::wstring(MasteringNames[safeMaster]) + L"  /  " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.masterBrightness * 100))) + L"%",
+                 RECT{pack.left + scale(13), pack.top + scale(42), pack.right - scale(13), pack.top + scale(69)}, bodyFont_, Green);
+        drawText(dc, L"LAYOUT  " + std::wstring(StageLayoutNames[safeLayout]) + L"   /   CLEAN SPOUT  " +
+                     (flag(rarestage::control::SpoutReady) ? L"READY" : flag(rarestage::control::SpoutEnabled) ? L"STARTING" : L"OFF"),
+                 RECT{pack.left + scale(13), pack.top + scale(72), pack.right - scale(13), pack.top + scale(99)}, bodyFont_, Cyan);
+        drawText(dc, L"The clean-output boundary remains isolated from Console and the stage HUD, providing the adapter point for future NDI transport without changing authored worlds.",
+                 RECT{pack.left + scale(13), pack.top + scale(105), pack.right - scale(13), pack.bottom - scale(8)}, smallFont_, Muted,
+                 DT_LEFT | DT_TOP | DT_WORDBREAK);
+
+        RECT contract{right.left + scale(14), pack.bottom + scale(12), right.right - scale(14), right.bottom - scale(14)};
+        fillRound(dc, contract, 8, PanelRaised, Line);
+        drawText(dc, L"VENUE CONTRACT  /  Local is the safe default. Arm one Leader per subnet and match the numeric group on its Followers. Groups prevent accidental cross-show lock; they are not authentication. The fixed packet never carries code, paths or commands.",
+                 RECT{contract.left + scale(13), contract.top + scale(9), contract.right - scale(13), contract.bottom - scale(9)}, smallFont_, Muted,
+                 DT_LEFT | DT_TOP | DT_WORDBREAK);
+    }
+
     void paintRehearsal(HDC dc, RECT body) {
         const int gap = scale(12);
         const int leftWidth = static_cast<int>((body.right - body.left) * .43f);
@@ -1758,6 +1890,7 @@ private:
         else if (page_ == Page::Mix) paintMix(dc, body);
         else if (page_ == Page::Audio) paintAudio(dc, body);
         else if (page_ == Page::Output) paintOutput(dc, body);
+        else if (page_ == Page::Production) paintProduction(dc, body);
         else paintRehearsal(dc, body);
 
         RECT footer{margin, client.bottom - margin - footerHeight, client.right - margin, client.bottom - margin};
@@ -1765,7 +1898,11 @@ private:
         drawText(dc, statusText_.empty() ? L"Waiting for RareStage..." : statusText_,
                  RECT{footer.left + scale(13), footer.top, footer.right - scale(285), footer.bottom},
                  smallFont_, connected_ ? Muted : Amber);
-        const std::wstring mode = flag(rarestage::control::MusicalEnding)
+        const std::wstring mode = flag(rarestage::control::SyncFollower)
+            ? (flag(rarestage::control::SyncConnected) ? L"SYNC FOLLOWER / LOCKED" : L"SYNC FOLLOWER / HOLD")
+            : flag(rarestage::control::SyncLeader)
+            ? L"SYNC LEADER / BROADCAST"
+            : flag(rarestage::control::MusicalEnding)
             ? L"ENDING HOLD / WORLD PRESERVED"
             : flag(rarestage::control::ManualSectionOverride)
             ? L"MANUAL ACT  " + std::to_wstring(static_cast<int>(std::ceil(state_.manualOverrideRemainingSeconds))) + L"S"
