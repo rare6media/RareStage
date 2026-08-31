@@ -8,10 +8,10 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v9";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v10";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 9;
+inline constexpr std::uint32_t ProtocolVersion = 10;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -20,6 +20,10 @@ inline constexpr std::uint32_t PresetCount = 4;
 inline constexpr std::uint32_t TransitionStyleCount = 4;
 inline constexpr std::uint32_t QualityCount = 4;
 inline constexpr std::uint32_t AudioProfileCount = 4;
+inline constexpr std::uint32_t MasteringProfileCount = 4;
+inline constexpr std::uint32_t StageLayoutCount = 4;
+inline constexpr std::uint32_t ProductionDutyCount = 5;
+inline constexpr std::uint32_t SyncModeCount = 3;
 
 enum class Command : std::uint32_t {
     Ping = 1,
@@ -58,7 +62,13 @@ enum class Command : std::uint32_t {
     QuitRenderer,
     CaptureFrame,
     SetCueDensityPercent,
-    SetRehearsalActive
+    SetRehearsalActive,
+    SetMasteringProfile,
+    SetMasterBrightnessPercent,
+    SetStageLayout,
+    ApplyProductionDuty,
+    SetSyncMode,
+    SetSyncGroup
 };
 
 enum StateFlag : std::uint32_t {
@@ -77,7 +87,11 @@ enum StateFlag : std::uint32_t {
     MusicalEnding = 1u << 12,
     CapturePending = 1u << 13,
     RehearsalActive = 1u << 14,
-    PredictiveCueArmed = 1u << 15
+    PredictiveCueArmed = 1u << 15,
+    SyncConnected = 1u << 16,
+    SyncLeader = 1u << 17,
+    SyncFollower = 1u << 18,
+    LedSafeMaster = 1u << 19
 };
 
 enum class CommandStatus : std::int32_t {
@@ -115,6 +129,11 @@ struct alignas(64) SharedState {
     std::int32_t directorRunnerUpWorld{};
     std::int32_t predictedSection{};
     std::int32_t preparedWorld{-1};
+    std::int32_t masteringProfile{1};
+    std::int32_t stageLayout{};
+    std::int32_t productionDuty{1};
+    std::int32_t syncMode{};
+    std::int32_t syncGroup{1};
     std::uint32_t lastCommandSerial{};
     CommandStatus lastCommandStatus{CommandStatus::None};
     float fps{};
@@ -172,6 +191,9 @@ struct alignas(64) SharedState {
     float predictionLeadBeats{};
     float adaptiveCueDensity{1.0f};
     float tempoRecoveryConfidence{};
+    float masterBrightness{0.92f};
+    float syncPhaseErrorMs{};
+    float syncPacketAgeMs{};
     std::uint32_t transientClass{};
     std::uint32_t acceptedKickCount{};
     std::uint32_t acceptedSnareCount{};
@@ -182,6 +204,7 @@ struct alignas(64) SharedState {
     std::uint32_t directorDecisionRevision{};
     std::uint32_t acceptedDirectorCueCount{};
     std::uint32_t rejectedDirectorCueCount{};
+    std::uint32_t syncSequence{};
     std::int32_t captureStatus{};
     wchar_t playbackDevice[96]{};
     wchar_t worldName[48]{};
@@ -189,6 +212,7 @@ struct alignas(64) SharedState {
     wchar_t lastCapturePath[160]{};
     wchar_t lastDirectorDecision[96]{};
     wchar_t lastRejectedCue[96]{};
+    wchar_t syncStatus[64]{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");

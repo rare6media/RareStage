@@ -16,7 +16,8 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 9 || AudioProfileCount != 4) {
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 10 || AudioProfileCount != 4 ||
+        MasteringProfileCount != 4 || StageLayoutCount != 4 || ProductionDutyCount != 5 || SyncModeCount != 3) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
@@ -31,7 +32,8 @@ int main() {
     source.stateRevision = 9;
     source.world = 13;
     source.songSection = 2;
-    source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled | RehearsalActive | PredictiveCueArmed;
+    source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled | RehearsalActive | PredictiveCueArmed |
+                   SyncConnected | SyncFollower | LedSafeMaster;
     source.bass = 0.75f;
     source.kick = 0.82f;
     source.kickConfidence = 0.91f;
@@ -80,11 +82,21 @@ int main() {
     source.directorDecisionRevision = 7;
     source.acceptedDirectorCueCount = 4;
     source.rejectedDirectorCueCount = 3;
+    source.masteringProfile = 1;
+    source.stageLayout = 2;
+    source.productionDuty = 2;
+    source.syncMode = 2;
+    source.syncGroup = 42;
+    source.masterBrightness = 0.88f;
+    source.syncPhaseErrorMs = 4.5f;
+    source.syncPacketAgeMs = 16.0f;
+    source.syncSequence = 420;
     source.captureStatus = 1;
     wcscpy_s(source.directorReason, _countof(source.directorReason), L"ENDING HOLD / PRESERVE WORLD");
     wcscpy_s(source.lastCapturePath, _countof(source.lastCapturePath), L"C:\\RareStage\\Captures\\frame.png");
     wcscpy_s(source.lastDirectorDecision, _countof(source.lastDirectorDecision), L"PREPARED / KINETIC ARRAY / DROP");
     wcscpy_s(source.lastRejectedCue, _countof(source.lastRejectedCue), L"WAITING FOR MUSICAL CHAPTER");
+    wcscpy_s(source.syncStatus, _countof(source.syncStatus), L"FOLLOWER LOCKED / PACKET 420");
     source.percussion = 0.50f;
     source.snare = 0.64f;
     source.logoScale = 1.15f;
@@ -125,11 +137,15 @@ int main() {
         copy.predictionLeadBeats != 2.5f || copy.adaptiveCueDensity != 1.08f ||
         copy.tempoRecoveryConfidence != 0.72f || copy.directorDecisionRevision != 7 ||
         copy.acceptedDirectorCueCount != 4 || copy.rejectedDirectorCueCount != 3 ||
-        !(copy.flags & RehearsalActive) || !(copy.flags & PredictiveCueArmed) ||
+        copy.masteringProfile != 1 || copy.stageLayout != 2 || copy.productionDuty != 2 || copy.syncMode != 2 || copy.syncGroup != 42 ||
+        copy.masterBrightness != 0.88f || copy.syncPhaseErrorMs != 4.5f || copy.syncPacketAgeMs != 16.0f ||
+        copy.syncSequence != 420 || !(copy.flags & RehearsalActive) || !(copy.flags & PredictiveCueArmed) ||
+        !(copy.flags & SyncConnected) || !(copy.flags & SyncFollower) || !(copy.flags & LedSafeMaster) ||
         std::wcscmp(copy.directorReason, L"ENDING HOLD / PRESERVE WORLD") != 0 ||
         std::wcscmp(copy.lastCapturePath, L"C:\\RareStage\\Captures\\frame.png") != 0 ||
         std::wcscmp(copy.lastDirectorDecision, L"PREPARED / KINETIC ARRAY / DROP") != 0 ||
         std::wcscmp(copy.lastRejectedCue, L"WAITING FOR MUSICAL CHAPTER") != 0 ||
+        std::wcscmp(copy.syncStatus, L"FOLLOWER LOCKED / PACKET 420") != 0 ||
         copy.logoScale != 1.15f ||
         copy.worldDwellSeconds != 64.0f || copy.transitionSeconds != 1.2f) {
         std::cerr << "Shared-state round trip failed\n";

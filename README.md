@@ -4,22 +4,24 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.11.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.12.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.11.0
+## What changed in 0.12.0
 
-Version 0.11.0 is the **Smart Director 2 release**. It lets the automatic show prepare its next visual chapter before the musical boundary while keeping the current world fluid, stable and useful through quiet passages.
+Version 0.12.0 is the **Stage Production Pack**. It adds venue-facing output mastering, mapped stage compositions and a production clock without changing the authored worlds or making music the animation clock.
 
-- Smart Director forecasts Build, Drop, Breakdown and Drive evidence, preselects a suitable world and commits only on a confirmed musical opportunity
-- Set-wide world/act memory discourages repeating the same visual role, not merely the same world
-- Reliable tempo is held through brief confidence loss, then eased toward a neutral fallback instead of visibly snapping animation speed
-- Adaptive cue density opens or restrains detail from sustained musical pressure while preserving the operator master and each authored world/act master
-- Protocol v9 exposes the predicted act, prepared world, confidence, lead beats, tempo recovery, cue density and Director decision history
-- Console shows live forecast evidence and records accepted, prepared and rejected Director decisions in rehearsal timelines
-- Threshold tuning remains evidence-gated: synthetic CI fixtures validate behavior but do not masquerade as real-show calibration
-- A deterministic Smart Director 2 trace validates pre-roll timing, density bounds, tempo recovery and set-memory selection on every Windows build
+- Four post-bloom mastering profiles: Studio, LED Safe, Arena and Broadcast
+- Adjustable 65–100% master brightness with LED-safe highlight roll-off and broadcast-range restraint
+- Four mapped compositions: Full Frame, 2.39:1 Ultrawide, Triptych and LED Facade
+- Five one-touch production duties for Open, Support, Peak, Breakdown and Closing portions of a set
+- Local-network Leader/Follower sync broadcasts world, act, palette, tempo phase, cue density and output treatment on UDP 47712, with Console-selectable groups to isolate adjacent shows
+- Followers preserve their last state and continuous motion if the leader disappears; Local mode opens no network socket and remains the default
+- A sixth glassmorphic Console page controls every production-pack function and reports packet age, phase error and sync state
+- Protocol v10 and rehearsal exports include mastering, layout, duty, brightness and synchronization evidence
+- The clean-output boundary remains isolated from Console/HUD and is ready for a future NDI transport adapter; this release does not claim a bundled NDI sender
+- A deterministic 80-case production contract validates all duty, mastering and layout combinations plus the fixed-size sync packet
 
 The research and design synthesis behind this release is documented in [Stage visual research, 2023–2026](docs/STAGE_VISUAL_RESEARCH_2023_2026.md).
 
@@ -34,9 +36,10 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Visual system | Eighteen authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
 | Director | Musical-stage prediction, prepared-world pre-roll, live choice evidence, ending holds, world dwell, set-wide world/act memory, tempo recovery, adaptive cue density, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
-| Show control | Bundled RareStage Console plus a Direct2D/DirectWrite in-renderer overlay |
+| Show control | Six-page RareStage Console plus a Direct2D/DirectWrite in-renderer overlay |
 | Rehearsal | Telemetry recorder, GPU-aware smart captures, review decisions, reason tags and portable CSV/Markdown session evidence |
-| Output | Borderless stage display, multi-monitor selection and clean Spout2 sender |
+| Output | Borderless stage display, multi-monitor selection, clean Spout2 sender, four output masters and four mapped compositions |
+| Synchronization | Optional UDP leader/follower show clock with bounded fixed-layout packets and motion-preserving follower hold |
 | Performance | 62%, 78%, 100% and 125% HDR render scales; VSync or unlocked output; asynchronous GPU timing and profile budgets |
 | Persistence | Settings and four show presets under `%LOCALAPPDATA%\RareStage` |
 
@@ -119,9 +122,10 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Mix + Director | Reaction profile, palette direction, sensitivity, bass, mids, highs, beat, logo scale, act override, automatic act resume, Smart Director, and timeline mode |
 | Audio Lab | Auto/EDM/Bass Music/Melodic detector profile, instrument evidence, accepted/rejected diagnostics, adaptive calibration, sample labeling, replay-ready CSV export, and latency |
 | Output | World dwell, transition language, render profile, live GPU budget, clean PNG capture, VSync/high-refresh output, Spout, fullscreen, HUD, device, monitor, timeline mode, and renderer shutdown |
+| Production | Production-duty presets, output mastering, master brightness, mapped stage layouts, sync group and Local/Leader/Follower synchronization |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v9 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector evidence, calibration, Director forecasts and decisions, GPU timing, adaptive cue density, tempo recovery, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v10 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector evidence, calibration, Director forecasts and decisions, GPU timing, adaptive cue density, tempo recovery, output mastering, stage layout, production duty, network-sync, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
 
 Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 
@@ -188,7 +192,7 @@ When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, `U`, `I`, `O`, and `
 | `F3` Rare Drop | Stage, Rare Cyan | Bioframe | 56 sec / 1.2 sec Gate Open |
 | `F4` Glitch Finale | Aggressive, Nebula, timeline | Stagewall | 48 sec / 0.9 sec Signal Veil |
 
-Saved presets include the current world, reaction tuning, fallback palette, dwell, transition, render profile, output mode, automation, timeline, Spout and monitor.
+Saved presets include the current world, reaction tuning, fallback palette, dwell, transition, render profile, output mode, automation, timeline, Spout, monitor, production duty, mastering, mapped layout, master brightness, sync mode and sync group.
 
 ## Download and run
 
@@ -205,6 +209,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 - DirectX 11-capable GPU and current graphics driver
 - Active Windows playback device for live reactivity
 - Spout-capable receiver only when shared-texture output is needed
+- Local UDP broadcast permission only when Leader or Follower synchronization is deliberately enabled
 
 ## Performance profiles
 
@@ -215,7 +220,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.11.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
+VSync is enabled by default. The 0.12.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
 
 ## Build from source
 
@@ -237,13 +242,14 @@ Every push and pull request runs the Windows workflow:
 3. Run the Console protocol round-trip tests.
 4. Run deterministic kick, snare, hi-hat and sustained-bass separation tests across four detector profiles and three sample rates.
 5. Verify liquid monotonic motion at 60, 120 and 144 Hz and replay the labeled-trace CSV contract.
-6. Compile-test every embedded DirectX shader.
-7. Launch-test both native executables with the alpha logo present.
-8. Run the Console-owned Stage launch soak regression.
-9. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
-10. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
+6. Validate all 80 production duty/master/layout combinations and the synchronization packet contract.
+7. Compile-test every embedded DirectX shader.
+8. Launch-test both native executables with the alpha logo present.
+9. Run the Console-owned Stage launch soak regression.
+10. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
+11. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
 
-Successful pushes to `main` publish or refresh the **v0.11.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
+Successful pushes to `main` publish or refresh the **v0.12.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
@@ -271,7 +277,7 @@ Successful pushes to `main` publish or refresh the **v0.11.0** GitHub release au
 - Authored world/act cue-density mastering with a 65–125% operator control
 - Continuous motion protected from density and capture automation
 
-### v0.11.0 — Smart Director 2 (current)
+### v0.11.0 — Smart Director 2 (completed)
 
 - Predictive musical-stage pre-roll with prepared world and palette selection
 - Confirmed-hit commits protected by section hysteresis, dwell and ending holds
@@ -281,19 +287,22 @@ Successful pushes to `main` publish or refresh the **v0.11.0** GitHub release au
 - Live and exported Console evidence for accepted, prepared and rejected Director decisions
 - Detector thresholds remain reserved for labeled real-set rehearsal traces
 
-### v0.12 — Stage Production Pack
+### v0.12.0 — Stage Production Pack (current)
 
-- Venue-safe brightness and contrast profiles
-- Alternate stage aspect ratios and mapped-panel compositions
-- NDI output and synchronized multi-machine playback groundwork
-- Production presets for open, support, peak, breakdown and closing duties
-- Rehearsal-driven detector tuning once representative real-set labels exist
+- Studio, LED Safe, Arena and Broadcast output mastering with bounded master brightness
+- Full Frame, Ultrawide, Triptych and LED Facade mapped-panel compositions
+- Open, Support, Peak, Breakdown and Closing production-duty masters
+- Optional local-network Leader/Follower show clock with safe follower hold
+- Clean-output adapter boundary preserved for a future optional NDI transport
+- Production controls and evidence exported through Console protocol v10
 
 ### v0.13 — Show authoring
 
 - Project-level show files and venue profiles
 - Editable world affinities, act states and transition grammar
 - External show-control API while keeping Smart Director fully capable in automatic operation
+- Rehearsal-driven detector tuning once representative real-set labels exist
+- Optional NDI transport adapter after SDK/licensing and deployment validation
 
 ### v1.0 — Production reliability
 

@@ -25,8 +25,8 @@ jobs:
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.11.0") {
-              throw "$binary is missing the expected publisher or v0.11.0 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.12.0") {
+              throw "$binary is missing the expected publisher or v0.12.0 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -85,6 +85,19 @@ jobs:
           if (@($rows | Where-Object predicted_drop -eq "1").Count -eq 0 -or
               @($rows | Where-Object { [double]$_.adaptive_density -lt 0.70 -or [double]$_.adaptive_density -gt 1.14 }).Count -ne 0) {
             throw "Director 2 forecast or adaptive density trace is invalid"
+          }
+      - name: Stage Production Pack contract
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--production-self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0 -or -not (Test-Path RareStage-production-pack-reference.csv)) {
+            throw "Stage Production Pack contract failed with exit code $($process.ExitCode)"
+          }
+          $rows = @(Import-Csv RareStage-production-pack-reference.csv)
+          if ($rows.Count -ne 80 -or @($rows | Group-Object duty).Count -ne 5 -or
+              @($rows | Group-Object mastering).Count -ne 4 -or @($rows | Group-Object layout).Count -ne 4 -or
+              @($rows | Where-Object { [double]$_.brightness -lt 0.65 -or [double]$_.brightness -gt 1.0 -or [double]$_.visible_area -lt 0.5 }).Count -ne 0) {
+            throw "Production duty, mastering, layout, or safety bounds are invalid"
           }
       - name: Shader self-test
         shell: pwsh
@@ -174,7 +187,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.11.0"
+            version = "0.12.0"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -198,19 +211,20 @@ jobs:
             RareStage-motion-reference.csv
             RareStage-world-reference.csv
             RareStage-director2-reference.csv
+            RareStage-production-pack-reference.csv
             RareStage-reference-captures.csv
             RareStage-reference-captures/*.png
             RareStage-rehearsal-contract.csv
             RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.11.0 release
+      - name: Publish v0.12.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.11.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.11.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.12.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.12.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.11.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.11.0 — Smart Director 2" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.12.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.12.0 — Stage Production Pack" --generate-notes --repo $env:GITHUB_REPOSITORY
           }
