@@ -8,10 +8,11 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v11";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v12";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 11;
+inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
+inline constexpr std::uint32_t ProtocolVersion = 12;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -24,6 +25,8 @@ inline constexpr std::uint32_t MasteringProfileCount = 4;
 inline constexpr std::uint32_t StageLayoutCount = 4;
 inline constexpr std::uint32_t ProductionDutyCount = 5;
 inline constexpr std::uint32_t SyncModeCount = 3;
+inline constexpr std::uint32_t SceneCategoryCount = 5;
+inline constexpr std::uint32_t TempoAnchorCount = 3;
 
 enum class Command : std::uint32_t {
     Ping = 1,
@@ -68,7 +71,10 @@ enum class Command : std::uint32_t {
     SetStageLayout,
     ApplyProductionDuty,
     SetSyncMode,
-    SetSyncGroup
+    SetSyncGroup,
+    SetSceneCategory,
+    SetTempoAnchor,
+    SetDjIdentityVisible
 };
 
 enum StateFlag : std::uint32_t {
@@ -91,7 +97,8 @@ enum StateFlag : std::uint32_t {
     SyncConnected = 1u << 16,
     SyncLeader = 1u << 17,
     SyncFollower = 1u << 18,
-    LedSafeMaster = 1u << 19
+    LedSafeMaster = 1u << 19,
+    DjIdentityVisible = 1u << 20
 };
 
 enum class CommandStatus : std::int32_t {
@@ -138,6 +145,10 @@ struct alignas(64) SharedState {
     std::int32_t worldMovement{};
     std::int32_t patternFrom{};
     std::int32_t patternTo{};
+    std::int32_t sceneCategory{};
+    std::int32_t tempoAnchor{};
+    std::int32_t effectiveTempoAnchor{128};
+    std::int32_t loopPeriod{};
     std::uint32_t lastCommandSerial{};
     CommandStatus lastCommandStatus{CommandStatus::None};
     float fps{};
@@ -205,6 +216,7 @@ struct alignas(64) SharedState {
     float songArc{};
     float movementProgress{};
     float patternBlend{};
+    float loopPhase{};
     float transitionCompatibility{1.0f};
     std::uint32_t transientClass{};
     std::uint32_t acceptedKickCount{};
@@ -227,11 +239,13 @@ struct alignas(64) SharedState {
     wchar_t syncStatus[64]{};
     wchar_t movementName[32]{};
     wchar_t patternName[48]{};
+    wchar_t djName[32]{};
+    wchar_t categoryName[32]{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");
 static_assert(std::is_trivially_copyable_v<SharedState>);
-static_assert(sizeof(SharedState) <= 2048);
+static_assert(sizeof(SharedState) <= 2304);
 
 inline LPARAM PackCommand(std::int32_t value, std::uint32_t serial) noexcept {
     const auto packed = (static_cast<std::uint64_t>(serial) << 32u) |

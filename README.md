@@ -4,13 +4,26 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.13.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.14.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.13.0
+## What changed in 0.14.0
 
-Version 0.13.0 is **Adaptive Show Grammar**. It turns each world into a reusable performance with Establish, Assemble, Payoff, Develop and Dissolve movements, fixes musical-analysis errors uncovered by an Astra code audit, and makes Smart Director select coherent next worlds without sacrificing continuous motion.
+Version 0.14.0 is the **Club Loop Engine**. RareStage now treats each world as a reusable VDJ content pack: continuous autonomous motion, tempo-locked internal movements, category-aware programming, and authored DJ identity choreography suitable for club screens, mapped LED stages, Spout capture and VRChat video-routing workflows.
+
+- Four scene categories: Panel / Pixel, Ribbon / Glass, Depth / Transport and Atmosphere
+- Console-selectable category filtering for Smart Director while manual world selection remains unrestricted
+- `AUTO CLUB` starts on a confident 128 BPM grid, recognizes the common 128/130 neighborhood quickly and follows clearly different detected tempos
+- Explicit 128 BPM and 130 BPM anchors for rehearsed club material
+- Every world develops through 64- or 96-beat content loops with five movements and sixteen pattern banks
+- When a world reaches its dwell target outside a genuine musical chapter, Smart Director changes its internal movement first instead of channel-surfing
+- Custom DJ name editing in the Console Production page
+- DJ identity is rendered into clean stage output as an intermittent assembly, carrier, architectural crop or sparse reveal—not a permanent watermark
+- Protocol v12 exposes category, effective tempo grid, loop phase/length and DJ identity telemetry
+- A deterministic Club Loop contract validates all 18 worlds across both common club-tempo anchors
+
+The v0.13 Adaptive Show Grammar remains the foundation:
 
 - Raw calibrated audio now drives song structure; visual gain controls cannot change the detected act
 - Contextual build tension and impact contrast prevent ordinary first kicks from becoming false drops
@@ -43,10 +56,10 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Audio | WASAPI loopback from the selected active Windows playback device |
 | Analysis | Sample-rate-aware 2048-point FFT with 50% overlap, adaptive band-limited spectral flux, sustained bass, kick, snare, hats, mids, highs, RMS, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection plus a sustained musical-ending confidence state |
-| Visual system | Eighteen authored Rare worlds with act-specific 2D animation, layered parallax and selective 2.5D depth |
-| Director | Musical-stage prediction, prepared-world pre-roll, live choice evidence, ending holds, world dwell, set-wide world/act memory, tempo recovery, adaptive cue density, palette morphing and beat-aligned chapter changes |
+| Visual system | Eighteen authored Rare worlds organized into four VDJ categories, with 64/96-beat loop grammar, act-specific 2D animation, layered parallax and selective 2.5D depth |
+| Director | Musical-stage prediction, prepared-world pre-roll, internal-loop progression, category filtering, 128/130 club anchors, ending holds, set-wide memory, adaptive cue density, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
-| Show control | Six-page RareStage Console plus a Direct2D/DirectWrite in-renderer overlay |
+| Show control | Six-page RareStage Console with editable DJ identity, category and tempo controls, plus a Direct2D/DirectWrite in-renderer overlay |
 | Rehearsal | Telemetry recorder, GPU-aware smart captures, review decisions, reason tags and portable CSV/Markdown session evidence |
 | Output | Borderless stage display, multi-monitor selection, clean Spout2 sender, four output masters and four mapped compositions |
 | Synchronization | Optional UDP leader/follower show clock with bounded fixed-layout packets and motion-preserving follower hold |
@@ -80,9 +93,9 @@ Every world contains five acts. An Open establishes form; Build assembles and ad
 
 ## Smart Director
 
-Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. Its prediction layer can arm an approaching Build, Drop, Breakdown or Drive, prepare the next world and palette, then commit only when the musical evidence confirms the boundary. A section change still transforms the **current world first**. Cross-world changes remain protected by dwell, ending holds, phrase timing and recent-use rules.
+Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. Its prediction layer can arm an approaching Build, Drop, Breakdown or Drive, prepare the next world and palette, then commit only when the musical evidence confirms the boundary. A section change still transforms the **current world first**. If dwell expires outside a genuine chapter boundary, the current world receives another internal movement and pattern phrase rather than an arbitrary scene cut.
 
-World selection scores current energy, band balance and the predicted musical act, penalizes the active and recently used worlds, then also accounts for how often each world has already served that act during the set. Palettes begin morphing during a qualified pre-roll rather than cutting at the drop. If tempo confidence disappears, a stable BPM hold and gradual recovery protect continuous animation. Deterministic Show Timeline mode remains available for rehearsed playback.
+World selection scores current energy, band balance and the predicted musical act, penalizes the active and recently used worlds, then also accounts for how often each world has already served that act during the set. An optional category filter narrows automatic choices without disabling manual access. Palettes begin morphing during a qualified pre-roll rather than cutting at the drop. If tempo confidence disappears, `AUTO CLUB` returns gradually to its 128 BPM anchor; confident measurements near 128 or 130 receive a stable club-grid bias while clearly different tempos remain respected. Deterministic Show Timeline mode remains available for rehearsed playback.
 
 ```text
 Windows playback device
@@ -135,7 +148,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Production | Production-duty presets, output mastering, master brightness, mapped stage layouts, sync group and Local/Leader/Follower synchronization |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v11 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed or non-finite values, and reports complete signal, detector evidence, musical narrative, world movement/pattern, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v12 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
 
 Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 
@@ -230,7 +243,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.13.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
+VSync is enabled by default. The 0.14.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
 
 ## Build from source
 
@@ -259,7 +272,7 @@ Every push and pull request runs the Windows workflow:
 10. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
 11. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
 
-Successful pushes to `main` publish or refresh the **v0.13.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
+Successful pushes to `main` publish or refresh the **v0.14.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
@@ -306,7 +319,7 @@ Successful pushes to `main` publish or refresh the **v0.13.0** GitHub release au
 - Clean-output adapter boundary preserved for a future optional NDI transport
 - Production controls and evidence exported through Console protocol v10
 
-### v0.13.0 — Adaptive Show Grammar (current)
+### v0.13.0 — Adaptive Show Grammar (completed)
 
 - Context-aware build/drop/breakdown estimation based on raw calibrated features
 - Five world movements and deterministic shuffled pattern variation per visit
@@ -314,7 +327,15 @@ Successful pushes to `main` publish or refresh the **v0.13.0** GitHub release au
 - Stable sample and visual clocks with stale-audio/device-loss protection
 - Console protocol v11 narrative, movement, pattern and transition telemetry
 
-### v0.14 — Show authoring
+### v0.14.0 — Club Loop Engine (current)
+
+- Four category-filtered VDJ content packs across all 18 worlds
+- 64/96-beat internal loops that progress before cross-world changes
+- Confident automatic 128/130 club-tempo anchoring with monotonic phase slew
+- Custom DJ identity choreography in the clean output
+- Protocol v12 Console control and deterministic loop validation
+
+### v0.15 — Show authoring
 
 - Project-level show files and venue profiles
 - Editable world affinities, act states and transition grammar
