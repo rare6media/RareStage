@@ -16,7 +16,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 12 || AudioProfileCount != 4 ||
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 13 || AudioProfileCount != 4 ||
         MasteringProfileCount != 4 || StageLayoutCount != 4 || ProductionDutyCount != 5 || SyncModeCount != 3 ||
         SceneCategoryCount != 5 || TempoAnchorCount != 3) {
         std::cerr << "Protocol constants are stale\n";
@@ -96,6 +96,8 @@ int main() {
     source.tempoAnchor = 2;
     source.effectiveTempoAnchor = 130;
     source.loopPeriod = 64;
+    source.choreographyStage = 2;
+    source.identityKind = 1;
     source.masterBrightness = 0.88f;
     source.syncPhaseErrorMs = 4.5f;
     source.syncPacketAgeMs = 16.0f;
@@ -109,6 +111,9 @@ int main() {
     source.patternBlend = 0.51f;
     source.loopPhase = 0.375f;
     source.transitionCompatibility = 0.88f;
+    source.choreographyPhase = 3.25f;
+    source.identityWeight = 0.92f;
+    source.stanzaProgress = 0.55f;
     source.captureStatus = 1;
     wcscpy_s(source.directorReason, _countof(source.directorReason), L"ENDING HOLD / PRESERVE WORLD");
     wcscpy_s(source.lastCapturePath, _countof(source.lastCapturePath), L"C:\\RareStage\\Captures\\frame.png");
@@ -119,6 +124,8 @@ int main() {
     wcscpy_s(source.patternName, _countof(source.patternName), L"PATTERN 10 / 16");
     wcscpy_s(source.djName, _countof(source.djName), L"RARE TEST");
     wcscpy_s(source.categoryName, _countof(source.categoryName), L"PANEL / PIXEL");
+    wcscpy_s(source.choreographyName, _countof(source.choreographyName), L"RESOLVE");
+    wcscpy_s(source.identityTarget, _countof(source.identityTarget), L"RARE TEST");
     source.percussion = 0.50f;
     source.snare = 0.64f;
     source.logoScale = 1.15f;
@@ -166,6 +173,8 @@ int main() {
         copy.sectionAgeBeats != 12.0f || copy.buildTension != 0.74f || copy.dropReadiness != 0.81f ||
         copy.musicalNovelty != 0.43f || copy.songArc != 0.37f || copy.movementProgress != 0.62f ||
         copy.patternBlend != 0.51f || copy.loopPhase != 0.375f || copy.transitionCompatibility != 0.88f ||
+        copy.choreographyStage != 2 || copy.identityKind != 1 || copy.choreographyPhase != 3.25f ||
+        copy.identityWeight != 0.92f || copy.stanzaProgress != 0.55f ||
         !(copy.flags & RehearsalActive) || !(copy.flags & PredictiveCueArmed) ||
         !(copy.flags & SyncConnected) || !(copy.flags & SyncFollower) || !(copy.flags & LedSafeMaster) || !(copy.flags & DjIdentityVisible) ||
         std::wcscmp(copy.directorReason, L"ENDING HOLD / PRESERVE WORLD") != 0 ||
@@ -177,6 +186,8 @@ int main() {
         std::wcscmp(copy.patternName, L"PATTERN 10 / 16") != 0 ||
         std::wcscmp(copy.djName, L"RARE TEST") != 0 ||
         std::wcscmp(copy.categoryName, L"PANEL / PIXEL") != 0 ||
+        std::wcscmp(copy.choreographyName, L"RESOLVE") != 0 ||
+        std::wcscmp(copy.identityTarget, L"RARE TEST") != 0 ||
         copy.logoScale != 1.15f ||
         copy.worldDwellSeconds != 64.0f || copy.transitionSeconds != 1.2f) {
         std::cerr << "Shared-state round trip failed\n";
