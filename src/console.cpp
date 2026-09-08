@@ -90,6 +90,12 @@ constexpr std::array<const wchar_t*, rarestage::control::ProductionDutyCount> Pr
 constexpr std::array<const wchar_t*, rarestage::control::SyncModeCount> SyncModeNames{
     L"LOCAL", L"LEADER", L"FOLLOWER"
 };
+constexpr std::array<const wchar_t*, rarestage::control::SceneCategoryCount> SceneCategoryNames{
+    L"AUTO", L"PANEL / PIXEL", L"RIBBON / GLASS", L"DEPTH", L"ATMOSPHERE"
+};
+constexpr std::array<const wchar_t*, rarestage::control::TempoAnchorCount> TempoAnchorNames{
+    L"AUTO CLUB", L"128 BPM", L"130 BPM"
+};
 
 enum class Page { Show, Mix, Audio, Output, Production, Rehearsal };
 
@@ -151,6 +157,10 @@ enum class Action {
     StageLayout,
     ProductionDuty,
     SyncMode,
+    EditDjName,
+    SceneCategory,
+    TempoAnchor,
+    DjIdentity,
     QuitStage
 };
 
@@ -212,7 +222,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.13.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.14.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -299,6 +309,9 @@ private:
             case WM_KEYDOWN:
                 handleKey(wParam);
                 return 0;
+            case WM_CHAR:
+                handleCharacter(static_cast<wchar_t>(wParam));
+                return 0;
             case WM_DPICHANGED: {
                 dpi_ = HIWORD(wParam);
                 destroyFonts();
@@ -312,7 +325,7 @@ private:
             case WM_GETMINMAXINFO: {
                 auto* info = reinterpret_cast<MINMAXINFO*>(lParam);
                 info->ptMinTrackSize.x = scale(1120);
-                info->ptMinTrackSize.y = scale(760);
+                info->ptMinTrackSize.y = scale(860);
                 return 0;
             }
             case WM_SETCURSOR: {
@@ -432,7 +445,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.13 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.14 Console endpoint.";
             }
             return;
         }
@@ -851,7 +864,39 @@ private:
         statusText_ = L"Review tag set to " + reviewItems_[reviewIndex_].tag + L".";
     }
 
+    void applyDjName() {
+        if (!connected_ || !rendererWindow_) {
+            statusText_ = L"Launch RareStage before applying a DJ name.";
+            editingDjName_ = false;
+            return;
+        }
+        while (!djNameBuffer_.empty() && djNameBuffer_.front() == L' ') djNameBuffer_.erase(djNameBuffer_.begin());
+        while (!djNameBuffer_.empty() && djNameBuffer_.back() == L' ') djNameBuffer_.pop_back();
+        if (djNameBuffer_.empty()) djNameBuffer_ = L"RARE";
+        COPYDATASTRUCT copy{};
+        copy.dwData = rarestage::control::DjNameCopyDataId;
+        copy.cbData = static_cast<DWORD>((djNameBuffer_.size() + 1) * sizeof(wchar_t));
+        copy.lpData = djNameBuffer_.data();
+        DWORD_PTR result{};
+        const bool delivered = SendMessageTimeoutW(rendererWindow_, WM_COPYDATA, reinterpret_cast<WPARAM>(window_),
+            reinterpret_cast<LPARAM>(&copy), SMTO_ABORTIFHUNG | SMTO_BLOCK, 750, &result) != 0 && result != 0;
+        statusText_ = delivered ? L"DJ identity updated in the clean stage output." : L"RareStage did not accept the DJ name.";
+        editingDjName_ = false;
+    }
+
+    void handleCharacter(wchar_t character) {
+        if (!editingDjName_) return;
+        if (character == L'\r') { applyDjName(); return; }
+        if (character == L'\b') { if (!djNameBuffer_.empty()) djNameBuffer_.pop_back(); return; }
+        if (character >= L' ' && character != 127 && djNameBuffer_.size() < 24) djNameBuffer_.push_back(character);
+    }
+
     void handleKey(WPARAM key) {
+        if (editingDjName_) {
+            if (key == VK_ESCAPE) { editingDjName_ = false; statusText_ = L"DJ name edit cancelled."; }
+            else if (key == VK_RETURN) applyDjName();
+            return;
+        }
         if (key >= L'1' && key <= L'9') {
             const int world = static_cast<int>(key - L'1');
             send(Command::SelectWorld, world, WorldNames[world]);
@@ -1001,6 +1046,10 @@ private:
                 case Action::StageLayout: send(Command::SetStageLayout, target.value, StageLayoutNames[target.value]); break;
                 case Action::ProductionDuty: send(Command::ApplyProductionDuty, target.value, ProductionDutyNames[target.value] + std::wstring(L" production duty")); break;
                 case Action::SyncMode: send(Command::SetSyncMode, target.value, SyncModeNames[target.value] + std::wstring(L" sync mode")); break;
+                case Action::EditDjName: editingDjName_ = true; djNameBuffer_ = state_.djName[0] ? state_.djName : L"RARE"; statusText_ = L"Type the DJ name, then press Enter to apply."; SetFocus(window_); break;
+                case Action::SceneCategory: send(Command::SetSceneCategory, target.value, SceneCategoryNames[target.value] + std::wstring(L" scene category")); break;
+                case Action::TempoAnchor: send(Command::SetTempoAnchor, target.value, TempoAnchorNames[target.value] + std::wstring(L" tempo anchor")); break;
+                case Action::DjIdentity: send(Command::SetDjIdentityVisible, flag(rarestage::control::DjIdentityVisible) ? 0 : 1, L"DJ identity layer"); break;
                 case Action::QuitStage: send(Command::QuitRenderer, 0, L"Close stage"); break;
                 default: break;
             }
@@ -1099,7 +1148,7 @@ private:
 
     void addButton(HDC dc, RECT rect, const std::wstring& label, Action action, int value,
                    bool active = false, COLORREF accent = Cyan, bool danger = false) {
-        const bool local = action == Action::Launch || action == Action::Page || action == Action::ExportTrace || action == Action::LabelTrace ||
+        const bool local = action == Action::Launch || action == Action::Page || action == Action::EditDjName || action == Action::ExportTrace || action == Action::LabelTrace ||
                            action == Action::ToggleRehearsal || action == Action::ToggleSmartCapture || action == Action::ReviewPrevious ||
                            action == Action::ReviewNext || action == Action::ReviewApprove || action == Action::ReviewRework ||
                            action == Action::ReviewTag || action == Action::ExportSession;
@@ -1727,28 +1776,46 @@ private:
                  RECT{syncCard.left + scale(13), syncCard.top + scale(69), syncCard.right - scale(13), syncCard.bottom - scale(8)}, smallFont_, Muted,
                  DT_LEFT | DT_TOP | DT_WORDBREAK);
 
-        sectionLabel(dc, L"CURRENT PRODUCTION PACK", right.left + scale(14), syncCard.bottom + scale(17), columnWidth - scale(28));
-        y = syncCard.bottom + scale(47);
-        RECT pack{right.left + scale(14), y, right.right - scale(14), y + scale(154)};
+        sectionLabel(dc, L"CLUB LOOP ENGINE  /  VDJ CONTENT PACK", right.left + scale(14), syncCard.bottom + scale(17), columnWidth - scale(28));
+        y = syncCard.bottom + scale(45);
+        RECT pack{right.left + scale(14), y, right.right - scale(14), right.bottom - scale(14)};
         fillRound(dc, pack, 9, PanelRaised, Line);
-        const int safeDuty = std::clamp(state_.productionDuty, 0, 4);
-        const int safeMaster = std::clamp(state_.masteringProfile, 0, 3);
-        const int safeLayout = std::clamp(state_.stageLayout, 0, 3);
-        drawText(dc, ProductionDutyNames[safeDuty] + std::wstring(L" DUTY"), RECT{pack.left + scale(13), pack.top + scale(8), pack.right - scale(13), pack.top + scale(36)}, headingFont_, Text);
-        drawText(dc, L"MASTER  " + std::wstring(MasteringNames[safeMaster]) + L"  /  " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.masterBrightness * 100))) + L"%",
-                 RECT{pack.left + scale(13), pack.top + scale(42), pack.right - scale(13), pack.top + scale(69)}, bodyFont_, Green);
-        drawText(dc, L"LAYOUT  " + std::wstring(StageLayoutNames[safeLayout]) + L"   /   CLEAN SPOUT  " +
-                     (flag(rarestage::control::SpoutReady) ? L"READY" : flag(rarestage::control::SpoutEnabled) ? L"STARTING" : L"OFF"),
-                 RECT{pack.left + scale(13), pack.top + scale(72), pack.right - scale(13), pack.top + scale(99)}, bodyFont_, Cyan);
-        drawText(dc, L"The clean-output boundary remains isolated from Console and the stage HUD, providing the adapter point for future NDI transport without changing authored worlds.",
-                 RECT{pack.left + scale(13), pack.top + scale(105), pack.right - scale(13), pack.bottom - scale(8)}, smallFont_, Muted,
-                 DT_LEFT | DT_TOP | DT_WORDBREAK);
 
-        RECT contract{right.left + scale(14), pack.bottom + scale(12), right.right - scale(14), right.bottom - scale(14)};
-        fillRound(dc, contract, 8, PanelRaised, Line);
-        drawText(dc, L"VENUE CONTRACT  /  Local is the safe default. Arm one Leader per subnet and match the numeric group on its Followers. Groups prevent accidental cross-show lock; they are not authentication. The fixed packet never carries code, paths or commands.",
-                 RECT{contract.left + scale(13), contract.top + scale(9), contract.right - scale(13), contract.bottom - scale(9)}, smallFont_, Muted,
+        drawText(dc, L"DJ IDENTITY", RECT{pack.left + scale(13), pack.top + scale(7), pack.left + scale(110), pack.top + scale(32)}, smallFont_, Muted);
+        RECT nameField{pack.left + scale(112), pack.top + scale(7), pack.right - scale(108), pack.top + scale(43)};
+        const bool nameHover = PtInRect(&nameField, cursor_);
+        fillRound(dc, nameField, 7, nameHover || editingDjName_ ? blendColor(PanelRaised, Cyan, .10f) : Panel, editingDjName_ ? Cyan : Line, editingDjName_ ? 2 : 1);
+        const std::wstring shownName = editingDjName_ ? djNameBuffer_ + ((animationTick_ / 14) % 2 ? L"|" : L"") : (state_.djName[0] ? state_.djName : L"RARE");
+        drawText(dc, shownName, RECT{nameField.left + scale(10), nameField.top, nameField.right - scale(10), nameField.bottom}, bodyFont_, Text);
+        targets_.push_back({nameField, Action::EditDjName, 0});
+        addButton(dc, RECT{pack.right - scale(98), pack.top + scale(7), pack.right - scale(13), pack.top + scale(43)},
+                  flag(rarestage::control::DjIdentityVisible) ? L"ON-AIR" : L"HIDDEN", Action::DjIdentity, 0,
+                  flag(rarestage::control::DjIdentityVisible), Purple);
+
+        drawText(dc, L"SCENE CATEGORY", RECT{pack.left + scale(13), pack.top + scale(52), pack.right - scale(13), pack.top + scale(73)}, smallFont_, Muted);
+        const int categoryGap = scale(5);
+        const int categoryWidth = (pack.right - pack.left - scale(26) - categoryGap * 4) / 5;
+        for (int index = 0; index < static_cast<int>(SceneCategoryNames.size()); ++index) {
+            const int x = pack.left + scale(13) + index * (categoryWidth + categoryGap);
+            addButton(dc, RECT{x, pack.top + scale(75), x + categoryWidth, pack.top + scale(112)}, SceneCategoryNames[index],
+                      Action::SceneCategory, index, connected_ && state_.sceneCategory == index, index == 0 ? Green : Cyan);
+        }
+
+        drawText(dc, L"TEMPO ANCHOR", RECT{pack.left + scale(13), pack.top + scale(121), pack.right - scale(13), pack.top + scale(142)}, smallFont_, Muted);
+        const int tempoGap = scale(7);
+        const int tempoWidth = (pack.right - pack.left - scale(26) - tempoGap * 2) / 3;
+        for (int index = 0; index < static_cast<int>(TempoAnchorNames.size()); ++index) {
+            const int x = pack.left + scale(13) + index * (tempoWidth + tempoGap);
+            addButton(dc, RECT{x, pack.top + scale(144), x + tempoWidth, pack.top + scale(182)}, TempoAnchorNames[index],
+                      Action::TempoAnchor, index, connected_ && state_.tempoAnchor == index, index == 0 ? Green : Purple);
+        }
+
+        const std::wstring loopStatus = L"ACTIVE  " + std::wstring(state_.categoryName[0] ? state_.categoryName : L"AUTO") +
+            L"   /   " + std::to_wstring(state_.loopPeriod) + L"-BEAT LOOP   /   GRID " +
+            std::to_wstring(state_.effectiveTempoAnchor) + L" BPM";
+        drawText(dc, loopStatus, RECT{pack.left + scale(13), pack.top + scale(190), pack.right - scale(13), pack.top + scale(216)}, headingFont_, Green);
+        drawText(dc, L"Smart Director develops each world through internal movements and phrase-safe patterns before it changes scenes. Audio nudges the grid; it never stops the autonomous animation clock.",
+                 RECT{pack.left + scale(13), pack.top + scale(218), pack.right - scale(13), pack.bottom - scale(8)}, smallFont_, Muted,
                  DT_LEFT | DT_TOP | DT_WORDBREAK);
     }
 
@@ -1936,6 +2003,7 @@ private:
     bool trackingMouse_{};
     bool rehearsalActive_{};
     bool smartCapture_{true};
+    bool editingDjName_{};
     int exitCode_{};
     UINT dpi_{96};
     Page page_{Page::Show};
@@ -1970,6 +2038,7 @@ private:
     std::wstring lastSessionSummaryPath_;
     std::wstring pendingCaptureReason_;
     std::wstring captureReasonInFlight_;
+    std::wstring djNameBuffer_{L"RARE"};
     std::vector<TraceSample> trace_;
     std::vector<RehearsalSample> rehearsalSamples_;
     std::vector<RehearsalEvent> rehearsalEvents_;
