@@ -222,7 +222,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.14.1",
+            0, windowClass.lpszClassName, L"RareStage Console 0.15.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -880,7 +880,7 @@ private:
         DWORD_PTR result{};
         const bool delivered = SendMessageTimeoutW(rendererWindow_, WM_COPYDATA, reinterpret_cast<WPARAM>(window_),
             reinterpret_cast<LPARAM>(&copy), SMTO_ABORTIFHUNG | SMTO_BLOCK, 750, &result) != 0 && result != 0;
-        statusText_ = delivered ? L"DJ identity updated in the clean stage output." : L"RareStage did not accept the DJ name.";
+        statusText_ = delivered ? L"DJ formation target updated in the Showbrain." : L"RareStage did not accept the DJ name.";
         editingDjName_ = false;
     }
 
@@ -1049,7 +1049,7 @@ private:
                 case Action::EditDjName: editingDjName_ = true; djNameBuffer_ = state_.djName[0] ? state_.djName : L"RARE"; statusText_ = L"Type the DJ name, then press Enter to apply."; SetFocus(window_); break;
                 case Action::SceneCategory: send(Command::SetSceneCategory, target.value, SceneCategoryNames[target.value] + std::wstring(L" scene category")); break;
                 case Action::TempoAnchor: send(Command::SetTempoAnchor, target.value, TempoAnchorNames[target.value] + std::wstring(L" tempo anchor")); break;
-                case Action::DjIdentity: send(Command::SetDjIdentityVisible, flag(rarestage::control::DjIdentityVisible) ? 0 : 1, L"DJ identity layer"); break;
+                case Action::DjIdentity: send(Command::SetDjIdentityVisible, flag(rarestage::control::DjIdentityVisible) ? 0 : 1, L"identity choreography"); break;
                 case Action::QuitStage: send(Command::QuitRenderer, 0, L"Close stage"); break;
                 default: break;
             }
@@ -1814,8 +1814,12 @@ private:
             L"   /   " + std::to_wstring(state_.loopPeriod) + L"-BEAT LOOP   /   GRID " +
             std::to_wstring(state_.effectiveTempoAnchor) + L" BPM";
         drawText(dc, loopStatus, RECT{pack.left + scale(13), pack.top + scale(190), pack.right - scale(13), pack.top + scale(216)}, headingFont_, Green);
-        drawText(dc, L"Smart Director develops each world through internal movements and phrase-safe patterns before it changes scenes. Audio nudges the grid; it never stops the autonomous animation clock.",
-                 RECT{pack.left + scale(13), pack.top + scale(218), pack.right - scale(13), pack.bottom - scale(8)}, smallFont_, Muted,
+        const std::wstring choreographyStatus = L"SHOWBRAIN  " + std::wstring(state_.choreographyName[0] ? state_.choreographyName : L"ESTABLISH") +
+            L"   /   TARGET  " + std::wstring(state_.identityTarget[0] ? state_.identityTarget : L"RARE MARK") + L"   /   FORMATION " +
+            std::to_wstring(static_cast<int>(std::lround(state_.identityWeight * 100))) + L"%";
+        drawText(dc, choreographyStatus, RECT{pack.left + scale(13), pack.top + scale(218), pack.right - scale(13), pack.top + scale(244)}, smallFont_, Purple);
+        drawText(dc, L"Smart Director rolls continuous scene patterns through establish, resolve and release stanzas. The Rare mark or DJ name becomes scene geometry; audio conducts pressure and light without stopping motion.",
+                 RECT{pack.left + scale(13), pack.top + scale(244), pack.right - scale(13), pack.bottom - scale(8)}, smallFont_, Muted,
                  DT_LEFT | DT_TOP | DT_WORDBREAK);
     }
 
