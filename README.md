@@ -4,22 +4,22 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.14.1**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.15.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.14.1
+## What changed in 0.15.0
 
-Version 0.14.1 is **Identity Worlds**. DJ identity is now choreographed through tile fragments, scene depth and transition motion instead of being composited as a static title, while three former tile systems have become full-scale environments.
+Version 0.15.0 is **Choreography Showbrain**: an offline, deterministic visual-performance agent that develops each world through authored musical stanzas without AI services, cloud calls or token usage.
 
-- Panel and pixel scenes split the configured DJ name across the physical tile field, then smoothly scatter and reconstruct it on phrase and transition boundaries
-- Ribbon, transport and atmosphere scenes treat identity as a moving carrier, distant architectural crop, horizon element or sparse environmental reveal
-- Lumen Canyon replaces Bioframe with flowing canyon membranes, illuminated rivers, filaments and autonomous spores
-- Orbital Garden replaces Celestial Rig with a planet, layered orbital bodies, atmosphere, stars and a living horizon
-- Rare Archipelago replaces Suspended Field with floating islands, waterfalls, atmospheric depth and slow environmental drift
-- Identity brightness responds to the current render-frame kick/snare path without using audio as the animation clock
-- The v0.14 Club Loop Engine, four scene categories, 64/96-beat progression and confident 128/130 BPM anchors remain intact
-- Protocol v12 remains wire-compatible with the Console
+- Removed the DirectWrite identity overlay from clean output
+- Custom DJ names are rasterized into a GPU mask and become native scene geometry
+- The actual alpha Rare mark remains the brand source; no generated `RARE` text substitutes it
+- A four-stage stanza pipeline moves every selected identity through Establish, Roll, Resolve and Release
+- Stagewall, Morph Wall, Kinetic Array, Pixel Loom, Kinetic Facade and Panel Cascade roll their physical panels directly into Rare-mark or DJ-name formations
+- Lumen Canyon, Orbital Garden and Rare Archipelago reveal identity through spores, stars and atmospheric light rather than foreground captions
+- Sixteen-beat choreography remains continuously animated; kick, bass, snare and hats control pressure and surface light without owning object time
+- Console protocol v13 reports choreography stage, identity target, formation strength, stanza position and continuous showbrain phase
 
 The v0.13 Adaptive Show Grammar remains the foundation:
 
@@ -146,7 +146,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Production | Production-duty presets, output mastering, master brightness, mapped stage layouts, sync group and Local/Leader/Follower synchronization |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v12 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v13 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, Showbrain choreography, identity target, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
 
 Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 
@@ -241,7 +241,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.14.1 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
+VSync is enabled by default. The 0.15.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
 
 ## Build from source
 
@@ -270,7 +270,7 @@ Every push and pull request runs the Windows workflow:
 10. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
 11. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
 
-Successful pushes to `main` publish or refresh the **v0.14.1** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
+Successful pushes to `main` publish or refresh the **v0.15.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
@@ -333,14 +333,22 @@ Successful pushes to `main` publish or refresh the **v0.14.1** GitHub release au
 - Custom DJ identity choreography in the clean output
 - Protocol v12 Console control and deterministic loop validation
 
-### v0.14.1 — Identity Worlds (current)
+### v0.14.1 — Identity Worlds (completed)
 
 - Tile-fragment DJ-name assembly and transition choreography
 - Family-specific carrier, architecture and environmental identity treatments
 - Lumen Canyon, Orbital Garden and Rare Archipelago world-scale scenes
 - Current-frame identity accents with continuous autonomous motion underneath
 
-### v0.15 — Show authoring
+### v0.15.0 — Choreography Showbrain (current)
+
+- GPU-native Rare-mark and custom DJ-name formation masks
+- Establish, Roll, Resolve and Release stanza grammar
+- Panel Cascade motion language propagated through the primary panel systems
+- World-integrated particle, star and atmospheric identity reveals
+- Protocol v13 live choreography telemetry in Console
+
+### v0.16 — Show authoring
 
 - Project-level show files and venue profiles
 - Editable world affinities, act states and transition grammar
