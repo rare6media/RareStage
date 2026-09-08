@@ -5,3 +5,13 @@
 *.suo
 *.VC.db
 
+
+/build-local/
+/build-native/
+/dist/
+/RareStage-visual-validation/
+/RareStage-benchmark-4k/
+/RareStage-adapter.txt
+/RareStage-*.csv
+/RareStage-*.log
+/RareStage-*.zip
