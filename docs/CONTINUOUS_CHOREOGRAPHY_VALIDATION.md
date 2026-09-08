@@ -1,4 +1,6 @@
-# RareStage 0.17.0 validation
+# RareStage 0.17.0 validation (historical)
+
+These measurements describe the earlier build. See [v0.18 validation](STAGE_LIGHTING_VALIDATION.md) for the current implementation.
 
 Measured locally on September 8, 2026, on an NVIDIA GeForce RTX 4070 SUPER, Windows x64, MSVC 19.29, Release configuration, with Spout support compiled in. Normal desktop applications remained active; this was not a controlled laboratory run.
 

@@ -64,7 +64,7 @@ constexpr std::array<const wchar_t*, rarestage::control::ProfileCount> ProfileNa
     L"CALM", L"BALANCED", L"STAGE", L"AGGRESSIVE"
 };
 constexpr std::array<const wchar_t*, rarestage::control::PaletteCount> PaletteNames{
-    L"RARE CYAN", L"NEBULA", L"SAKURA", L"SOLAR"
+    L"RARE CYAN", L"NEBULA", L"SAKURA", L"SOLAR", L"LASER LIME", L"CORAL ICE", L"ULTRAVIOLET", L"ELECTRIC GOLD"
 };
 constexpr std::array<const wchar_t*, rarestage::control::PresetCount> PresetNames{
     L"CLEAN OPEN", L"MELODIC BLOOM", L"RARE DROP", L"GLITCH FINALE"
@@ -97,7 +97,7 @@ constexpr std::array<const wchar_t*, rarestage::control::TempoAnchorCount> Tempo
     L"AUTO CLUB", L"128 BPM", L"130 BPM"
 };
 
-enum class Page { Show, Mix, Audio, Output, Production, Rehearsal };
+enum class Page { Show, Mix, Audio, Output, Production, Rehearsal, Screens };
 
 enum class Setting {
     Sensitivity,
@@ -152,6 +152,10 @@ enum class Action {
     ExportSession,
     AudioDevice,
     Monitor,
+    SelectDisplay,
+    ToggleMirror,
+    MirrorAll,
+    MirrorOff,
     Fullscreen,
     MasteringProfile,
     StageLayout,
@@ -222,7 +226,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.17.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.18.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -237,7 +241,7 @@ public:
         dpi_ = GetDpiForWindow(window_);
         createFonts();
         SetTimer(window_, 1, 33, nullptr);
-        ShowWindow(window_, SW_SHOW);
+        if(!std::wcsstr(GetCommandLineW(),L"--screen-ui-test"))ShowWindow(window_, SW_SHOW);
         UpdateWindow(window_);
         return true;
     }
@@ -264,6 +268,18 @@ public:
         beginConnectedSoakTest();
         closeStageAfterSoak_ = true;
         launchRenderer();
+    }
+
+    bool captureScreenUiTest(){
+        const UINT oldDpi=dpi_;destroyFonts();dpi_=96;createFonts();connected_=true;state_.monitorCount=8;state_.monitor=0;state_.mirrorMask=6;state_.mirrorCount=2;state_.displayOutputStatus=1;
+        for(int n=0;n<8;++n)swprintf_s(state_.displayNames[n],L"DISPLAY %d  /  %d x %d",n+1,n==1?1080:1920,n==1?1920:1080);
+        BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=1280;info.bmiHeader.biHeight=-640;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+        void*pixels=nullptr;HDC dc=CreateCompatibleDC(nullptr);HBITMAP bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,nullptr,0);if(!bitmap||!pixels){if(bitmap)DeleteObject(bitmap);DeleteDC(dc);return false;}
+        const auto old=SelectObject(dc,bitmap);fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintScreens(dc,RECT{12,12,1268,628});GdiFlush();
+        bool ok=true;for(const auto&target:targets_)if(target.rect.left<12||target.rect.right>1268||target.rect.top<12||target.rect.bottom>628||target.rect.right<=target.rect.left||target.rect.bottom<=target.rect.top)ok=false;
+        BITMAPFILEHEADER file{};file.bfType=0x4d42;file.bfOffBits=sizeof(file)+sizeof(BITMAPINFOHEADER);file.bfSize=file.bfOffBits+1280*640*4;
+        std::ofstream output("RareStage-screens-ui.bmp",std::ios::binary);output.write(reinterpret_cast<const char*>(&file),sizeof(file));output.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));output.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&output.good();
+        SelectObject(dc,old);DeleteObject(bitmap);DeleteDC(dc);connected_=false;destroyFonts();dpi_=oldDpi;createFonts();return ok;
     }
 
 private:
@@ -306,7 +322,12 @@ private:
                 cursor_ = POINT{-10000, -10000};
                 trackingMouse_ = false;
                 return 0;
+            case WM_SYSKEYDOWN:
+                if(rarestage::control::IsFullscreenShortcut(message,wParam,lParam)){send(Command::SetFullscreen,flag(rarestage::control::Fullscreen)?0:1,L"Stage fullscreen");return 0;}
+                break;
+            case WM_SYSCHAR:if(wParam==VK_RETURN)return 0;break;
             case WM_KEYDOWN:
+                if(rarestage::control::IsFullscreenShortcut(message,wParam,lParam)){send(Command::SetFullscreen,flag(rarestage::control::Fullscreen)?0:1,L"Stage fullscreen");return 0;}
                 handleKey(wParam);
                 return 0;
             case WM_CHAR:
@@ -426,9 +447,8 @@ private:
     void updateConnection() {
         pollRendererProcess();
         if (rendererWindow_ && !IsWindow(rendererWindow_)) disconnect();
-        if (!rendererWindow_) rendererWindow_ = FindWindowW(rarestage::control::RendererWindowClass, nullptr);
 
-        if (rendererWindow_ && !mapping_) {
+        if (!mapping_) {
             mapping_ = OpenFileMappingW(FILE_MAP_READ, FALSE, rarestage::control::MappingName);
             if (mapping_) {
                 mappedState_ = static_cast<const SharedState*>(
@@ -441,15 +461,18 @@ private:
         }
 
         SharedState next{};
-        if (!rendererWindow_ || !mappedState_ ||
-            !rarestage::control::ReadConsistent(mappedState_, next)) {
+        if (!mappedState_ || !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.14 Console endpoint.";
+                statusText_ = L"Launch the matching v0.18 Stage and Console pair.";
             }
             return;
         }
 
+        // Bind commands to the process owning this telemetry, even when an older Stage is open.
+        struct Search {DWORD process;HWND window;};Search search{next.rendererProcessId,nullptr};
+        EnumWindows([](HWND window,LPARAM data)->BOOL{auto*search=reinterpret_cast<Search*>(data);DWORD process=0;GetWindowThreadProcessId(window,&process);wchar_t name[64]{};GetClassNameW(window,name,64);if(process==search->process&&std::wcscmp(name,rarestage::control::RendererWindowClass)==0){search->window=window;return FALSE;}return TRUE;},reinterpret_cast<LPARAM>(&search));
+        rendererWindow_=search.window;if(!rendererWindow_){connected_=false;return;}
         const std::uint64_t now = GetTickCount64();
         const auto age = now >= next.heartbeatTickMs ? now - next.heartbeatTickMs : 0;
         if (age > 1800) {
@@ -927,7 +950,7 @@ private:
             if (GetKeyState(VK_SHIFT) & 0x8000) send(Command::SavePreset, preset, L"Save preset F" + std::to_wstring(preset + 1));
             else send(Command::LoadPreset, preset, PresetNames[preset]);
         } else if (key == VK_TAB) {
-            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 6));
+            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 7));
         }
     }
 
@@ -1041,6 +1064,10 @@ private:
                 case Action::ExportSession: if (saveRehearsalSession()) statusText_ = L"Rehearsal package updated at " + lastSessionSummaryPath_; else statusText_ = L"No rehearsal data is available to export."; break;
                 case Action::AudioDevice: send(Command::CycleAudioDevice, 0, L"Audio device"); break;
                 case Action::Monitor: send(Command::CycleMonitor, 0, L"Output monitor"); break;
+                case Action::SelectDisplay:send(Command::SelectMonitor,target.value,L"Stage display");break;
+                case Action::ToggleMirror:send(Command::SetMirrorMask,int(state_.mirrorMask^(1u<<target.value)),L"Mirror display");break;
+                case Action::MirrorAll:send(Command::SetMirrorMask,int(((1u<<std::clamp(state_.monitorCount,0,8))-1u)&~(1u<<state_.monitor)),L"Mirror all other displays");break;
+                case Action::MirrorOff:send(Command::SetMirrorMask,0,L"Mirrors off");break;
                 case Action::Fullscreen: send(Command::SetFullscreen, flag(rarestage::control::Fullscreen) ? 0 : 1, L"Fullscreen"); break;
                 case Action::MasteringProfile: send(Command::SetMasteringProfile, target.value, MasteringNames[target.value]); break;
                 case Action::StageLayout: send(Command::SetStageLayout, target.value, StageLayoutNames[target.value]); break;
@@ -1231,14 +1258,14 @@ private:
 
         const int tabTop = scale(68);
         const int tabWidth = scale(108);
-        const std::array<const wchar_t*, 6> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"PRODUCTION", L"REHEARSAL"};
-        for (int index = 0; index < 6; ++index) {
+        const std::array<const wchar_t*, 7> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"PRODUCTION", L"REHEARSAL", L"SCREENS"};
+        for (int index = 0; index < 7; ++index) {
             addButton(dc, RECT{margin + index * (tabWidth + scale(7)), tabTop,
                                margin + index * (tabWidth + scale(7)) + tabWidth, tabTop + scale(34)},
                       names[index], Action::Page, index, static_cast<int>(page_) == index, Cyan);
         }
-        drawText(dc, L"TAB pages  |  G rehearsal  |  F1-F4 presets",
-                 RECT{margin + scale(705), tabTop, client.right - margin, tabTop + scale(34)},
+        drawText(dc, L"ALT+ENTER stage fullscreen",
+                 RECT{margin + scale(810), tabTop, client.right - margin, tabTop + scale(34)},
                  smallFont_, Muted, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
     }
 
@@ -1395,11 +1422,12 @@ private:
         }
         sectionLabel(dc, L"PALETTE DIRECTION", left.left + scale(14), y + scale(47), columnWidth - scale(28));
         y += scale(74);
-        for (int index = 0; index < 4; ++index) {
-            const int x = left.left + scale(14) + index * (optionWidth + optionGap);
-            addButton(dc, RECT{x, y, x + optionWidth, y + scale(36)}, PaletteNames[index], Action::Palette, index,
+        for (int index = 0; index < 8; ++index) {
+            const int x = left.left + scale(14) + (index%4) * (optionWidth + optionGap),top=y+(index/4)*scale(41);
+            addButton(dc, RECT{x, top, x + optionWidth, top + scale(36)}, PaletteNames[index], Action::Palette, index,
                       connected_ && state_.fallbackPalette == index, Cyan);
         }
+        y+=scale(41);
 
         sectionLabel(dc, L"AUDIO RESPONSE", left.left + scale(14), y + scale(48), columnWidth - scale(28));
         y += scale(76);
@@ -1601,6 +1629,27 @@ private:
         }
         addButton(dc, RECT{plot.left, right.bottom - scale(52), plot.right, right.bottom - scale(10)},
                   L"EXPORT CALIBRATION TRACE CSV", Action::ExportTrace, 0, false, Green);
+    }
+
+    void paintScreens(HDC dc,RECT body){
+        fillRound(dc,body,11,Panel,Line);
+        sectionLabel(dc,L"SYNCHRONIZED SCREEN OUTPUT",body.left+scale(18),body.top+scale(10),body.right-body.left-scale(36));
+        drawText(dc,L"One visual across your displays. Mirror outputs stay clean; mismatched shapes use letterboxing.",RECT{body.left+scale(18),body.top+scale(38),body.right-scale(18),body.top+scale(65)},bodyFont_,Muted);
+        const int top=body.top+scale(78),gap=scale(12),buttonWidth=(body.right-body.left-scale(48))/3;
+        addButton(dc,RECT{body.left+scale(18),top,body.left+scale(18)+buttonWidth,top+scale(38)},L"MIRROR ALL OTHER DISPLAYS",Action::MirrorAll,0,state_.mirrorCount>0,Green);
+        addButton(dc,RECT{body.left+scale(24)+buttonWidth,top,body.left+scale(24)+buttonWidth*2,top+scale(38)},L"MIRRORS OFF",Action::MirrorOff,0,state_.mirrorCount==0,Amber);
+        addButton(dc,RECT{body.left+scale(30)+buttonWidth*2,top,body.right-scale(18),top+scale(38)},flag(rarestage::control::Fullscreen)?L"LEAVE STAGE FULLSCREEN":L"STAGE FULLSCREEN",Action::Fullscreen,0,flag(rarestage::control::Fullscreen),Purple);
+        const int cardWidth=(body.right-body.left-scale(36)-gap)/2;
+        const int cardHeight=std::min(scale(94),int(body.bottom-top-scale(174))/4);
+        for(int index=0;index<std::clamp(state_.monitorCount,0,8);++index){
+            const int x=body.left+scale(18)+(index%2)*(cardWidth+gap),y=top+scale(53)+(index/2)*(cardHeight+gap);
+            RECT card{x,y,x+cardWidth,y+cardHeight};fillRound(dc,card,8,PanelRaised,Line);
+            drawText(dc,state_.displayNames[index],RECT{x+scale(12),y+scale(4),card.right-scale(12),y+scale(30)},bodyFont_,Text);
+            const int half=(cardWidth-scale(30))/2;
+            addButton(dc,RECT{x+scale(10),y+scale(35),x+scale(10)+half,card.bottom-scale(8)},index==state_.monitor?L"MAIN STAGE DISPLAY":L"MOVE STAGE HERE",Action::SelectDisplay,index,index==state_.monitor,Cyan);
+            if(index!=state_.monitor)addButton(dc,RECT{x+scale(20)+half,y+scale(35),card.right-scale(10),card.bottom-scale(8)},state_.mirrorMask&(1u<<index)?L"MIRROR ON":L"MIRROR OFF",Action::ToggleMirror,index,(state_.mirrorMask&(1u<<index))!=0,Green);
+        }
+        drawText(dc,state_.displayOutputStatus<0?L"Output could not open. Reconnect the display and retry.":L"ALT+ENTER or F11 toggles Stage fullscreen. ESC on a mirror closes mirror outputs.",RECT{body.left+scale(18),body.bottom-scale(48),body.right-scale(18),body.bottom-scale(15)},smallFont_,state_.displayOutputStatus<0?Red:Muted);
     }
 
     void paintOutput(HDC dc, RECT body) {
@@ -1962,6 +2011,7 @@ private:
         else if (page_ == Page::Audio) paintAudio(dc, body);
         else if (page_ == Page::Output) paintOutput(dc, body);
         else if (page_ == Page::Production) paintProduction(dc, body);
+        else if(page_==Page::Screens)paintScreens(dc,body);
         else paintRehearsal(dc, body);
 
         RECT footer{margin, client.bottom - margin - footerHeight, client.right - margin, client.bottom - margin};
@@ -2162,6 +2212,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
         MessageBoxW(nullptr, L"RareStage Console could not start.", L"RareStage Console", MB_OK | MB_ICONERROR);
         return 1;
     }
+    if(std::wcsstr(GetCommandLineW(),L"--screen-ui-test")){const bool passed=app.captureScreenUiTest();app.requestClose();app.run();return passed?0:5;}
     if (std::wcsstr(GetCommandLineW(), L"--startup-test")) app.requestClose();
     else if (std::wcsstr(GetCommandLineW(), L"--connected-soak-test")) app.beginConnectedSoakTest();
     else if (std::wcsstr(GetCommandLineW(), L"--launch-stage-soak-test")) app.beginLaunchStageSoakTest();

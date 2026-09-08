@@ -8,14 +8,14 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v13";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v14";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
 inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
-inline constexpr std::uint32_t ProtocolVersion = 13;
+inline constexpr std::uint32_t ProtocolVersion = 14;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
-inline constexpr std::uint32_t PaletteCount = 4;
+inline constexpr std::uint32_t PaletteCount = 8;
 inline constexpr std::uint32_t ProfileCount = 4;
 inline constexpr std::uint32_t PresetCount = 4;
 inline constexpr std::uint32_t TransitionStyleCount = 4;
@@ -74,7 +74,9 @@ enum class Command : std::uint32_t {
     SetSyncGroup,
     SetSceneCategory,
     SetTempoAnchor,
-    SetDjIdentityVisible
+    SetDjIdentityVisible,
+    SelectMonitor,
+    SetMirrorMask
 };
 
 enum StateFlag : std::uint32_t {
@@ -248,11 +250,19 @@ struct alignas(64) SharedState {
     wchar_t categoryName[32]{};
     wchar_t choreographyName[32]{};
     wchar_t identityTarget[32]{};
+    std::uint32_t mirrorMask{};
+    std::int32_t mirrorCount{};
+    std::int32_t displayOutputStatus{};
+    wchar_t displayNames[8][64]{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");
 static_assert(std::is_trivially_copyable_v<SharedState>);
-static_assert(sizeof(SharedState) <= 2304);
+static_assert(sizeof(SharedState) <= 4096);
+
+inline bool IsFullscreenShortcut(UINT message,WPARAM key,LPARAM flags) noexcept {
+    return !(flags&(LPARAM(1)<<30))&&((message==WM_SYSKEYDOWN&&key==VK_RETURN&&(flags&(LPARAM(1)<<29)))||(message==WM_KEYDOWN&&key==VK_F11));
+}
 
 inline LPARAM PackCommand(std::int32_t value, std::uint32_t serial) noexcept {
     const auto packed = (static_cast<std::uint64_t>(serial) << 32u) |

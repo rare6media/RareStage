@@ -16,13 +16,16 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 13 || AudioProfileCount != 4 ||
+    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 14 || AudioProfileCount != 4 ||
         MasteringProfileCount != 4 || StageLayoutCount != 4 || ProductionDutyCount != 5 || SyncModeCount != 3 ||
         SceneCategoryCount != 5 || TempoAnchorCount != 3) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
 
+    if(PaletteCount!=8||!IsFullscreenShortcut(WM_SYSKEYDOWN,VK_RETURN,LPARAM(1)<<29)||
+       IsFullscreenShortcut(WM_SYSKEYDOWN,VK_RETURN,(LPARAM(1)<<29)|(LPARAM(1)<<30))||
+       IsFullscreenShortcut(WM_KEYDOWN,VK_RETURN,0)||!IsFullscreenShortcut(WM_KEYDOWN,VK_F11,0))return 9;
     SharedState source{};
     source.protocolVersion = ProtocolVersion;
     source.structSize = sizeof(SharedState);
@@ -32,6 +35,7 @@ int main() {
     source.heartbeatTickMs = 123456;
     source.stateRevision = 9;
     source.world = 13;
+    source.mirrorMask=6;source.mirrorCount=2;wcscpy_s(source.displayNames[1],L"DISPLAY 2 / 1920 x 1080");
     source.songSection = 2;
     source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled | RehearsalActive | PredictiveCueArmed |
                    SyncConnected | SyncFollower | LedSafeMaster | DjIdentityVisible;
@@ -224,7 +228,7 @@ int main() {
     UnmapViewOfFile(writable);
     CloseHandle(mapping);
     if (!readonlyRead || readonlyCopy.world != source.world ||
-        readonlyCopy.stateRevision != source.stateRevision) {
+        readonlyCopy.stateRevision != source.stateRevision||readonlyCopy.mirrorMask!=6||readonlyCopy.mirrorCount!=2||std::wcscmp(readonlyCopy.displayNames[1],source.displayNames[1])!=0) {
         std::cerr << "Read-only shared-state regression test failed\n";
         return 8;
     }

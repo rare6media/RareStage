@@ -20,7 +20,7 @@ int runVisualValidation(bool benchmark) {
     for(int world:worlds){
         const bool wall=world==0||world==3||world==9||world==11||world==13||world==15;
         if(!benchmark&&!(wall||world==1||world==7||world==16||world==2))continue;
-        const int kinds=benchmark?1:2,frames=benchmark?1080:(wall?512:128);
+        const int kinds=benchmark?1:2,frames=benchmark?1080:((wall||world==1||world==16)?1024:128);
         for(int kind=0;kind<kinds;++kind){
             if(!drain())return 11;validationGpuSamples_.clear();collectValidationGpu_=false;
             std::vector<float>previous;Clock::time_point benchmarkStart{};
@@ -32,7 +32,7 @@ int runVisualValidation(bool benchmark) {
                 c.scene=c.previousScene=float(world);c.transition=1;c.logoScale=1;c.palette=2;
                 c.masterBrightness=.92f;c.masteringProfile=1;c.cueDensity=1;c.songSection=2;
                 c.visualMovement=2;c.patternSeed=float(world%8);c.idleLife=1;
-                c.tempoPhase=c.time*128.f/60.f;c.beatIndex=std::floor(c.tempoPhase);
+                c.tempoPhase=benchmark?std::max(0,frame-120)*128.f/960.f:c.time*128.f/60.f;c.beatIndex=std::floor(c.tempoPhase);
                 c.stanzaProgress=std::fmod(c.tempoPhase,16.f)/16.f;
                 c.identityKind=float(kind);c.identityWeight=liquidProgress((c.stanzaProgress-.16f)/.30f)*(1-liquidProgress((c.stanzaProgress-.72f)/.24f));
                 c.movementProgress=liquidProgress(c.stanzaProgress);

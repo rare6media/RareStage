@@ -24,7 +24,7 @@ int runChoreographyValidation(bool benchmark){
         validationGpuSamples_.clear();collectValidationGpu_=benchmark;
         std::vector<float>previous;
         for(int frame=0;frame<=120;++frame){
-            Constants c=fixture(8.f+frame/60.f);c.previousScene=float(pair[0]);c.scene=float(pair[1]);c.previousPatternSeed=2;c.patternSeed=5;c.transition=frame/120.f;c.transitionStyle=float(style);
+            Constants c=fixture(8.f+frame/60.f);c.previousScene=float(pair[0]);c.scene=float(pair[1]);c.previousPatternSeed=float(2+style*3);c.patternSeed=float(5+style*3);c.transition=frame/120.f;c.transitionStyle=float(style);if(benchmark){c.tempoPhase=frame*128.f/120.f;c.previousPatternSeed=12;c.patternSeed=8;}
             pollGpuTimers();drawScene(c);
             if(benchmark){context_->Flush();if(frame%8==7&&!drain())return 14;continue;}
             const auto current=pixels();const double delta=previous.empty()?0:difference(current,previous);previous=current;

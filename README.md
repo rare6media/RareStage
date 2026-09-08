@@ -4,25 +4,24 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.17.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.18.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.17.0
+## What changed in 0.18.0
 
-Version 0.17.0 is **Continuous Choreography**.
+Version 0.18.0 is **Stage Lighting + Multi-Screen**.
 
-- Stagewall rows glide as complete moving rows. Clean cube faces join into luminous ribbons along the active pattern; bevels and restrained accents keep the formations readable.
-- Eight authored motifs cycle through row conveyors, chevrons, radial waves, split gates, serpentine waves, helices, grouped blocks and cross-waves. Each eight-beat phrase establishes its motif before smoothly reshaping into the next.
-- Wall-to-wall changes reshape one shared lattice: row motion, spacing, cube proportions and pattern fields evolve continuously. Mixed scenes carry the incoming world across unfolding panel surfaces. There is no spatial wipe or seam flash.
-- The Director gives scene motion four beats in active sections and eight beats in openings/breakdowns, calculated from the current tempo. Manual motion duration remains adjustable. Rapid scene choices update one pending destination while the current animation completes.
-- The detailed Rare logo and editable DJ name still assemble across panel surfaces. The full supporting wall remains visible. Identity decisions remain stable through each stanza and release smoothly during scene motion.
-- **Prism Atrium** replaces Ember Basin with travelling architectural ribs, changing prism shapes, depth, brackets and eight beat-driven light formations.
-- **Pulse Causeway** replaces Tidal Expanse with perspective cube tiers, a mirrored ceiling, lifting banks, rails and eight beat-driven patterns. Fire and water have been removed.
-- All 18 scenes remain procedural and offline. Bass/kicks drive structural emphasis; snares and hats provide distinct accents. Patterns continue moving when audio stops.
-- Native artifact, scene-continuity and 4K GPU tests exercise the production rendering path. Ultra 4K caps the HDR scene at 3840×2160.
+- Sixteen motifs expand the wall repertoire with column elevators, row reveals, staggered racks, perimeter chases, ladders, opposing rows, diamond chases and cross pulses. Morph Wall, Kinetic Array and Kinetic Facade now use the clean moving-cube treatment alongside Stagewall. Panel Cascade and Pixel Loom keep their distinct surface detail.
+- Pulse Causeway and Prism Atrium each have sixteen musical patterns. Causeway banks travel laterally as well as lifting through depth. Coordinated color bands make the moving formations easier to follow.
+- Eight palette directions add Laser Lime, Coral Ice, Ultraviolet and Electric Gold. The Director chooses among all eight; palettes interpolate continuously and the foreground identity remains readable.
+- Smart Director advances on its dwell timer and starts scene motion on the next musical bar, including through a steady track or silence. Confirmed musical boundaries can still bring a qualified cue forward. Manual scene selection preserves the current automatic mode and restarts the dwell timer. Automatic cycling is enabled once when upgrading older settings; `A` toggles it and `Space` holds it.
+- Pixel Bank's DVD-style mark anticipates forecast drops with a smooth corner trajectory. An unexpected confirmed drop triggers a one-beat corner move; it does not teleport. Forecast accuracy determines whether a predicted corner arrival matches the actual musical drop.
+- **Alt+Enter and F11 work from Stage or Console.** Borderless fullscreen uses the selected display and restores the previous window placement. Repeated key events are ignored, and DXGI's automatic fullscreen handling is disabled.
+- A new **Screens** page selects the main display and mirrors the same clean frame onto additional displays, up to eight connected displays total. Each mirror preserves aspect ratio with letterboxing. Mirrors can be enabled individually or all at once; ESC in a mirror closes mirror outputs.
+- Display topology changes refresh output windows, and moving the Stage window updates its selected monitor. A mirror receives the source Stage frame at its own screen size; use the 4K display as the main fullscreen Stage when you need a native 4K source.
 
-See [validation and performance notes](docs/CONTINUOUS_CHOREOGRAPHY_VALIDATION.md) for measured results and limits. Console protocol v13 and scene IDs are retained. Use matching Stage and Console executables; network leaders and followers should all use this version because eight-beat scene motion can exceed the older sync receiver's three-second limit.
+See [current validation and performance notes](docs/STAGE_LIGHTING_VALIDATION.md). Use the matching Stage and Console pair: Console protocol is now v14, and network leader/follower packets are v2. All participants should use v0.18. Local multi-screen mirrors share one render and do not require network sync.
 
 The v0.13 Adaptive Show Grammar remains the foundation:
 
@@ -60,9 +59,10 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Visual system | Eighteen authored Rare worlds organized into four VDJ categories, with 64/96-beat loop grammar, act-specific 2D animation, layered parallax and selective 2.5D depth |
 | Director | Musical-stage prediction, prepared-world pre-roll, internal-loop progression, category filtering, 128/130 club anchors, ending holds, set-wide memory, adaptive cue density, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
-| Show control | Six-page RareStage Console with editable DJ identity, category and tempo controls, plus a Direct2D/DirectWrite in-renderer overlay |
+| Show control | Seven-page RareStage Console with editable DJ identity, category and tempo controls, plus a Direct2D/DirectWrite in-renderer overlay |
 | Rehearsal | Telemetry recorder, GPU-aware smart captures, review decisions, reason tags and portable CSV/Markdown session evidence |
 | Output | Borderless stage display, multi-monitor selection, clean Spout2 sender, four output masters and four mapped compositions |
+| Screens | One main Stage window plus clean mirrors on up to seven other displays; aspect-preserving output and direct display selection |
 | Synchronization | Optional UDP leader/follower show clock with bounded fixed-layout packets and motion-preserving follower hold |
 | Performance | 62%, 78%, 100% and up to 125% HDR render scales (Ultra capped at 4K); VSync or unlocked output; asynchronous GPU timing and profile budgets |
 | Persistence | Settings and four show presets under `%LOCALAPPDATA%\RareStage` |
@@ -72,9 +72,9 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Key | World | Visual direction | Rare-mark role |
 |---|---|---|---|
 | `1` | Morph Wall | Broad glass panels carry flowing diagonals, waves and counterflow | Fine panel surfaces resolve into the detailed Rare mark or DJ name |
-| `2` | Prism Atrium | Travelling architectural ribs reshape through prism sections and eight light formations | Identity assembles as light within the atrium |
+| `2` | Prism Atrium | Travelling architectural ribs reshape through prism sections and sixteen light formations | Identity assembles as light within the atrium |
 | `3` | Orbital Garden | A breathing celestial landscape layers a central planet, eight orbiting bodies, atmospheric bands and sparse stars | Identity enters as distant architectural light rather than a foreground watermark |
-| `4` | Stagewall | Gliding cube rows join into clean ribbons, chevrons, radial waves and five further motifs | Fine surface pixels align into readable identity while the full wall stays present |
+| `4` | Stagewall | Gliding cube rows join into clean ribbons, chevrons, radial waves and thirteen further motifs | Fine surface pixels align into readable identity while the full wall stays present |
 | `5` | Wavewall | Articulated vertical slats perform columns, diagonals, gates, tiers, fans and pressure fronts over a restrained stage floor | No foreground watermark; the complete slat stage carries the Rare movement language |
 | `6` | Pixel Bank | Stable grouped pixels slowly rotate in and out as an abstract support loop | One polished DVD-style mark conducts wall impacts, corner bursts and reactive edge light |
 | `7` | Prism Cascade | Two continuously moving prism banks perform columns, counters, gates and diagonals with signal-separated lighting | One stable mark sits behind the shutter architecture without slicing or glitch displacement |
@@ -82,19 +82,19 @@ The research and design synthesis behind this release is documented in [Stage vi
 | `9` | Chroma Blades | Elongated articulated glass blades perform columns, diagonals, radial pushes, gates, fans, blocks, cascades and crosses | No logo; motion, color and stage framing define the world |
 | `Q` | Kinetic Array | Turning tile banks develop waves, diagonals, blocks and counterflow | Tiles align their illuminated surfaces for a detailed identity resolve |
 | `W` | Kinetic Canopy | Suspended ceiling panels perform rows, columns, diagonals, split gates, checks, fans and lifts above a perspective runway | No logo; canopy architecture and converging floor light define the identity |
-| `E` | Pixel Loom | A dense 22×15 pixel instrument with eight continuously blended patterns | Fine luminous cells resolve the mark or DJ name |
+| `E` | Pixel Loom | A dense 22×15 pixel instrument with sixteen continuously blended patterns | Fine luminous cells resolve the mark or DJ name |
 | `R` | Matrix Vault | Receding architectural frames move steadily in one direction behind grouped data panels, etched glyph light and corridor pressure | The mark appears as temporary negative space inside the vault, never as a foreground watermark |
 | `Y` | Panel Cascade | Panel banks fold and descend through row waves, diagonals and counterflow | Micro-surfaces roll into a readable identity and back to the cascade |
 | `U` | Signal Rail | Nine perspective rails carry synchronized light packets from a distant horizon through six phrase formations | No logo; transport motion, lane color and architectural convergence make the world distinct |
-| `I` | Kinetic Facade | A wide articulated elevation with eight flowing pattern families | Distributed surface light forms the identity while retaining the facade |
-| `O` | Pulse Causeway | Perspective cube tiers, mirrored ceiling banks and light rails move through eight motifs | Identity assembles within the architectural space |
+| `I` | Kinetic Facade | A wide articulated elevation with sixteen flowing pattern families | Distributed surface light forms the identity while retaining the facade |
+| `O` | Pulse Causeway | Perspective cube tiers, mirrored ceiling banks and light rails move through sixteen motifs | Identity assembles within the architectural space |
 | `K` | Void Gates | Seven slow receding gates frame side-panel cues and a deliberately large central negative space | A restrained Rare-shaped void appears only during selected acts |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 
 ## Smart Director
 
-Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. Its prediction layer can arm an approaching Build, Drop, Breakdown or Drive, prepare the next world and palette, then commit only when the musical evidence confirms the boundary. A section change still transforms the **current world first**. If dwell expires outside a genuine chapter boundary, the current world receives another internal movement and pattern phrase rather than an arbitrary scene cut.
+Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. Its prediction layer can arm an approaching Build, Drop, Breakdown or Drive, prepare the next world and palette, then commit only when the musical evidence confirms the boundary. A section change transforms the **current world first**. The dwell timer independently schedules the next scene on a musical bar, so the show progresses even without a newly detected section. The existing continuous scene-surface animation carries each change.
 
 World selection scores current energy, band balance and the predicted musical act, penalizes the active and recently used worlds, then also accounts for how often each world has already served that act during the set. An optional category filter narrows automatic choices without disabling manual access. Palettes begin morphing during a qualified pre-roll rather than cutting at the drop. If tempo confidence disappears, `AUTO CLUB` returns gradually to its 128 BPM anchor; confident measurements near 128 or 130 receive a stable club-grid bias while clearly different tempos remain respected. Deterministic Show Timeline mode remains available for rehearsed playback.
 
@@ -380,6 +380,10 @@ THIRD_PARTY_NOTICES.md          Third-party licensing
 
 RareStage includes [Spout2](https://github.com/leadedge/Spout2) under the BSD 2-Clause License. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-### v0.17.0 — Continuous Choreography (current source)
+### v0.17.0 — Continuous Choreography
 
 Moving Stagewall rows, clean connected cube formations, shared animated scene surfaces, bar-length Director motion, Prism Atrium and Pulse Causeway. Includes the v0.16 detailed logo/name surfaces and full-wall coverage fixes. See the current validation notes; a local build does not imply a published GitHub release.
+
+### v0.18.0 — Stage Lighting + Multi-Screen (current source)
+
+Sixteen wall/architectural motifs, eight palettes, timed bar-aligned Director cycles, forecast DVD corner arrivals, repaired fullscreen shortcuts and clean multi-screen mirrors. Current validation covers the renderer, choreography, timed cues, window behavior, mirror readback and Screens controls.
