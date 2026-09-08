@@ -25,8 +25,8 @@ jobs:
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.13.0") {
-              throw "$binary is missing the expected publisher or v0.13.0 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.14.0") {
+              throw "$binary is missing the expected publisher or v0.14.0 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -98,6 +98,19 @@ jobs:
               @($rows | Group-Object mastering).Count -ne 4 -or @($rows | Group-Object layout).Count -ne 4 -or
               @($rows | Where-Object { [double]$_.brightness -lt 0.65 -or [double]$_.brightness -gt 1.0 -or [double]$_.visible_area -lt 0.5 }).Count -ne 0) {
             throw "Production duty, mastering, layout, or safety bounds are invalid"
+          }
+      - name: Club Loop Engine contract
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--club-loop-self-test" -Wait -PassThru
+          if ($process.ExitCode -ne 0 -or -not (Test-Path RareStage-club-loop-reference.csv)) {
+            throw "Club Loop Engine contract failed with exit code $($process.ExitCode)"
+          }
+          $rows = @(Import-Csv RareStage-club-loop-reference.csv)
+          if ($rows.Count -ne 36 -or @($rows | Group-Object category).Count -ne 4 -or
+              @($rows | Group-Object tempo_anchor).Count -ne 2 -or
+              @($rows | Where-Object { $_.autonomous_motion -ne "continuous" -or ([int]$_.loop_beats -ne 64 -and [int]$_.loop_beats -ne 96) }).Count -ne 0) {
+            throw "Club categories, tempo anchors, or loop contracts are invalid"
           }
       - name: Shader self-test
         shell: pwsh
@@ -187,7 +200,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.13.0"
+            version = "0.14.0"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -212,20 +225,20 @@ jobs:
             RareStage-world-reference.csv
             RareStage-director2-reference.csv
             RareStage-production-pack-reference.csv
+            RareStage-club-loop-reference.csv
             RareStage-reference-captures.csv
             RareStage-reference-captures/*.png
             RareStage-rehearsal-contract.csv
             RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.13.0 release
+      - name: Publish v0.14.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.13.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.13.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.14.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.14.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.13.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.13.0 — Adaptive Show Grammar" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.14.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.14.0 — Club Loop Engine" --generate-notes --repo $env:GITHUB_REPOSITORY
           }
-
