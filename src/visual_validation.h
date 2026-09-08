@@ -16,11 +16,11 @@ int runVisualValidation(bool benchmark) {
     if(!benchmark&&FAILED(device_->CreateTexture2D(&desc,nullptr,&readback)))return 11;
     auto drain=[&](){context_->Flush();const auto deadline=Clock::now()+std::chrono::seconds(10);for(;;){pollGpuTimers();bool pending=false;for(const auto&slot:gpuTimers_)pending|=slot.pending;if(!pending)return true;if(Clock::now()>deadline)return false;Sleep(1);}};
     bool passed=true;
-    const std::array<int,18>worlds{0,3,9,11,13,15,1,7,16,2,4,5,6,8,10,12,14,17};
+    const std::array<int,21>worlds{0,3,9,11,13,15,1,7,16,2,4,5,6,8,10,12,14,17,18,19,20};
     for(int world:worlds){
         const bool wall=world==0||world==3||world==9||world==11||world==13||world==15;
-        if(!benchmark&&!(wall||world==1||world==7||world==16||world==2))continue;
-        const int kinds=benchmark?1:2,frames=benchmark?1080:((wall||world==1||world==16)?1024:128);
+        if(!benchmark&&!(wall||world==1||world==7||world==16||world==2||world>=18))continue;
+        const int kinds=benchmark?1:2,frames=benchmark?1080:((wall||world==1||world==16||world>=18)?1024:128);
         for(int kind=0;kind<kinds;++kind){
             if(!drain())return 11;validationGpuSamples_.clear();collectValidationGpu_=false;
             std::vector<float>previous;Clock::time_point benchmarkStart{};

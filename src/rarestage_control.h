@@ -8,12 +8,12 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v14";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v15";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
 inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
-inline constexpr std::uint32_t ProtocolVersion = 14;
-inline constexpr std::uint32_t WorldCount = 18;
+inline constexpr std::uint32_t ProtocolVersion = 15;
+inline constexpr std::uint32_t WorldCount = 21;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 8;
 inline constexpr std::uint32_t ProfileCount = 4;

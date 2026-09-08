@@ -1,5 +1,13 @@
 // Embedded HLSL. These scenes have bounded per-pixel work and no simulation buffers.
 R"HLSL(
+float authoredMotif(float stepIndex,float seed){
+ float n=fmod(stepIndex,16),offset=0;
+ if(n<2)offset=0;else if(n<3)offset=1;else if(n<4)offset=8;
+ else if(n<5)offset=1;else if(n<6)offset=9;else if(n<7)offset=0;else if(n<8)offset=8;
+ else if(n<10)offset=2;else if(n<11)offset=3;else if(n<12)offset=10;
+ else if(n<13)offset=3;else if(n<14)offset=11;else if(n<15)offset=2;else offset=10;
+ return fmod(seed+offset,16);
+}
 float wallPattern(float kind,float2 id,float2 center,float phase){
  kind=fmod(kind,16);
  if(kind<1)return .5+.5*cos(id.y*.82-phase);
@@ -19,7 +27,7 @@ float wallPattern(float kind,float2 id,float2 center,float phase){
  if(kind<15)return .5+.5*cos((abs(id.x)+abs(id.y))*.78-phase);
  return .5+.5*cos(id.x*.5-phase)*cos(id.y*.7+phase);
 }
-float motifBlend(float clock){return liquidEase(smoothstep(.58,.98,frac(clock)));}
+float motifBlend(float clock){return liquidEase(smoothstep(.48,.99,frac(clock)));}
 bool isPanelWorld(float world){return abs(world)<.1||abs(world-3)<.1||abs(world-9)<.1||abs(world-11)<.1||abs(world-13)<.1||abs(world-15)<.1;}
 float2 wallScale(float world){return world<1?float2(8,7):world<4?float2(10,9):world<10?float2(12,9):world<12?float2(22,15):world<14?float2(13,9):float2(16,10);}
 float stageStyle(float world){return isPanelWorld(world)&&abs(world-11)>.1&&abs(world-13)>.1?1:0;}
@@ -59,7 +67,7 @@ WallSurface wallSurface(float2 p,float world,float seed,float opening){
  bool familyMorph=isPanelWorld(scene)&&isPanelWorld(previousScene)&&abs(scene-previousScene)>.1;
  g.scale=familyMorph?lerp(wallScale(previousScene),wallScale(scene),morph):wallScale(world);
  g.stage=familyMorph?lerp(stageStyle(previousScene),stageStyle(scene),morph):stageStyle(world);
- float clock=tempoPhase*.125,blend=motifBlend(clock),bank=floor(clock)+seed;
+ float clock=tempoPhase*.125,blend=motifBlend(clock),bank=authoredMotif(floor(clock),seed),nextBank=authoredMotif(floor(clock)+1,seed);
  float cascadeAmount=familyMorph?lerp(1-step(.1,abs(previousScene-13)),1-step(.1,abs(scene-13)),morph):1-step(.1,abs(world-13));
  float arrayAmount=familyMorph?lerp(1-step(.1,abs(previousScene-9)),1-step(.1,abs(scene-9)),morph):1-step(.1,abs(world-9));
  float settle=max(sqrt(saturate(identityWeight)),liquidEase(opening));
@@ -68,16 +76,16 @@ WallSurface wallSurface(float2 p,float world,float seed,float opening){
  // boundaries therefore carries geometry continuously instead of clipping each cube.
  grid.y-=sin(p.x*2.1-tempoPhase*.19)*.32*g.stage*(1-settle);
  float column=floor(grid.x);
- float columnOffset=lerp(columnGesture(bank,column,tempoPhase),columnGesture(bank+1,column,tempoPhase),blend);
- if(familyMorph){float oldBank=floor(clock)+previousPatternSeed;columnOffset=lerp(lerp(columnGesture(oldBank,column,tempoPhase),columnGesture(oldBank+1,column,tempoPhase),blend),columnOffset,morph);}
+ float columnOffset=lerp(columnGesture(bank,column,tempoPhase),columnGesture(nextBank,column,tempoPhase),blend);
+ if(familyMorph){float oldBank=authoredMotif(floor(clock),previousPatternSeed),oldNextBank=authoredMotif(floor(clock)+1,previousPatternSeed);columnOffset=lerp(lerp(columnGesture(oldBank,column,tempoPhase),columnGesture(oldNextBank,column,tempoPhase),blend),columnOffset,morph);}
  grid.y-=columnOffset*g.stage*(1-settle);
  float row=floor(grid.y);
- float offset=lerp(rowGesture(bank,row,tempoPhase),rowGesture(bank+1,row,tempoPhase),blend);
- if(familyMorph){float oldBank=floor(clock)+previousPatternSeed;float oldOffset=lerp(rowGesture(oldBank,row,tempoPhase),rowGesture(oldBank+1,row,tempoPhase),blend);offset=lerp(oldOffset,offset,morph);}
+ float offset=lerp(rowGesture(bank,row,tempoPhase),rowGesture(nextBank,row,tempoPhase),blend);
+ if(familyMorph){float oldBank=authoredMotif(floor(clock),previousPatternSeed),oldNextBank=authoredMotif(floor(clock)+1,previousPatternSeed);float oldOffset=lerp(rowGesture(oldBank,row,tempoPhase),rowGesture(oldNextBank,row,tempoPhase),blend);offset=lerp(oldOffset,offset,morph);}
  grid.x-=offset*g.stage*(1-settle);
  g.id=floor(grid);g.local=frac(grid)-.5;g.center=(g.id+.5)/g.scale;
- g.signal=lerp(wallPattern(bank,g.id,g.center,tempoPhase*.785398),wallPattern(bank+1,g.id,g.center,tempoPhase*.785398),blend);
- if(familyMorph){float oldBank=floor(clock)+previousPatternSeed;float oldSignal=lerp(wallPattern(oldBank,g.id,g.center,tempoPhase*.785398),wallPattern(oldBank+1,g.id,g.center,tempoPhase*.785398),blend);g.signal=lerp(oldSignal,g.signal,morph);}
+ g.signal=lerp(wallPattern(bank,g.id,g.center,tempoPhase*.785398),wallPattern(nextBank,g.id,g.center,tempoPhase*.785398),blend);
+ if(familyMorph){float oldBank=authoredMotif(floor(clock),previousPatternSeed),oldNextBank=authoredMotif(floor(clock)+1,previousPatternSeed);float oldSignal=lerp(wallPattern(oldBank,g.id,g.center,tempoPhase*.785398),wallPattern(oldNextBank,g.id,g.center,tempoPhase*.785398),blend);g.signal=lerp(oldSignal,g.signal,morph);}
  g.signal=lerp(g.signal,.5,saturate(identityWeight)*.65);
  float2 group=floor(g.id/float2(3,2));
  float roll=sin((floor(clock)+blend)*1.570796+dot(group,float2(.36,.48)));
@@ -94,6 +102,9 @@ WallSurface wallSurface(float2 p,float world,float seed,float opening){
  float radius=lerp(.035,.004,settle);
  float aa=max(.004, .6*g.scale.y/resolution.y);
  g.face=roundedFill(g.local,float2(g.width,g.height)+opening*.008,radius,aa);
+ // AA grows with output pixel size. The terminal material must still cover every
+ // pixel: expanding by a fixed epsilon leaves translucent seams at low resolution.
+ g.face=lerp(g.face,1,liquidEase(opening));
  g.edge=roundedRing(g.local,float2(g.width,g.height),radius,.0035)*g.face*(1-opening);
  float sideWidth=(.018+.11*abs(sin(turn)))*(1-g.join);
  g.side=fillBox(g.local-float2((turn>=0?1:-1)*(g.width+sideWidth*.5),.02),float2(sideWidth*.5,g.height*.92),.008)*(1-settle);
@@ -159,7 +170,7 @@ float architecturalPattern(float index,float lane,float depth,float clock){
 }
 float3 prismAtrium(float2 p,float pressure,float snareHit,float hatHit,float energy){
  float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
- float clock=tempoPhase*.125,blend=motifBlend(clock),bank=floor(clock)+patternSeed;
+ float clock=tempoPhase*.125,blend=motifBlend(clock),bank=authoredMotif(floor(clock),patternSeed),nextBank=authoredMotif(floor(clock)+1,patternSeed);
  float3 c=float3(.004,.009,.023);
  // Nested architectural ribs have continuous travel and birth/death at the far planes.
  [unroll]for(int layer=0;layer<8;layer++){
@@ -173,7 +184,7 @@ float3 prismAtrium(float2 p,float pressure,float snareHit,float hatHit,float ene
   float rib=lineGlow(shape-.43,.005+.003*pressure);
   float life=smoothstep(0,.12,z)*(1-smoothstep(.88,1,z));
   float lane=atan2(q.y,q.x)*4;
-  float signal=lerp(architecturalPattern(bank,lane,z,tempoPhase*.785398),architecturalPattern(bank+1,lane,z,tempoPhase*.785398),blend);
+  float signal=lerp(architecturalPattern(bank,lane,z,tempoPhase*.785398),architecturalPattern(nextBank,lane,z,tempoPhase*.785398),blend);
   float3 color=formationColor(primary,accent,spectral,layer*1.3,tempoPhase,signal);
   c+=rib*life*color*(.055+.25*signal+.13*pressure);
   c+=exp(-abs(shape-.43)*36)*life*color*(.013+.05*signal);
@@ -189,32 +200,36 @@ float3 prismAtrium(float2 p,float pressure,float snareHit,float hatHit,float ene
 }
 float3 pulseCauseway(float2 p,float pressure,float snareHit,float hatHit,float energy){
  float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
- float clock=tempoPhase*.125,blend=motifBlend(clock),bank=floor(clock)+patternSeed;
- float3 c=float3(.003,.008,.019);
- // Perspective tiers rise and fold as coherent banks, each with a sustained musical motif.
- [unroll]for(int tier=0;tier<10;tier++){
-  float z=frac(tier/10.0-tempoPhase*.00625);
-  float size=.12+z*z*1.85;
+ float clock=tempoPhase*.125,blend=motifBlend(clock),bank=authoredMotif(floor(clock),patternSeed),nextBank=authoredMotif(floor(clock)+1,patternSeed);
+ float3 c=float3(.004,.010,.025);
+ // Sorted far-to-near slots. Attributes follow continuous depth, never a wrapping
+ // instance index. Recycling changes order only while opacity is zero at both ends.
+ float travel=frac(tempoPhase*.0625);
+ [unroll]for(int tier=0;tier<8;tier++){
+  float z=(tier+travel)/8.0;
+  float size=.13+z*z*1.85;
   float2 q=p/size;
-  float tierTravel=sin(tier*.58-tempoPhase*.392699)*(.47+.25*sin((floor(clock)+blend)*.785398));
-  float lane=floor(q.x*6-tierTravel),x=frac(q.x*6-tierTravel)-.5;
-  float signal=lerp(architecturalPattern(bank,lane,z,tempoPhase*.785398),architecturalPattern(bank+1,lane,z,tempoPhase*.785398),blend);
-  float lift=.06+.23*signal+.025*pressure;
-  float row=.31-lift;
-  float life=smoothstep(0,.1,z)*(1-smoothstep(.9,1,z));
-  float face=roundedFill(float2(x,(q.y-row)*7),float2(.40,.23+signal*.22),.028,.015);
-  float edge=roundedRing(float2(x,(q.y-row)*7),float2(.40,.23+signal*.22),.028,.005);
-  float3 hue=formationColor(primary,accent,spectral,lane+tier*.6,tempoPhase,signal);
-  c=lerp(c,hue*(.04+.20*signal+.07*pressure),face*life);
-  c+=edge*life*lerp(hue,accent,.4)*(.04+.1*hatHit+.1*snareHit);
-  float rail=lineGlow(q.y-.35,.0025)*life;
-  c+=rail*hue*(.025+.075*signal);
-  // Upper bank mirrors the runway so the space reads as a complete performance world.
-  float ceiling=roundedFill(float2(x,(q.y+.32-lift*.34)*7),float2(.37,.075+.17*signal),.025,.012);
-  c+=ceiling*life*hue*(.025+.11*signal+.045*pressure);
+  float tierTravel=sin(z*5-tempoPhase*.392699)*(.42+.18*sin((floor(clock)+blend)*.785398));
+  float grid=q.x*6-tierTravel,lane=floor(grid),x=frac(grid)-.5;
+  float signal=lerp(architecturalPattern(bank,lane,z,tempoPhase*.785398),architecturalPattern(nextBank,lane,z,tempoPhase*.785398),blend);
+  // Geometry uses the beat clock, not the kick envelope. Hits illuminate edges.
+  float lift=.08+.18*signal;
+  float life=smoothstep(0,.16,z)*(1-smoothstep(.80,1,z));
+  float aa=max(.012,7.0/(resolution.y*size));
+  float2 block=float2(x,(q.y-(.33-lift))*7);
+  float2 extent=float2(.44,.27+signal*.17);
+  float face=roundedFill(block,extent,.035,aa);
+  float edge=(1-smoothstep(aa,aa*2,abs(roundedSdf(block,extent,.035))));
+  float3 hue=formationColor(primary,accent,spectral,lane+z*5,tempoPhase,signal);
+  c=lerp(c,hue*(.085+.19*signal+.018*pressure),face*life);
+  c+=edge*life*lerp(hue,accent,.4)*(.045+.035*hatHit+.045*snareHit);
+  float rail=exp(-abs(q.y-.37)*100)*life;
+  c+=rail*hue*(.035+.035*signal);
+  float ceiling=roundedFill(float2(x,(q.y+.32-lift*.34)*7),float2(.42,.11+.13*signal),.03,aa);
+  c+=ceiling*life*hue*(.045+.10*signal+.012*pressure);
  }
  float identity=sampleChoreographyIdentity(p,float2(0,-.05),.82*logoScale,0);
- c+=identity*identityWeight*lerp(primary,accent,.35)*(.58+.15*snareHit);
+ c+=identity*identityWeight*lerp(primary,accent,.35)*(.58+.05*snareHit);
  return c;
 }
 float3 auroraWorld(float2 p,float pressure,float snareHit,float hatHit,float energy) {

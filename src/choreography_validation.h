@@ -14,7 +14,7 @@ int runChoreographyValidation(bool benchmark){
     auto difference=[](const std::vector<float>&a,const std::vector<float>&b){if(a.empty()||a.size()!=b.size())return 1.0;double delta=0;for(size_t n=0;n<a.size();++n)delta+=std::abs(a[n]-b[n]);return delta/a.size();};
     auto drain=[&](){context_->Flush();const auto deadline=Clock::now()+std::chrono::seconds(10);for(;;){pollGpuTimers();bool pending=false;for(const auto&slot:gpuTimers_)pending|=slot.pending;if(!pending)return true;if(Clock::now()>deadline)return false;Sleep(1);}};
     auto fixture=[&](float time){Constants c{};c.resolution[0]=float(renderWidth_);c.resolution[1]=float(renderHeight_);c.time=time;c.tempoPhase=time*128.f/60.f;c.logoScale=1;c.palette=0;c.masterBrightness=.92f;c.masteringProfile=1;c.cueDensity=1;c.songSection=2;c.visualMovement=2;c.bass=.3f;c.mid=.4f;c.high=.2f;c.audioEnergy=.4f;c.transition=1;return c;};
-    constexpr std::array<std::array<int,2>,12>pairs{{{3,13},{13,3},{3,9},{9,11},{15,0},{1,3},{3,1},{16,3},{3,16},{1,16},{16,7},{2,17}}};
+    constexpr std::array<std::array<int,2>,20>pairs{{{3,13},{13,3},{3,9},{9,11},{15,0},{1,3},{3,1},{16,3},{3,16},{1,16},{16,7},{2,17},{3,18},{18,19},{19,20},{20,3},{16,18},{16,20},{1,19},{20,16}}};
     std::ofstream report(output/(benchmark?"morph-gpu.csv":"morph-frames.csv"));
     if(benchmark)report<<"from,to,width,height,samples,mean_ms,p95_ms,p99_ms,max_ms\n";
     else report<<"from,to,style,frame,phase,temporal_delta\n";

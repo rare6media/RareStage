@@ -51,11 +51,11 @@ constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
     L"PRISM CASCADE", L"AURORA RANGE", L"CHROMA BLADES",
     L"KINETIC ARRAY", L"KINETIC CANOPY", L"PIXEL LOOM",
     L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL RAIL",
-    L"KINETIC FACADE", L"PULSE CAUSEWAY", L"VOID GATES"
+    L"KINETIC FACADE", L"PULSE CAUSEWAY", L"VOID GATES", L"RIBBON FOUNDRY", L"HALO ENGINE", L"VECTOR SPEEDWAY"
 };
 constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldKeys{
     L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8", L"9",
-    L"Q", L"W", L"E", L"R", L"Y", L"U", L"I", L"O", L"K"
+    L"Q", L"W", L"E", L"R", L"Y", L"U", L"I", L"O", L"K", L"Z", L"X", L"J"
 };
 constexpr std::array<const wchar_t*, rarestage::control::SectionCount> SectionNames{
     L"OPEN", L"BUILD", L"DROP", L"BREAKDOWN", L"DRIVE"
@@ -226,7 +226,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.18.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.19.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -279,6 +279,9 @@ public:
         bool ok=true;for(const auto&target:targets_)if(target.rect.left<12||target.rect.right>1268||target.rect.top<12||target.rect.bottom>628||target.rect.right<=target.rect.left||target.rect.bottom<=target.rect.top)ok=false;
         BITMAPFILEHEADER file{};file.bfType=0x4d42;file.bfOffBits=sizeof(file)+sizeof(BITMAPINFOHEADER);file.bfSize=file.bfOffBits+1280*640*4;
         std::ofstream output("RareStage-screens-ui.bmp",std::ios::binary);output.write(reinterpret_cast<const char*>(&file),sizeof(file));output.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));output.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&output.good();
+        fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();
+        int worldButtons=0;for(const auto&target:targets_)if(target.action==Action::World){++worldButtons;if(target.value<0||target.value>=int(WorldNames.size())||target.rect.bottom>628||target.rect.top<12||target.rect.right>1268||target.rect.bottom<=target.rect.top)ok=false;}
+        ok=ok&&worldButtons==int(WorldNames.size());std::ofstream showOutput("RareStage-worlds-ui.bmp",std::ios::binary);showOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));showOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));showOutput.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&showOutput.good();
         SelectObject(dc,old);DeleteObject(bitmap);DeleteDC(dc);connected_=false;destroyFonts();dpi_=oldDpi;createFonts();return ok;
     }
 
@@ -763,7 +766,7 @@ private:
         if (rehearsalSamples_.size() > MaxSessionSamples) rehearsalSamples_.erase(rehearsalSamples_.begin(), rehearsalSamples_.begin() + 1200);
 
         if (next.world != lastRehearsalWorld_) {
-            addRehearsalEvent(L"WORLD", std::wstring(WorldNames[std::clamp(next.world, 0, 17)]) + L" entered");
+            addRehearsalEvent(L"WORLD", std::wstring(WorldNames[std::clamp(next.world, 0, 20)]) + L" entered");
             scheduleSmartCapture(L"world change", now, 1100);
             lastRehearsalWorld_ = next.world;
         }
@@ -829,7 +832,7 @@ private:
         double gpuTotal = 0.0;
         float gpuPeak = 0.0f;
         for (const auto& sample : rehearsalSamples_) {
-            worlds[std::clamp(sample.world, 0, 17)] = true;
+            worlds[std::clamp(sample.world, 0, 20)] = true;
             gpuTotal += sample.gpuMs;
             gpuPeak = std::max(gpuPeak, sample.gpuMs);
             timeline << sample.timeMs << ',' << sample.world << ',' << sample.section << ',' << sample.predictedSection << ',' << sample.preparedWorld << ',' << sample.masteringProfile << ',' << sample.stageLayout << ',' << sample.productionDuty << ',' << sample.syncMode << ',' << sample.syncGroup << ',' << sample.palette << ',' << sample.quality << ','
@@ -931,6 +934,9 @@ private:
         else if (key == L'U') send(Command::SelectWorld, 14, WorldNames[14]);
         else if (key == L'I') send(Command::SelectWorld, 15, WorldNames[15]);
         else if (key == L'O' && !(GetKeyState(VK_CONTROL) & 0x8000)) send(Command::SelectWorld, 16, WorldNames[16]);
+        else if (key == L'Z') send(Command::SelectWorld, 18, WorldNames[18]);
+        else if (key == L'X') send(Command::SelectWorld, 19, WorldNames[19]);
+        else if (key == L'J') send(Command::SelectWorld, 20, WorldNames[20]);
         else if (key == L'K') send(Command::SelectWorld, 17, WorldNames[17]);
         else if (key == VK_OEM_4) send(Command::PreviousWorld, 0, L"Previous world");
         else if (key == VK_OEM_6) send(Command::NextWorld, 0, L"Next world");
@@ -1313,13 +1319,13 @@ private:
         const int leftWidth = static_cast<int>((body.right - body.left) * 0.63f);
         RECT worlds{body.left, body.top, body.left + leftWidth, body.bottom};
         fillRound(dc, worlds, 11, Panel, Line);
-        sectionLabel(dc, L"WORLD CUES  /  EIGHTEEN AUTHORED ENVIRONMENTS",
+        sectionLabel(dc, L"WORLD CUES  /  TWENTY-ONE AUTHORED ENVIRONMENTS",
                      worlds.left + scale(14), worlds.top + scale(9), worlds.right - worlds.left - scale(28));
 
         const int gridTop = worlds.top + scale(38);
         const int gridGap = scale(8);
         const int columns = 3;
-        const int rows = 6;
+        const int rows = 7;
         const int gridWidth = (worlds.right - worlds.left - scale(28) - gridGap * (columns - 1)) / columns;
         const int gridHeight = (worlds.bottom - gridTop - scale(14) - gridGap * (rows - 1)) / rows;
         for (int index = 0; index < static_cast<int>(WorldNames.size()); ++index) {
@@ -1896,7 +1902,7 @@ private:
         RECT stats{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(83)};
         fillRound(dc, stats, 8, PanelRaised, Line);
         std::array<bool, rarestage::control::WorldCount> exercised{};
-        for (const auto& sample : rehearsalSamples_) exercised[std::clamp(sample.world, 0, 17)] = true;
+        for (const auto& sample : rehearsalSamples_) exercised[std::clamp(sample.world, 0, 20)] = true;
         const auto duration = rehearsalActive_ ? GetTickCount64() - rehearsalStartedAt_ :
             (rehearsalSamples_.empty() ? 0 : rehearsalSamples_.back().timeMs);
         drawText(dc, rehearsalActive_ ? L"RECORDING  " + clockText(duration) : L"SESSION  " + clockText(duration),
@@ -1943,7 +1949,7 @@ private:
             const COLORREF statusColor = item.status == 1 ? Green : item.status == 2 ? Red : Amber;
             drawText(dc, L"FRAME " + std::to_wstring(reviewIndex_ + 1) + L" / " + std::to_wstring(reviewItems_.size()) + L"   " + status,
                      RECT{review.left + scale(14), review.top + scale(38), review.right - scale(14), review.top + scale(65)}, headingFont_, statusColor);
-            drawText(dc, std::wstring(WorldNames[std::clamp(item.world, 0, 17)]) + L"  /  " + SectionNames[std::clamp(item.section, 0, 4)] +
+            drawText(dc, std::wstring(WorldNames[std::clamp(item.world, 0, 20)]) + L"  /  " + SectionNames[std::clamp(item.section, 0, 4)] +
                          L"  /  " + clockText(item.timeMs) + L"  /  " + item.reason,
                      RECT{review.left + scale(14), review.top + scale(65), review.right - scale(14), review.top + scale(91)}, smallFont_, Cyan);
             drawText(dc, item.path, RECT{review.left + scale(14), review.top + scale(91), review.right - scale(14), review.top + scale(120)}, smallFont_, Muted);
