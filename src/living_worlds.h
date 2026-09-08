@@ -28,8 +28,8 @@ float wallPattern(float kind,float2 id,float2 center,float phase){
  return .5+.5*cos(id.x*.5-phase)*cos(id.y*.7+phase);
 }
 float motifBlend(float clock){return liquidEase(smoothstep(.48,.99,frac(clock)));}
-bool isPanelWorld(float world){return abs(world)<.1||abs(world-3)<.1||abs(world-9)<.1||abs(world-11)<.1||abs(world-13)<.1||abs(world-15)<.1;}
-float2 wallScale(float world){return world<1?float2(8,7):world<4?float2(10,9):world<10?float2(12,9):world<12?float2(22,15):world<14?float2(13,9):float2(16,10);}
+bool isPanelWorld(float world){return sceneRig[(int)world].y==1;}
+float2 wallScale(float world){return abs(world-21)<.1?float2(13,3):world<1?float2(8,7):world<4?float2(10,9):world<10?float2(12,9):world<12?float2(22,15):world<14?float2(13,9):float2(16,10);}
 float2 arrangedWallScale(float world,float seed){
  float2 scale=wallScale(world);float variant=fmod(floor(seed/16),4);
  if(variant>.5&&variant<1.5)scale*=.78;
@@ -63,7 +63,7 @@ float columnGesture(float bank,float column,float phase){
  return amount*sin(column*.65-phase*.785398)*(bank<9?.85:bank<11?.35:bank<13?.75:.45);
 }
 float3 formationColor(float3 primary,float3 accent,float3 spectral,float lane,float phase,float signal){
- float colorWave=.5+.5*sin(lane*.48-phase*.1963495);
+ float colorWave=.5+.5*sin(lane*.48-phase*.1963495+themeAccent*.6);
  float3 base=lerp(primary,spectral,smoothstep(.28,.76,colorWave));
  return lerp(base,accent,smoothstep(.60,.97,signal)*(.3+.32*colorWave));
 }
@@ -78,7 +78,9 @@ WallSurface wallSurface(float2 p,float world,float seed,float opening){
  float cascadeAmount=familyMorph?lerp(1-step(.1,abs(previousScene-13)),1-step(.1,abs(scene-13)),morph):1-step(.1,abs(world-13));
  float arrayAmount=familyMorph?lerp(1-step(.1,abs(previousScene-9)),1-step(.1,abs(scene-9)),morph):1-step(.1,abs(world-9));
  float settle=max(sqrt(saturate(identityWeight)),liquidEase(opening));
- float2 grid=p*g.scale;
+ float cathedral=familyMorph?lerp(step(20.5,previousScene),step(20.5,scene),morph):step(20.5,world);
+ float2 vaultPoint=p;vaultPoint.y+=(abs(p.x)*.46+sin(abs(p.x)*3-tempoPhase*.098175)*.055)*cathedral*(1-settle);
+ float2 grid=vaultPoint*g.scale;
  // Inverse-map the entire infinite row before selecting a cell. Travel across cell
  // boundaries therefore carries geometry continuously instead of clipping each cube.
  grid.y-=sin(p.x*2.1-tempoPhase*.19)*.32*g.stage*(1-settle);
@@ -124,6 +126,10 @@ WallSurface wallSurface(float2 p,float world,float seed,float opening){
 float3 choreographyWall(float2 p,float world,float3 primary,float3 accent,float3 spectral,
                        float pressure,float snareHit,float hatHit,float energy,float seed,float opening) {
  WallSurface g=wallSurface(p,world,seed,opening);
+ float cathedral=abs(world-21)<.1?1:0;
+ if(isPanelWorld(scene)&&isPanelWorld(previousScene))cathedral=lerp(abs(previousScene-21)<.1?1:0,abs(scene-21)<.1?1:0,liquidEase(transition));
+ // Broad ribs occupy much more screen area than small cubes: keep transient light restrained.
+ float response=1-cathedral*.74;pressure*=response;snareHit*=response;hatHit*=response;
  float support=.28+.72*easeBand(g.signal),settle=liquidEase(identityWeight);
  float2 drift=float2(sin(g.center.y*9+tempoPhase*.21),cos(g.center.x*8-tempoPhase*.18))*.085*(1-settle);
  float mask=sampleChoreographyIdentity(identityTransport(g.materialPoint+drift,(1-sqrt(saturate(identityWeight)))*.6,identityProgram()),0,min(.88*logoScale,.92),0);
@@ -156,6 +162,8 @@ float turbulence(float2 p) {
  [unroll]for(int octave=0;octave<4;++octave){result+=amplitude*valueNoise(p);p=mul(float2x2(1.6,-1.2,1.2,1.6),p)+3.7;amplitude*=.48;}
  return result;
 }
+)HLSL"
+R"HLSL(
 float architecturalPattern(float index,float lane,float depth,float clock){
  index=fmod(index,16);
  if(index<1)return .5+.5*cos(lane*.8-clock);

@@ -1,6 +1,6 @@
-# RareStage roadmap: v0.20.0 to v0.30.0
+# RareStage roadmap: v0.21.0 to v0.30.0
 
-Status: revised after the combined v0.20 implementation, September 8, 2026. “v30” means v0.30.0 in this roadmap. These are planned capabilities and acceptance criteria, not completed features or calendar commitments.
+Status: revised after the combined v0.21 implementation, September 8, 2026. “v30” means v0.30.0 in this roadmap. These are planned capabilities and acceptance criteria, not completed features or calendar commitments.
 
 ## The destination
 
@@ -27,12 +27,20 @@ The user's combined-update request brings selected parts of the choreography, se
 
 These implementations do not close the entire later milestones. There is no new predictive AI, musical-corpus accuracy claim, live composition evaluator or runtime GPU rehearsal. Set-memory validation uses deterministic simulated song chapters. Native bridges and physical multi-output frame pacing still require further work. See [v0.20 details](PERFORMANCE_WORLDS.md).
 
+## Work brought forward into v0.21
+
+**Show Composer** implements the shared catalog, Folding Cathedral, 48 directed native bridges, three conditional continuations, bounded analytic route estimates, measured scene GPU-cost feedback, six recurring deformation/accent themes, Hold Theme / Next Theme controls, Ribbon Racetrack and Kinetic Monument. This combines the practical core of 0.21 with portions of 0.24, 0.25, 0.27 and 0.28.
+
+The shared catalog covers names, operator keys, geometry families, anchors, nominal pace/scale, density, energy, bridge group and relative cost. It is used by CPU planning and GPU handoff logic. Rich authored pose libraries, full symmetry/identity-surface contracts and universal mesh correspondence remain open. Route rehearsal estimates nominal movement; it does not inspect candidate images. Theme memory is session-local and balances six themes rather than inferring narrative meaning.
+
+These are completed implementation slices, not completion claims for every acceptance criterion below. The remaining milestones retain their original numbers for traceability. See [Show Composer](SHOW_COMPOSER.md) for exact behavior and evidence.
+
 ## Release sequence
 
 | Release | Main milestone | What the audience or operator should notice |
 |---|---|---|
 | **0.20** | Performance Worlds, identity choreography and session memory | Nine scene rebuilds, more arrangements, varied identity entrances/exits and smooth Pixel Bank departures. Performance measurement continues; isolated qualification remains open. |
-| **0.21** | Shared movement rules and native scene bridges | Rows, beams, ribbons and arches carry their momentum into each other. Folding Cathedral demonstrates it. |
+| **0.21** | **Implemented: Show Composer combined update** | Shared wall/ribbon bridges, three new scenes, conditional branches, recurring themes, theme controls and route cost estimates. |
 | **0.22** | Musical choreography programs | Patterns establish, repeat, answer and resolve. Pendulum Hall and Resonance Terrain extend the repertoire. |
 | **0.23** | A stronger musical timeline | The Director distinguishes sustained groove, rising tension, release and uncertainty more reliably. |
 | **0.24** | Conditional show planning | Builds have prepared continuations for a drop, a continued build or a breakdown. |
@@ -52,6 +60,8 @@ Preserve Stagewall as the movement reference. Audit tier recycling, thin edges, 
 **Exit:** reproducible baseline and hardware record; existing regression gates pass; identified expensive paths have measured fixes or explicit supported-quality limits. A benchmark's successful exit must never be presented as proof of 120 fps.
 
 ## v0.21 — Shared movement rules
+
+**Current status:** Implemented core in v0.21: shared catalog, seven-wall lattice and three-scene ribbon rig. Extend native bridges and richer authored pose contracts next.
 
 Create one scene description for geometry family, focal anchor, flow direction, velocity, scale, symmetry, density, identity surfaces and available entrance/exit poses. Use that description consistently in planning, rendering, diagnostics and tests.
 
@@ -81,6 +91,8 @@ Evaluate with a varied, legally available listening corpus and recorded feature 
 
 ## v0.24 — Conditional show planning
 
+**Current status:** Implemented core in v0.21: three section-dependent branches, expiry and intervention handling. Longer hierarchical program planning and corpus replay evaluation remain.
+
 Build a hierarchy of set theme, phrase program and immediate gesture. During a build, prepare compatible branches for continued tension, a confirmed drop and a breakdown. Branches share enough initial movement that selecting one does not require a cut or a clock reset.
 
 Add expiration rules, confidence requirements, interruption handling and a budget for major visual changes. Manual scene/theme holds take precedence. A confirmed musical event may supersede a rehearsal lock through a compatible continuation.
@@ -88,6 +100,8 @@ Add expiration rules, confidence requirements, interruption handling and a budge
 **Exit:** replay tests cover correct forecasts, wrong forecasts, late drops, missed drops and operator intervention. No repeated mid-phrase plan churn; planned branches preserve animation continuity and do not bypass hold controls.
 
 ## v0.25 — Internal rehearsal
+
+**Current status:** Implemented first stage in v0.21: nominal motion-envelope estimates and measured per-scene GPU costs. Offscreen image preflight, composition analysis and broader budget scheduling remain.
 
 Evaluate a small bounded set of possible continuations using inexpensive movement/composition estimates. When GPU time is available, preflight selected routes with small offscreen renders through production scene logic.
 
@@ -106,6 +120,8 @@ Respond through bounded actions: reduce a detail layer, extend a hold, postpone 
 **Exit:** seeded artifact fixtures are detected while intentional negative space and authored accents remain valid. Publish false positives as well as detections. Verify the correction itself creates no larger discontinuity.
 
 ## v0.27 — Set memory and callbacks
+
+**Current status:** Implemented first stage in v0.21: six recurring deformation/accent themes and Kinetic Monument. Long-term narrative structure, richer callbacks and Tension Loom remain.
 
 Remember scene/motif/palette combinations, recent transitions, intensity peaks and theme development across the set. Carry a visual theme through different geometry families using shared direction, symmetry, pace and accent structure.
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "scene_catalog.h"
 
 #include <windows.h>
 
@@ -8,12 +9,12 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v15";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v16";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
 inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
-inline constexpr std::uint32_t ProtocolVersion = 15;
-inline constexpr std::uint32_t WorldCount = 21;
+inline constexpr std::uint32_t ProtocolVersion = 16;
+inline constexpr std::uint32_t WorldCount = rarestage::show::SceneCount;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 8;
 inline constexpr std::uint32_t ProfileCount = 4;
@@ -76,7 +77,9 @@ enum class Command : std::uint32_t {
     SetTempoAnchor,
     SetDjIdentityVisible,
     SelectMonitor,
-    SetMirrorMask
+    SetMirrorMask,
+    HoldTheme,
+    NextTheme
 };
 
 enum StateFlag : std::uint32_t {
@@ -238,6 +241,10 @@ struct alignas(64) SharedState {
     std::uint32_t syncSequence{};
     std::int32_t captureStatus{};
     wchar_t playbackDevice[96]{};
+    std::int32_t theme{}, themeHeld{}, composerContinue{-1}, composerDrop{-1}, composerBreak{-1};
+    float routeEstimatedMs{}, routeContinuity{};
+    std::int32_t routeMeasured{};
+    wchar_t themeName[48]{};
     wchar_t worldName[48]{};
     wchar_t directorReason[96]{};
     wchar_t lastCapturePath[160]{};

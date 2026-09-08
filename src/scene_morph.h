@@ -9,8 +9,8 @@ float2 handoffFlow(float2 p,float amount){
  return flow*.045*amount;
 }
 float2 categoryFlow(float2 p,float world){
- if(abs(world-2)<.1||abs(world-17)<.1||abs(world-19)<.1)return rotate2(p,.055*sin(tempoPhase*.19635))-p;
- if(abs(world-1)<.1||abs(world-12)<.1||abs(world-14)<.1||abs(world-16)<.1||abs(world-20)<.1)return p*.055;
+ if(sceneRig[(int)world].x==3)return rotate2(p,.055*sin(tempoPhase*.19635))-p;
+ if(sceneRig[(int)world].x==2)return p*.055;
  return float2(sin(p.y*4+tempoPhase*.19635)*.025,sin(p.x*3-tempoPhase*.19635)*.020);
 }
 float4 ps(O i):SV_TARGET{
@@ -33,8 +33,8 @@ float4 psMorph(O i):SV_TARGET{
  }else{
   // Non-wall worlds retain their own topology. Align composition anchors, then
   // carry both materials through a continuous category-shaped deformation.
-  float2 sourceAnchor=float2(0,abs(previousScene-20)<.1?-.16:0);
-  float2 destinationAnchor=float2(0,abs(scene-20)<.1?-.16:0);
+  float2 sourceAnchor=scenePose[(int)previousScene].xy;
+  float2 destinationAnchor=scenePose[(int)scene].xy;
   float2 anchor=lerp(sourceAnchor,destinationAnchor,phase);
   float2 q=p-anchor;
   float2 flow=lerp(categoryFlow(q,previousScene),categoryFlow(q,scene),phase)*arc;

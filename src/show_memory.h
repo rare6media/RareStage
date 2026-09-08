@@ -1,12 +1,13 @@
 #pragma once
 #include <array>
+#include "scene_catalog.h"
 #include <algorithm>
 namespace rarestage::show {
 class SetMemory {
- std::array<std::array<unsigned,64>,21> programs_{};
- std::array<std::array<unsigned,8>,21> palettes_{};
+ std::array<std::array<unsigned,64>,SceneCount> programs_{};
+ std::array<std::array<unsigned,8>,SceneCount> palettes_{};
  std::array<std::array<unsigned,64>,2> identity_{};
- std::array<int,21> lastProgram_{};
+ std::array<int,SceneCount> lastProgram_{};
  unsigned sequence_{};
 public:
  SetMemory(){lastProgram_.fill(-1);}

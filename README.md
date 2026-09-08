@@ -4,25 +4,24 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.20.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.21.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.20.0
+## What changed in 0.21.0
 
-Version 0.20.0 is **Performance Worlds**: one combined scene, identity and long-set choreography update.
+Version 0.21.0 is **Show Composer**, combining shared movement rules with conditional planning, visual themes and route cost estimates.
 
-- **Nine scene rebuilds.** Prism Cascade has broad folded surfaces; Chroma Blades has solid sweeping fins; Kinetic Canopy has suspended pendulum beams. Signal Rail has repeated musical lane sequences. Matrix Vault has rectangular architectural slabs, while Void Gates has a radial iris. Aurora Range gains layered curtains, reflections and foreground ridges. Wavewall becomes **Resonance Range**, an opaque moving relief landscape. Pixel Bank receives a new circuit background and travel choreography.
-- **Eight identity entrances and eight exits.** Row arrivals, column lifts, orbital assembly, expansion, fragments, folds, weaving and split formations carry the Rare mark and DJ name into their readable hold. Entrance and exit choices are latched for each appearance, and their material finish stays continuous through the hold.
-- **Four arrangements and sixteen motif seeds.** Walls can use larger cubes, tall columns and broad rows. Other worlds change framing and proportion while retaining their recognizable geometry. A visit owns a stable program; its motifs establish, repeat, answer and develop through the musical clock.
-- **Long-set session memory.** The Director accounts for total scene exposure and previously used scene pairings. It also balances program combinations, palettes and identity choreography. The existing sustained-energy routing, category rules and eight-beat rehearsal lock remain in use.
-- **Smooth Pixel Bank.** The logo follows elapsed time independently of beat corrections. Music illuminates the surroundings. Scheduled and manual local departures plan a corner arrival before the handoff; unexpected drops do not pull the logo off its path. A forecast with enough lead time may also schedule a corner arrival.
-- **Compiled shaders travel with the package.** Startup loads validated bytecode, with embedded-source recovery for missing or damaged cache files.
-- Stagewall remains the motion reference. Timed scene changes, Alt+Enter/F11 fullscreen and synchronized local display mirrors remain available.
+- **Three new scenes.** Folding Cathedral stretches the wall into folded architectural ribs. Ribbon Racetrack carries broad, sweeping lanes across the stage. Kinetic Monument raises and folds a bank of sculptural columns. All have four arrangements, sixteen motif seeds and the existing varied identity choreography.
+- **Geometry carries across scenes.** The seven wall scenes share a continuous lattice bridge. Ribbon Foundry, Ribbon Racetrack and Kinetic Monument share a continuous ribbon rig. Those 48 directed pairings interpolate geometry in one scene pass. Other pairings retain the tested category-aware material handoff.
+- **Three prepared continuations.** The Composer prepares continued movement, a drop and a breakdown together. Confirmed sections select the relevant branch. Plans expire after 32 beats and reject changed scene, category or stale section context. Manual cues and automation holds take precedence.
+- **Six visual themes.** River, Crown, Orbit, Pulse, Ascent and Tidal carry a common deformation and accent bias across scenes. A theme develops over at least three scene visits. Theme memory spaces callbacks; changes start on a safe 16-beat boundary and unfold over eight beats. **Hold Theme** preserves it across automatic scene changes; **Next Theme** queues a new one.
+- **Route rehearsal and GPU cost.** The Director compares nominal anchor and velocity envelopes and samples scene GPU cost asynchronously. Under budget pressure, measured expensive handoffs lose priority. This is an analytic estimate, not a live image-quality evaluator or a frame-rate guarantee.
+- Stagewall, continuous musical motion, varied Rare/DJ identity entrances, smooth Pixel Bank departures, Alt+Enter/F11 fullscreen and synchronized local mirrors remain available.
 
-Use the matching Stage and Console from this package: Console protocol **v15**, network packet **v3**. Local mirrors receive the same completed render. Network followers follow the leader's scene timing and do not defer its cues for a local Pixel Bank exit.
+Use the matching Stage and Console: Console protocol **v16**, network packet **v4**. Network packets now carry the leader's theme; network peers must match. Local mirrors still receive the same completed frame.
 
-See [implementation and validation notes](docs/PERFORMANCE_WORLDS.md) and the [roadmap to v0.30](docs/ROADMAP_V0_30.md). This update brings selected roadmap work forward; musical-corpus evaluation, runtime composition feedback and full 4K/120 qualification remain future work.
+See [Show Composer implementation and validation](docs/SHOW_COMPOSER.md), [v0.20 scene improvements](docs/PERFORMANCE_WORLDS.md) and the [roadmap to v0.30](docs/ROADMAP_V0_30.md). Musical-corpus evaluation, runtime composition feedback and full 4K/120 qualification remain future work.
 
 ## Engine at a glance
 
@@ -32,8 +31,8 @@ See [implementation and validation notes](docs/PERFORMANCE_WORLDS.md) and the [r
 | Audio | WASAPI loopback from the selected active Windows playback device |
 | Analysis | Sample-rate-aware 2048-point FFT with 50% overlap, adaptive band-limited spectral flux, sustained bass, kick, snare, hats, mids, highs, RMS, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection plus a sustained musical-ending confidence state |
-| Visual system | Twenty-one authored Rare worlds organized into four VDJ categories, with 64/96-beat loop grammar, act-specific 2D animation, layered parallax and selective 2.5D depth |
-| Director | Musical-stage prediction, prepared-world pre-roll, internal-loop progression, category filtering, 128/130 club anchors, ending holds, set-wide memory, adaptive cue density, palette morphing and beat-aligned chapter changes |
+| Visual system | Twenty-four authored Rare worlds organized into four VDJ categories, with 64/96-beat loop grammar, act-specific 2D animation, layered parallax and selective 2.5D depth |
+| Director | Conditional continued/drop/breakdown branches, six shared themes, analytic route rehearsal and measured GPU cost; musical-stage prediction, prepared-world pre-roll, internal-loop progression, category filtering, 128/130 club anchors, ending holds, set-wide memory, adaptive cue density, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Seven-page RareStage Console with editable DJ identity, category and tempo controls, plus a Direct2D/DirectWrite in-renderer overlay |
 | Rehearsal | Telemetry recorder, GPU-aware smart captures, review decisions, reason tags and portable CSV/Markdown session evidence |
@@ -68,6 +67,9 @@ See [implementation and validation notes](docs/PERFORMANCE_WORLDS.md) and the [r
 | `Z` | Ribbon Foundry | Broad ribbons weave, fan, braid and join through authored motif programs | The ribbon membrane carries the identity |
 | `X` | Halo Engine | Counter-rotating solid rings develop iris, petal and orbital formations | Radial material illuminates the identity surface |
 | `J` | Vector Speedway | A travelling track and arch rig develop lane chases and perspective rhythms | Identity is revealed within the track composition |
+| `C` | Folding Cathedral | Folded architectural wall ribs | Ribs assemble the identity into a readable surface |
+| `V` | Ribbon Racetrack | Sweeping continuous ribbon lanes | Lane material carries the fragmented identity |
+| `N` | Kinetic Monument | Rising sculptural columns | Columns unfold into the identity membrane |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 
@@ -129,7 +131,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Screens | Main display selection and synchronized clean-frame mirrors on up to eight displays |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v15 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, Showbrain choreography, identity target, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v16 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, Showbrain choreography, identity target, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
 
 Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 
@@ -166,6 +168,7 @@ The in-renderer panel and Console manipulate the same settings. Both report the 
 | `R` / `Y` / `U` | Select Matrix Vault, Panel Cascade or Signal Rail |
 | `I` / `O` / `K` | Select Kinetic Facade, Pulse Causeway or Void Gates |
 | `Z` / `X` / `J` | Select Ribbon Foundry, Halo Engine or Vector Speedway |
+| `C` / `V` / `N` | Select Folding Cathedral, Ribbon Racetrack or Kinetic Monument |
 | `[` / `]` | Previous or next world |
 | `0` or `A` | Toggle Smart Director |
 | `D` | Cycle active Windows playback devices |
@@ -369,7 +372,11 @@ Moving Stagewall rows, clean connected cube formations, shared animated scene su
 
 Sixteen wall/architectural motifs, eight palettes, timed bar-aligned Director cycles, forecast DVD corner arrivals, repaired fullscreen shortcuts and clean multi-screen mirrors. Current validation covers the renderer, choreography, timed cues, window behavior, mirror readback and Screens controls.
 
-### v0.20.0 — Performance Worlds (current source)
+### v0.21.0 — Show Composer (current source)
+
+Three new scenes, native wall/ribbon bridges, conditional branches, analytic route rehearsal with measured GPU-cost feedback, recurring themes and theme hold controls. [Details and evidence](docs/SHOW_COMPOSER.md).
+
+### v0.20.0 — Performance Worlds
 
 Nine rebuilt scenes, eight identity entrances/exits, four arrangements, long-set session memory and smooth Pixel Bank corner departures. See [release notes](docs/PERFORMANCE_WORLDS.md).
 

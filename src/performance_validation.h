@@ -20,7 +20,7 @@ int runPerformanceValidation(){
  }
  check("all_scene_arrangements_render",passed,rendered);check("minimum_scene_luma",lowest>.018,lowest);
  std::ofstream identity(output/"identities.csv");identity<<"world,kind,entrance,exit,max_frame_delta,hold_style_delta\n";double maxChange=0,maxHold=0;
- for(int world:{3,6,10,14,17,7})for(int kind=0;kind<2;++kind)for(int style=0;style<8;++style){std::vector<float>previous;double maximum=0;
+ for(int world:{3,6,10,14,17,7,21,22,23})for(int kind=0;kind<2;++kind)for(int style=0;style<8;++style){std::vector<float>previous;double maximum=0;
   for(int f=0;f<=240;++f){Constants c=fixture(16+f/60.f);c.scene=c.previousScene=float(world);c.identityKind=float(kind);c.morphPad1=float(style);c.morphPad2=float((style+3)%8);c.stanzaProgress=f/240.f;c.identityWeight=liquidProgress((c.stanzaProgress-.1f)/.3f)*(1-liquidProgress((c.stanzaProgress-.72f)/.27f));drawScene(c);auto current=pixels();if(!previous.empty())maximum=std::max(maximum,delta(previous,current));previous=current;
    if(f==90||f==150||f==210){const auto name="identity-"+std::to_string(world)+"-"+std::to_string(kind)+"-"+std::to_string(style)+"-"+std::to_string(f)+".png";if(!saveBackBufferPng(output/name))passed=false;}
   }
@@ -30,10 +30,11 @@ int runPerformanceValidation(){
  // A same-time hit must not move or rescale the travelling mark. CPU contract covers path.
  check("session_memory_and_pixel_path",PerformanceSelfTest());
  if(std::wcsstr(GetCommandLineW(),L"--preview")){
-  resize(960,540);const int scenes[]={3,6,8,10,14,12,17,7,4,5,16,3};CornerChoreography dvd;
-  for(int frame=0;frame<3960;++frame){const int chapter=frame/360,local=frame%360;Constants c=fixture(frame/60.f);c.scene=c.previousScene=float(scenes[chapter]);c.palette=std::fmod(5+frame/660.f,8.f);c.patternSeed=float((chapter%4)*16+(chapter*3)%16);c.previousPatternSeed=c.patternSeed;
-   if(local>=300){c.scene=float(scenes[chapter+1]);c.transition=(local-300)/60.f;c.transitionStyle=float(rarestage::show::HandoffStyle(scenes[chapter],scenes[chapter+1]));}
+  resize(960,540);const int scenes[]={3,21,3,18,22,23,18,8,14,5,16,3};CornerChoreography dvd;rarestage::show::ThemeMemory previewTheme;
+  for(int frame=0;frame<3960;++frame){const int chapter=frame/360,local=frame%360;Constants c=fixture(frame/60.f);c.tempoPhase=c.time*2; c.scene=c.previousScene=float(scenes[chapter]);c.palette=std::fmod(5+frame/660.f,8.f);if(local==0)previewTheme.visit();c.patternSeed=float((chapter%4)*16+(chapter*3)%16);c.previousPatternSeed=c.patternSeed;
+   if(local>=240){c.scene=float(scenes[chapter+1]);c.transition=(local-240)/120.f;c.transitionStyle=float(rarestage::show::HandoffStyle(scenes[chapter],scenes[chapter+1]));}
    float stanza=std::clamp((local-35)/240.f,0.f,1.f);c.stanzaProgress=stanza;c.identityWeight=liquidProgress(stanza/.32f)*(1-liquidProgress((stanza-.70f)/.30f));c.identityKind=float(chapter%2);c.morphPad1=float(chapter%8);c.morphPad2=float((chapter+3)%8);
+   previewTheme.update(c.tempoPhase,c.identityWeight<.05f&&c.transition>=1,true);const auto&theme=previewTheme.value();c.themeBraid=theme[0];c.themeFan=theme[1];c.themeOrbit=theme[2];c.themeAccent=theme[3];
    c.kick=std::exp(-std::fmod(c.tempoPhase,1.f)*8)*.8f;c.snare=std::exp(-std::fmod(c.tempoPhase+1,2.f)*12)*.6f;c.percussion=std::exp(-std::fmod(c.tempoPhase*2,1.f)*12)*.45f;
    if(chapter==9&&local==180)dvd.aim(c.time,c.time+2,true);dvd.update(c.time,false,0,0);c.dvdX=dvd.x;c.dvdY=dvd.y;c.dvdCorner=dvd.impact(c.time);c.dvdControlled=1;
    drawScene(c);wchar_t name[40]{};swprintf_s(name,L"frame-%04d.png",frame);if(!saveBackBufferPng(output/"preview"/name))return 21;

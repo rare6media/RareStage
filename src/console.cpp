@@ -45,18 +45,8 @@ COLORREF blendColor(COLORREF from, COLORREF to, float amount) {
                channel(GetBValue(from), GetBValue(to)));
 }
 
-constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
-    L"MORPH WALL", L"PRISM ATRIUM", L"ORBITAL GARDEN",
-    L"STAGEWALL", L"RESONANCE RANGE", L"PIXEL BANK",
-    L"PRISM CASCADE", L"AURORA RANGE", L"CHROMA BLADES",
-    L"KINETIC ARRAY", L"KINETIC CANOPY", L"PIXEL LOOM",
-    L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL RAIL",
-    L"KINETIC FACADE", L"PULSE CAUSEWAY", L"VOID GATES", L"RIBBON FOUNDRY", L"HALO ENGINE", L"VECTOR SPEEDWAY"
-};
-constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldKeys{
-    L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8", L"9",
-    L"Q", L"W", L"E", L"R", L"Y", L"U", L"I", L"O", L"K", L"Z", L"X", L"J"
-};
+const auto WorldNames=[](){std::array<const wchar_t*,rarestage::control::WorldCount> names{};for(size_t i=0;i<names.size();++i)names[i]=rarestage::show::Scenes[i].wideName;return names;}();
+const auto WorldKeys=[](){std::array<std::wstring,rarestage::control::WorldCount> keys{};for(size_t i=0;i<keys.size();++i)keys[i]=std::wstring(1,wchar_t(rarestage::show::Scenes[i].key));return keys;}();
 constexpr std::array<const wchar_t*, rarestage::control::SectionCount> SectionNames{
     L"OPEN", L"BUILD", L"DROP", L"BREAKDOWN", L"DRIVE"
 };
@@ -124,6 +114,8 @@ enum class Action {
     Next,
     Automatic,
     Freeze,
+    HoldTheme,
+    NextTheme,
     Blackout,
     CleanOpen,
     Fallback,
@@ -226,7 +218,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.20.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.21.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -766,7 +758,7 @@ private:
         if (rehearsalSamples_.size() > MaxSessionSamples) rehearsalSamples_.erase(rehearsalSamples_.begin(), rehearsalSamples_.begin() + 1200);
 
         if (next.world != lastRehearsalWorld_) {
-            addRehearsalEvent(L"WORLD", std::wstring(WorldNames[std::clamp(next.world, 0, 20)]) + L" entered");
+            addRehearsalEvent(L"WORLD", std::wstring(WorldNames[std::clamp(next.world, 0, int(rarestage::control::WorldCount)-1)]) + L" entered");
             scheduleSmartCapture(L"world change", now, 1100);
             lastRehearsalWorld_ = next.world;
         }
@@ -832,7 +824,7 @@ private:
         double gpuTotal = 0.0;
         float gpuPeak = 0.0f;
         for (const auto& sample : rehearsalSamples_) {
-            worlds[std::clamp(sample.world, 0, 20)] = true;
+            worlds[std::clamp(sample.world, 0, int(rarestage::control::WorldCount)-1)] = true;
             gpuTotal += sample.gpuMs;
             gpuPeak = std::max(gpuPeak, sample.gpuMs);
             timeline << sample.timeMs << ',' << sample.world << ',' << sample.section << ',' << sample.predictedSection << ',' << sample.preparedWorld << ',' << sample.masteringProfile << ',' << sample.stageLayout << ',' << sample.productionDuty << ',' << sample.syncMode << ',' << sample.syncGroup << ',' << sample.palette << ',' << sample.quality << ','
@@ -923,21 +915,8 @@ private:
             else if (key == VK_RETURN) applyDjName();
             return;
         }
-        if (key >= L'1' && key <= L'9') {
-            const int world = static_cast<int>(key - L'1');
-            send(Command::SelectWorld, world, WorldNames[world]);
-        } else if (key == L'Q') send(Command::SelectWorld, 9, WorldNames[9]);
-        else if (key == L'W') send(Command::SelectWorld, 10, WorldNames[10]);
-        else if (key == L'E') send(Command::SelectWorld, 11, WorldNames[11]);
-        else if (key == L'R') send(Command::SelectWorld, 12, WorldNames[12]);
-        else if (key == L'Y') send(Command::SelectWorld, 13, WorldNames[13]);
-        else if (key == L'U') send(Command::SelectWorld, 14, WorldNames[14]);
-        else if (key == L'I') send(Command::SelectWorld, 15, WorldNames[15]);
-        else if (key == L'O' && !(GetKeyState(VK_CONTROL) & 0x8000)) send(Command::SelectWorld, 16, WorldNames[16]);
-        else if (key == L'Z') send(Command::SelectWorld, 18, WorldNames[18]);
-        else if (key == L'X') send(Command::SelectWorld, 19, WorldNames[19]);
-        else if (key == L'J') send(Command::SelectWorld, 20, WorldNames[20]);
-        else if (key == L'K') send(Command::SelectWorld, 17, WorldNames[17]);
+        const int cue=rarestage::show::SceneForKey(int(key));
+        if(cue>=0&&!(key==L'O'&&(GetKeyState(VK_CONTROL)&0x8000)))send(Command::SelectWorld,cue,WorldNames[cue]);
         else if (key == VK_OEM_4) send(Command::PreviousWorld, 0, L"Previous world");
         else if (key == VK_OEM_6) send(Command::NextWorld, 0, L"Next world");
         else if (key == L'A') send(Command::SetAutomatic, flag(rarestage::control::Automatic) ? 0 : 1, L"Smart Director");
@@ -1037,6 +1016,8 @@ private:
                 case Action::Previous: send(Command::PreviousWorld, 0, L"Previous world"); break;
                 case Action::Next: send(Command::NextWorld, 0, L"Next world"); break;
                 case Action::Automatic: send(Command::SetAutomatic, flag(rarestage::control::Automatic) ? 0 : 1, L"Smart Director"); break;
+                case Action::HoldTheme:send(Command::HoldTheme,state_.themeHeld?0:1,L"Hold theme");break;
+                case Action::NextTheme:send(Command::NextTheme,0,L"Next theme on a musical boundary");break;
                 case Action::Freeze: send(Command::SetFrozen, flag(rarestage::control::Frozen) ? 0 : 1, L"Automation hold"); break;
                 case Action::Blackout: send(Command::SetBlackout, flag(rarestage::control::Blackout) ? 0 : 1, L"Blackout"); break;
                 case Action::CleanOpen: send(Command::CleanOpen, 0, L"Clean Open"); break;
@@ -1319,13 +1300,17 @@ private:
         const int leftWidth = static_cast<int>((body.right - body.left) * 0.63f);
         RECT worlds{body.left, body.top, body.left + leftWidth, body.bottom};
         fillRound(dc, worlds, 11, Panel, Line);
-        sectionLabel(dc, L"WORLD CUES  /  TWENTY-ONE AUTHORED ENVIRONMENTS",
+        sectionLabel(dc, L"WORLD CUES  /  TWENTY-FOUR AUTHORED ENVIRONMENTS",
                      worlds.left + scale(14), worlds.top + scale(9), worlds.right - worlds.left - scale(28));
 
-        const int gridTop = worlds.top + scale(38);
+        const int themeY=worlds.top+scale(35);
+        addButton(dc,RECT{worlds.left+scale(14),themeY,worlds.left+scale(130),themeY+scale(29)},L"HOLD THEME",Action::HoldTheme,0,state_.themeHeld!=0,Amber);
+        addButton(dc,RECT{worlds.left+scale(138),themeY,worlds.left+scale(254),themeY+scale(29)},L"NEXT THEME",Action::NextTheme,0,false,Purple);
+        drawText(dc,connected_&&state_.themeName[0]?state_.themeName:L"THEMES FOLLOW THE SHOW",RECT{worlds.left+scale(263),themeY,worlds.right-scale(14),themeY+scale(29)},smallFont_,Cyan);
+        const int gridTop = worlds.top + scale(76);
         const int gridGap = scale(8);
         const int columns = 3;
-        const int rows = 7;
+        const int rows = 8;
         const int gridWidth = (worlds.right - worlds.left - scale(28) - gridGap * (columns - 1)) / columns;
         const int gridHeight = (worlds.bottom - gridTop - scale(14) - gridGap * (rows - 1)) / rows;
         for (int index = 0; index < static_cast<int>(WorldNames.size()); ++index) {
@@ -1493,28 +1478,14 @@ private:
         const std::wstring activeWorld = connected_
             ? WorldNames[std::clamp(state_.world, 0, static_cast<int>(WorldNames.size()) - 1)]
             : L"NO ACTIVE WORLD";
-        const std::wstring candidate = connected_
-            ? WorldNames[std::clamp(state_.directorCandidateWorld, 0, static_cast<int>(WorldNames.size()) - 1)]
-            : L"---";
-        const std::wstring runner = connected_
-            ? WorldNames[std::clamp(state_.directorRunnerUpWorld, 0, static_cast<int>(WorldNames.size()) - 1)]
-            : L"---";
         drawText(dc, L"ACTIVE  " + activeWorld + L"  /  " +
                      (connected_ ? SectionNames[std::clamp(state_.songSection, 0, 4)] : L"OFFLINE"),
                  RECT{decision.left + scale(14), decision.top + scale(6), decision.right - scale(14), decision.top + scale(31)}, headingFont_, Text);
-        drawText(dc, L"NEXT  " + candidate + L"  " +
-                     std::to_wstring(static_cast<int>(std::lround(std::clamp(state_.directorCandidateScore - state_.directorRunnerUpScore, 0.0f, 1.0f) * 100))) +
-                     L"% MARGIN   /   ALT  " + runner,
-                 RECT{decision.left + scale(14), decision.top + scale(31), decision.right - scale(14), decision.top + scale(56)}, smallFont_, Cyan);
-        drawText(dc, connected_ && state_.directorReason[0] ? state_.directorReason : L"DIRECTOR TELEMETRY STARTING",
-                 RECT{decision.left + scale(14), decision.top + scale(56), decision.right - scale(14), decision.top + scale(81)}, smallFont_,
-                 flag(rarestage::control::MusicalEnding) ? Amber : Muted);
-        drawText(dc, L"SECTION  " + std::to_wstring(static_cast<int>(std::lround(state_.sectionEvidence * 100))) + L"%   /   " +
-                     std::wstring(state_.movementName[0] ? state_.movementName : L"ESTABLISH") + L"   /   " +
-                     std::wstring(state_.patternName[0] ? state_.patternName : L"PATTERN --") + L"   /   TENSION " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.buildTension * 100))) + L"%   /   DROP " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.dropReadiness * 100))) + L"%",
-                 RECT{decision.left + scale(14), decision.top + scale(81), decision.right - scale(14), decision.bottom - scale(5)}, smallFont_, Muted);
+        auto branchName=[&](int world)->std::wstring{return connected_&&world>=0&&world<int(WorldNames.size())?WorldNames[world]:L"preparing";};
+        drawText(dc,L"CONTINUE  "+branchName(state_.composerContinue),RECT{decision.left+scale(14),decision.top+scale(31),decision.right-scale(14),decision.top+scale(56)},smallFont_,Cyan);
+        drawText(dc,L"DROP  "+branchName(state_.composerDrop)+L"  /  BREAK  "+branchName(state_.composerBreak),RECT{decision.left+scale(14),decision.top+scale(56),decision.right-scale(14),decision.top+scale(81)},smallFont_,Purple);
+        drawText(dc,connected_&&state_.directorReason[0]?state_.directorReason:L"DIRECTOR TELEMETRY STARTING",RECT{decision.left+scale(14),decision.top+scale(81),decision.right-scale(14),decision.bottom-scale(5)},smallFont_,Muted);
+
     }
 
     void traceLine(HDC dc, RECT plot, float TraceSample::* field, COLORREF color) const {
@@ -1902,7 +1873,7 @@ private:
         RECT stats{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(83)};
         fillRound(dc, stats, 8, PanelRaised, Line);
         std::array<bool, rarestage::control::WorldCount> exercised{};
-        for (const auto& sample : rehearsalSamples_) exercised[std::clamp(sample.world, 0, 20)] = true;
+        for (const auto& sample : rehearsalSamples_) exercised[std::clamp(sample.world, 0, int(rarestage::control::WorldCount)-1)] = true;
         const auto duration = rehearsalActive_ ? GetTickCount64() - rehearsalStartedAt_ :
             (rehearsalSamples_.empty() ? 0 : rehearsalSamples_.back().timeMs);
         drawText(dc, rehearsalActive_ ? L"RECORDING  " + clockText(duration) : L"SESSION  " + clockText(duration),
@@ -1949,7 +1920,7 @@ private:
             const COLORREF statusColor = item.status == 1 ? Green : item.status == 2 ? Red : Amber;
             drawText(dc, L"FRAME " + std::to_wstring(reviewIndex_ + 1) + L" / " + std::to_wstring(reviewItems_.size()) + L"   " + status,
                      RECT{review.left + scale(14), review.top + scale(38), review.right - scale(14), review.top + scale(65)}, headingFont_, statusColor);
-            drawText(dc, std::wstring(WorldNames[std::clamp(item.world, 0, 20)]) + L"  /  " + SectionNames[std::clamp(item.section, 0, 4)] +
+            drawText(dc, std::wstring(WorldNames[std::clamp(item.world, 0, int(rarestage::control::WorldCount)-1)]) + L"  /  " + SectionNames[std::clamp(item.section, 0, 4)] +
                          L"  /  " + clockText(item.timeMs) + L"  /  " + item.reason,
                      RECT{review.left + scale(14), review.top + scale(65), review.right - scale(14), review.top + scale(91)}, smallFont_, Cyan);
             drawText(dc, item.path, RECT{review.left + scale(14), review.top + scale(91), review.right - scale(14), review.top + scale(120)}, smallFont_, Muted);

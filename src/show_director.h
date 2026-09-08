@@ -1,20 +1,11 @@
 #pragma once
 #include <array>
+#include "scene_catalog.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
 namespace rarestage::show {
-// Category is an operator filter. Motion describes geometry used by the handoff planner.
-// 0 surface, 1 ribbon, 2 perspective, 3 radial, 4 atmospheric.
-struct Scene { int category, motion; float energy, density; };
-inline constexpr std::array<Scene,21> Scenes{{
- {0,0,.42f,.85f},{2,2,.54f,.50f},{3,3,.25f,.28f},{0,0,.68f,.90f},
- {3,4,.40f,.76f},{0,0,.58f,.35f},{1,1,.72f,.75f},{3,4,.43f,.65f},
- {1,1,.48f,.65f},{0,0,.64f,.85f},{1,1,.50f,.60f},{0,0,.60f,.85f},
- {2,2,.70f,.85f},{0,0,.66f,.85f},{2,2,.57f,.55f},{0,0,.66f,.85f},
- {2,2,.46f,.65f},{3,3,.57f,.72f},{1,1,.48f,.55f},{3,3,.56f,.50f},{2,2,.65f,.70f}
-}};
 inline float Compatibility(int from,int to){
  const auto&a=Scenes[from];const auto&b=Scenes[to];
  static constexpr float flow[5][5]={{1,.88f,.80f,.72f,.73f},{.88f,1,.82f,.84f,.88f},{.80f,.82f,1,.91f,.78f},{.72f,.84f,.91f,1,.86f},{.73f,.88f,.78f,.86f,1}};
@@ -30,12 +21,12 @@ inline int HandoffStyle(int from,int to){
 struct Context {
  int current{}, section{}, category{}, sequence{}, preferred{-1};
  float energy{}, trend{};
- std::array<float,21> fit{};
+ std::array<float,SceneCount> fit{}, routeAdjustment{};
 };
 struct Plan {int next{-1},then{-1},alternative{-1};float score{-10000},runner{-10000};};
 class Director {
- std::array<int,21> lastVisit_{};
- std::array<unsigned,21> exposure_{};std::array<std::array<unsigned,21>,21> edges_{};int previous_{-1};
+ std::array<int,SceneCount> lastVisit_{};
+ std::array<unsigned,SceneCount> exposure_{};std::array<std::array<unsigned,SceneCount>,SceneCount> edges_{};int previous_{-1};
  int visits_{},familyRun_{},lastMotion_{-1};
 public:
  Director(){lastVisit_.fill(-100);}
@@ -51,7 +42,7 @@ public:
    if(next==c.current||!allowed(next))continue;
    const auto&n=Scenes[next];
    const bool same=n.motion==Scenes[c.current].motion;
-   float immediate=c.fit[next]+Compatibility(c.current,next)*.65f-fatigue(next);
+   float immediate=c.fit[next]+c.routeAdjustment[next]+Compatibility(c.current,next)*.65f-fatigue(next);
    immediate-=std::log1p(float(exposure_[next]))*.38f+std::log1p(float(edges_[c.current][next]))*.48f;
    immediate+=contrast?(same?-.78f:.38f):(same?.22f:0.f);
    if(c.section==1)immediate-=std::max(0.f,n.energy-.62f)*1.8f; // reserve the peak

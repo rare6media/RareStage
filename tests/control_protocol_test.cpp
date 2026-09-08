@@ -16,7 +16,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 21 || SectionCount != 5 || ProtocolVersion != 15 || AudioProfileCount != 4 ||
+    if (WorldCount != 24 || SectionCount != 5 || ProtocolVersion != 16 || AudioProfileCount != 4 ||
         MasteringProfileCount != 4 || StageLayoutCount != 4 || ProductionDutyCount != 5 || SyncModeCount != 3 ||
         SceneCategoryCount != 5 || TempoAnchorCount != 3) {
         std::cerr << "Protocol constants are stale\n";
@@ -27,6 +27,7 @@ int main() {
        IsFullscreenShortcut(WM_SYSKEYDOWN,VK_RETURN,(LPARAM(1)<<29)|(LPARAM(1)<<30))||
        IsFullscreenShortcut(WM_KEYDOWN,VK_RETURN,0)||!IsFullscreenShortcut(WM_KEYDOWN,VK_F11,0))return 9;
     SharedState source{};
+    source.theme=5;source.themeHeld=1;source.composerContinue=21;source.composerDrop=22;source.composerBreak=23;source.routeEstimatedMs=6.5f;source.routeContinuity=.9f;source.routeMeasured=1;wcscpy_s(source.themeName,L"TIDAL");
     source.protocolVersion = ProtocolVersion;
     source.structSize = sizeof(SharedState);
     source.worldCount = WorldCount;
@@ -144,6 +145,7 @@ int main() {
         std::cerr << "Consistent shared-state read failed\n";
         return 3;
     }
+    if(copy.theme!=5||copy.themeHeld!=1||copy.composerContinue!=21||copy.composerDrop!=22||copy.composerBreak!=23||copy.routeEstimatedMs!=6.5f||copy.routeContinuity!=.9f||copy.routeMeasured!=1||std::wcscmp(copy.themeName,L"TIDAL")!=0)return 6;
     if (copy.protocolVersion != ProtocolVersion || copy.structSize != sizeof(SharedState) ||
         copy.worldCount != WorldCount || copy.sectionCount != SectionCount ||
         copy.world != 13 || copy.songSection != 2 || copy.stateRevision != 9 ||
