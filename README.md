@@ -4,24 +4,22 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.14.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.14.1**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.14.0
+## What changed in 0.14.1
 
-Version 0.14.0 is the **Club Loop Engine**. RareStage now treats each world as a reusable VDJ content pack: continuous autonomous motion, tempo-locked internal movements, category-aware programming, and authored DJ identity choreography suitable for club screens, mapped LED stages, Spout capture and VRChat video-routing workflows.
+Version 0.14.1 is **Identity Worlds**. DJ identity is now choreographed through tile fragments, scene depth and transition motion instead of being composited as a static title, while three former tile systems have become full-scale environments.
 
-- Four scene categories: Panel / Pixel, Ribbon / Glass, Depth / Transport and Atmosphere
-- Console-selectable category filtering for Smart Director while manual world selection remains unrestricted
-- `AUTO CLUB` starts on a confident 128 BPM grid, recognizes the common 128/130 neighborhood quickly and follows clearly different detected tempos
-- Explicit 128 BPM and 130 BPM anchors for rehearsed club material
-- Every world develops through 64- or 96-beat content loops with five movements and sixteen pattern banks
-- When a world reaches its dwell target outside a genuine musical chapter, Smart Director changes its internal movement first instead of channel-surfing
-- Custom DJ name editing in the Console Production page
-- DJ identity is rendered into clean stage output as an intermittent assembly, carrier, architectural crop or sparse reveal—not a permanent watermark
-- Protocol v12 exposes category, effective tempo grid, loop phase/length and DJ identity telemetry
-- A deterministic Club Loop contract validates all 18 worlds across both common club-tempo anchors
+- Panel and pixel scenes split the configured DJ name across the physical tile field, then smoothly scatter and reconstruct it on phrase and transition boundaries
+- Ribbon, transport and atmosphere scenes treat identity as a moving carrier, distant architectural crop, horizon element or sparse environmental reveal
+- Lumen Canyon replaces Bioframe with flowing canyon membranes, illuminated rivers, filaments and autonomous spores
+- Orbital Garden replaces Celestial Rig with a planet, layered orbital bodies, atmosphere, stars and a living horizon
+- Rare Archipelago replaces Suspended Field with floating islands, waterfalls, atmospheric depth and slow environmental drift
+- Identity brightness responds to the current render-frame kick/snare path without using audio as the animation clock
+- The v0.14 Club Loop Engine, four scene categories, 64/96-beat progression and confident 128/130 BPM anchors remain intact
+- Protocol v12 remains wire-compatible with the Console
 
 The v0.13 Adaptive Show Grammar remains the foundation:
 
@@ -71,8 +69,8 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Key | World | Visual direction | Rare-mark role |
 |---|---|---|---|
 | `1` | Morph Wall | Glass panels carry circle, square and diamond motifs through columns, diagonals, radial pushes, split gates, checkers and wings | The mark appears only as a negative-space wall formation |
-| `2` | Bioframe | Restrained glass-membrane tiles perform rise, branch, bloom, split and field formations over one calm refractive environment | The mark influences one panel formation instead of floating over the scene |
-| `3` | Celestial Rig | A cohesive suspended glass rig moves through columns, rows, orbits, diagonals, clusters and open gates | No persistent logo; the rig, horizon and sparse orbital light carry the identity |
+| `2` | Lumen Canyon | Bio-organic canyon walls, flowing membranes, luminous rivers, filaments and autonomous spores create a continuous environment | The DJ identity can appear as restrained horizon light carried through the environment |
+| `3` | Orbital Garden | A breathing celestial landscape layers a central planet, eight orbiting bodies, atmospheric bands and sparse stars | Identity enters as distant architectural light rather than a foreground watermark |
 | `4` | Stagewall | A full data-lit cube facade with panel turning, extrusion, disappearance and sixteen cue families | The mark is distributed across lit panel faces as a mosaic instruction, never pasted over the wall |
 | `5` | Wavewall | Articulated vertical slats perform columns, diagonals, gates, tiers, fans and pressure fronts over a restrained stage floor | No foreground watermark; the complete slat stage carries the Rare movement language |
 | `6` | Pixel Bank | Stable grouped pixels slowly rotate in and out as an abstract support loop | One polished DVD-style mark conducts wall impacts, corner bursts and reactive edge light |
@@ -86,7 +84,7 @@ The research and design synthesis behind this release is documented in [Stage vi
 | `Y` | Panel Cascade | Multi-panel banks fold, descend, disappear and reform through row waves, diagonals, curtains, blocks and a Rare formation | The mark becomes one synchronized formation during selected high-energy cues |
 | `U` | Signal Rail | Nine perspective rails carry synchronized light packets from a distant horizon through six phrase formations | No logo; transport motion, lane color and architectural convergence make the world distinct |
 | `I` | Kinetic Facade | A wide articulated-panel elevation performs columns, diagonals, radial pushes, split banks, blocks, fans and cascades | The mark appears only as a distributed negative-space facade formation |
-| `O` | Suspended Field | Suspended tile banks, cables and runway light perform seven ceiling-scale formations with calm physical drift | No foreground mark; the suspended architecture is the identity |
+| `O` | Rare Archipelago | Nine floating islands drift at independent depths with luminous rims, waterfalls, clouds and distant filaments | Identity appears sparingly as a world-scale horizon element |
 | `K` | Void Gates | Seven slow receding gates frame side-panel cues and a deliberately large central negative space | A restrained Rare-shaped void appears only during selected acts |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
@@ -183,7 +181,7 @@ The in-renderer panel and Console manipulate the same settings. Both report the 
 | `1`–`9` | Select worlds 1–9 and enter manual world mode |
 | `Q` / `W` / `E` | Select Kinetic Array, Kinetic Canopy or Pixel Loom |
 | `R` / `Y` / `U` | Select Matrix Vault, Panel Cascade or Signal Rail |
-| `I` / `O` / `K` | Select Kinetic Facade, Suspended Field or Void Gates |
+| `I` / `O` / `K` | Select Kinetic Facade, Rare Archipelago or Void Gates |
 | `[` / `]` | Previous or next world |
 | `0` or `A` | Toggle Smart Director |
 | `D` | Cycle active Windows playback devices |
@@ -210,9 +208,9 @@ When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, `U`, `I`, `O`, and `
 
 | Slot | Direction | Starting world | Default dwell / transition |
 |---|---|---|---|
-| `F1` Clean Open | Calm, Rare Cyan | Celestial Rig | 88 sec / 1.8 sec Horizon Rise |
+| `F1` Clean Open | Calm, Rare Cyan | Orbital Garden | 88 sec / 1.8 sec Horizon Rise |
 | `F2` Melodic Bloom | Balanced, Sakura | Morph Wall | 72 sec / 1.4 sec Signal Veil |
-| `F3` Rare Drop | Stage, Rare Cyan | Bioframe | 56 sec / 1.2 sec Gate Open |
+| `F3` Rare Drop | Stage, Rare Cyan | Lumen Canyon | 56 sec / 1.2 sec Gate Open |
 | `F4` Glitch Finale | Aggressive, Nebula, timeline | Stagewall | 48 sec / 0.9 sec Signal Veil |
 
 Saved presets include the current world, reaction tuning, fallback palette, dwell, transition, render profile, output mode, automation, timeline, Spout, monitor, production duty, mastering, mapped layout, master brightness, sync mode and sync group.
@@ -243,7 +241,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.14.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
+VSync is enabled by default. The 0.14.1 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
 
 ## Build from source
 
@@ -272,7 +270,7 @@ Every push and pull request runs the Windows workflow:
 10. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
 11. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
 
-Successful pushes to `main` publish or refresh the **v0.14.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
+Successful pushes to `main` publish or refresh the **v0.14.1** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
@@ -327,13 +325,20 @@ Successful pushes to `main` publish or refresh the **v0.14.0** GitHub release au
 - Stable sample and visual clocks with stale-audio/device-loss protection
 - Console protocol v11 narrative, movement, pattern and transition telemetry
 
-### v0.14.0 — Club Loop Engine (current)
+### v0.14.0 — Club Loop Engine (completed)
 
 - Four category-filtered VDJ content packs across all 18 worlds
 - 64/96-beat internal loops that progress before cross-world changes
 - Confident automatic 128/130 club-tempo anchoring with monotonic phase slew
 - Custom DJ identity choreography in the clean output
 - Protocol v12 Console control and deterministic loop validation
+
+### v0.14.1 — Identity Worlds (current)
+
+- Tile-fragment DJ-name assembly and transition choreography
+- Family-specific carrier, architecture and environmental identity treatments
+- Lumen Canyon, Orbital Garden and Rare Archipelago world-scale scenes
+- Current-frame identity accents with continuous autonomous motion underneath
 
 ### v0.15 — Show authoring
 
