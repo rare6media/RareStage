@@ -8,10 +8,10 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v10";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v11";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
-inline constexpr std::uint32_t ProtocolVersion = 10;
+inline constexpr std::uint32_t ProtocolVersion = 11;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -134,6 +134,10 @@ struct alignas(64) SharedState {
     std::int32_t productionDuty{1};
     std::int32_t syncMode{};
     std::int32_t syncGroup{1};
+    std::int32_t worldFamily{};
+    std::int32_t worldMovement{};
+    std::int32_t patternFrom{};
+    std::int32_t patternTo{};
     std::uint32_t lastCommandSerial{};
     CommandStatus lastCommandStatus{CommandStatus::None};
     float fps{};
@@ -194,6 +198,14 @@ struct alignas(64) SharedState {
     float masterBrightness{0.92f};
     float syncPhaseErrorMs{};
     float syncPacketAgeMs{};
+    float sectionAgeBeats{};
+    float buildTension{};
+    float dropReadiness{};
+    float musicalNovelty{};
+    float songArc{};
+    float movementProgress{};
+    float patternBlend{};
+    float transitionCompatibility{1.0f};
     std::uint32_t transientClass{};
     std::uint32_t acceptedKickCount{};
     std::uint32_t acceptedSnareCount{};
@@ -213,6 +225,8 @@ struct alignas(64) SharedState {
     wchar_t lastDirectorDecision[96]{};
     wchar_t lastRejectedCue[96]{};
     wchar_t syncStatus[64]{};
+    wchar_t movementName[32]{};
+    wchar_t patternName[48]{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");

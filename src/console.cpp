@@ -212,7 +212,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.12.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.13.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -432,7 +432,7 @@ private:
             !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.12 Console endpoint.";
+                statusText_ = L"RareStage is running without the v0.13 Console endpoint.";
             }
             return;
         }
@@ -1420,17 +1420,17 @@ private:
                      (connected_ ? SectionNames[std::clamp(state_.songSection, 0, 4)] : L"OFFLINE"),
                  RECT{decision.left + scale(14), decision.top + scale(6), decision.right - scale(14), decision.top + scale(31)}, headingFont_, Text);
         drawText(dc, L"NEXT  " + candidate + L"  " +
-                     std::to_wstring(static_cast<int>(std::lround(std::clamp(state_.sectionEvidence, 0.0f, 1.0f) * 100))) +
-                     L"% EVIDENCE   /   ALT  " + runner,
+                     std::to_wstring(static_cast<int>(std::lround(std::clamp(state_.directorCandidateScore - state_.directorRunnerUpScore, 0.0f, 1.0f) * 100))) +
+                     L"% MARGIN   /   ALT  " + runner,
                  RECT{decision.left + scale(14), decision.top + scale(31), decision.right - scale(14), decision.top + scale(56)}, smallFont_, Cyan);
         drawText(dc, connected_ && state_.directorReason[0] ? state_.directorReason : L"DIRECTOR TELEMETRY STARTING",
                  RECT{decision.left + scale(14), decision.top + scale(56), decision.right - scale(14), decision.top + scale(81)}, smallFont_,
                  flag(rarestage::control::MusicalEnding) ? Amber : Muted);
-        drawText(dc, L"FORECAST  " + std::wstring(SectionNames[std::clamp(state_.predictedSection, 0, 4)]) + L"  " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.predictedSectionConfidence * 100))) + L"%   /   LEAD " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.predictionLeadBeats * 10))) + L"/10 BEATS   /   DENSITY " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.worldCueDensity * 100))) + L"%   /   TEMPO HOLD " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.tempoRecoveryConfidence * 100))) + L"%",
+        drawText(dc, L"SECTION  " + std::to_wstring(static_cast<int>(std::lround(state_.sectionEvidence * 100))) + L"%   /   " +
+                     std::wstring(state_.movementName[0] ? state_.movementName : L"ESTABLISH") + L"   /   " +
+                     std::wstring(state_.patternName[0] ? state_.patternName : L"PATTERN --") + L"   /   TENSION " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.buildTension * 100))) + L"%   /   DROP " +
+                     std::to_wstring(static_cast<int>(std::lround(state_.dropReadiness * 100))) + L"%",
                  RECT{decision.left + scale(14), decision.top + scale(81), decision.right - scale(14), decision.bottom - scale(5)}, smallFont_, Muted);
     }
 

@@ -4,13 +4,23 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.12.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.13.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.12.0
+## What changed in 0.13.0
 
-Version 0.12.0 is the **Stage Production Pack**. It adds venue-facing output mastering, mapped stage compositions and a production clock without changing the authored worlds or making music the animation clock.
+Version 0.13.0 is **Adaptive Show Grammar**. It turns each world into a reusable performance with Establish, Assemble, Payoff, Develop and Dissolve movements, fixes musical-analysis errors uncovered by an Astra code audit, and makes Smart Director select coherent next worlds without sacrificing continuous motion.
+
+- Raw calibrated audio now drives song structure; visual gain controls cannot change the detected act
+- Contextual build tension and impact contrast prevent ordinary first kicks from becoming false drops
+- Independent kick, snare and hi-hat lanes can illuminate together instead of winner-take-all muting
+- Sample-clock BPM estimation is stable across capture batching and CPU stalls
+- Stale audio decays safely after endpoint loss instead of leaving the show permanently “hot”
+- Every world receives a seeded 16-beat movement and pattern lifecycle, so repeat visits stay recognizable but vary
+- Prepared drop cues expire and cannot commit after the predicted musical section has changed
+- Monotonic choreography timing removes the former 1024-beat reset and absolute-time confidence jumps
+- Console protocol v11 exposes movement, pattern, build tension, drop readiness, novelty and transition fit
 
 - Four post-bloom mastering profiles: Studio, LED Safe, Arena and Broadcast
 - Adjustable 65–100% master brightness with LED-safe highlight roll-off and broadcast-range restraint
@@ -19,7 +29,7 @@ Version 0.12.0 is the **Stage Production Pack**. It adds venue-facing output mas
 - Local-network Leader/Follower sync broadcasts world, act, palette, tempo phase, cue density and output treatment on UDP 47712, with Console-selectable groups to isolate adjacent shows
 - Followers preserve their last state and continuous motion if the leader disappears; Local mode opens no network socket and remains the default
 - A sixth glassmorphic Console page controls every production-pack function and reports packet age, phase error and sync state
-- Protocol v10 and rehearsal exports include mastering, layout, duty, brightness and synchronization evidence
+- Protocol v11 adds musical-narrative and world-progression telemetry to the existing production evidence
 - The clean-output boundary remains isolated from Console/HUD and is ready for a future NDI transport adapter; this release does not claim a bundled NDI sender
 - A deterministic 80-case production contract validates all duty, mastering and layout combinations plus the fixed-size sync packet
 
@@ -125,7 +135,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Production | Production-duty presets, output mastering, master brightness, mapped stage layouts, sync group and Local/Leader/Follower synchronization |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v10 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects out-of-range values, and reports complete signal, detector evidence, calibration, Director forecasts and decisions, GPU timing, adaptive cue density, tempo recovery, output mastering, stage layout, production duty, network-sync, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v11 uses a local shared-memory telemetry snapshot and acknowledged window messages. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed or non-finite values, and reports complete signal, detector evidence, musical narrative, world movement/pattern, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
 
 Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 
@@ -220,7 +230,7 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Native HD | 100% | Full native scene rendering |
 | Ultra 4K | 125% | Supersampled output on high-end GPUs |
 
-VSync is enabled by default. The 0.12.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
+VSync is enabled by default. The 0.13.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
 
 ## Build from source
 
@@ -249,7 +259,7 @@ Every push and pull request runs the Windows workflow:
 10. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
 11. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
 
-Successful pushes to `main` publish or refresh the **v0.12.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
+Successful pushes to `main` publish or refresh the **v0.13.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
@@ -287,7 +297,7 @@ Successful pushes to `main` publish or refresh the **v0.12.0** GitHub release au
 - Live and exported Console evidence for accepted, prepared and rejected Director decisions
 - Detector thresholds remain reserved for labeled real-set rehearsal traces
 
-### v0.12.0 — Stage Production Pack (current)
+### v0.12.0 — Stage Production Pack (completed)
 
 - Studio, LED Safe, Arena and Broadcast output mastering with bounded master brightness
 - Full Frame, Ultrawide, Triptych and LED Facade mapped-panel compositions
@@ -296,7 +306,15 @@ Successful pushes to `main` publish or refresh the **v0.12.0** GitHub release au
 - Clean-output adapter boundary preserved for a future optional NDI transport
 - Production controls and evidence exported through Console protocol v10
 
-### v0.13 — Show authoring
+### v0.13.0 — Adaptive Show Grammar (current)
+
+- Context-aware build/drop/breakdown estimation based on raw calibrated features
+- Five world movements and deterministic shuffled pattern variation per visit
+- Coherent family-aware transition grammar and prepared-cue validation
+- Stable sample and visual clocks with stale-audio/device-loss protection
+- Console protocol v11 narrative, movement, pattern and transition telemetry
+
+### v0.14 — Show authoring
 
 - Project-level show files and venue profiles
 - Editable world affinities, act states and transition grammar
