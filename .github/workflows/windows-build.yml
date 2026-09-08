@@ -25,8 +25,8 @@ jobs:
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.16.0") {
-              throw "$binary is missing the expected publisher or v0.16.0 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.17.0") {
+              throw "$binary is missing the expected publisher or v0.17.0 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -200,6 +200,13 @@ jobs:
           if ($process.ExitCode -ne 0) { throw "Visual artifact regression failed with exit code $($process.ExitCode)" }
           $frames = @(Import-Csv RareStage-visual-validation/frames.csv)
           if ($frames.Count -ne 7168) { throw "Expected 7168 phase, identity and instrument frames" }
+      - name: Continuous scene choreography regression
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--choreography-test --no-preview" -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Scene choreography regression failed with exit code $($process.ExitCode)" }
+          $frames = @(Import-Csv RareStage-choreography-validation/morph-frames.csv)
+          if ($frames.Count -ne 5808) { throw "Expected 5808 frames across 12 scene pairs and four motion paths" }
       - name: Package portable build
         shell: pwsh
         run: |
@@ -215,7 +222,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.16.0"
+            version = "0.17.0"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -246,17 +253,19 @@ jobs:
             RareStage-reference-captures/*.png
             RareStage-visual-validation/frames.csv
             RareStage-visual-validation/*.png
+            RareStage-choreography-validation/morph-frames.csv
+            RareStage-choreography-validation/*.png
             RareStage-rehearsal-contract.csv
             RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.16.0 release
+      - name: Publish v0.17.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.16.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.16.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.17.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.17.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.16.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.16.0 — Living Worlds + Identity Surfaces" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.17.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.17.0 — Continuous Choreography" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

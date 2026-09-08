@@ -1,4 +1,6 @@
-# RareStage 0.16.0 validation
+# RareStage 0.16.0 validation (historical)
+
+These measurements describe the earlier v0.16 build. For the current scene set and results, see [v0.17 validation](CONTINUOUS_CHOREOGRAPHY_VALIDATION.md).
 
 Measured locally on September 8, 2026 with an NVIDIA GeForce RTX 4070 SUPER, driver 581.57, Windows x64, MSVC 19.29, Release configuration and Spout support compiled in. The existing operator's Stage and Console remained running throughout these tests.
 

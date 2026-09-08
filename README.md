@@ -4,27 +4,25 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.16.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.17.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.16.0
+## What changed in 0.17.0
 
-Version 0.16.0 is **Living Worlds + Identity Surfaces**.
+Version 0.17.0 is **Continuous Choreography**.
 
-- The six main panel walls form the actual Rare R/6 detail and the editable DJ name across their illuminated micro-surfaces. Sampling is per surface pixel, not one sample per large panel.
-- Panels roll and align into a readable formation, hold it for roughly two seconds at 128 BPM, then return to the flowing pattern. The supporting wall remains present throughout.
-- The logo mask retains the source artwork's internal light/dark detail instead of rendering its solid outer silhouette.
-- Eight continuous wall patterns cover cascades, diagonals, radial waves, split banks, serpentine motion, helices, grouped blocks and counterflow. Seeds remain stable during each scene visit.
-- Identity decisions and targets are latched for an entire 16-beat stanza. Alternating identity stanzas reveal the Rare mark and DJ name, with an intervening pattern-only stanza.
-- **Ember Basin** replaces Lumen Canyon with rising turbulent fire, embers, smoke and reflected ground light.
-- **Tidal Expanse** replaces Rare Archipelago with a perspective ocean, seven moving wave components, analytical surface normals, Fresnel reflection and crest lighting.
-- **Aurora Range** replaces Kinetic Weave with layered aurora curtains, stars and a terrain silhouette. Orbital Garden remains available, with a stronger identity reveal.
-- The Director favors fire for builds/drops and water/aurora for openings/breakdowns. Motion remains continuous without audio, while instrument lanes change pressure and light.
-- Ultra 4K caps its HDR scene at 3840×2160 rather than accidentally supersampling a 4K display to 4800×2700. Its GPU budget is 8 ms.
-- New native visual regression and 4K benchmark modes use the production shaders without connecting to an active show's control endpoint or changing saved settings.
+- Stagewall rows glide as complete moving rows. Clean cube faces join into luminous ribbons along the active pattern; bevels and restrained accents keep the formations readable.
+- Eight authored motifs cycle through row conveyors, chevrons, radial waves, split gates, serpentine waves, helices, grouped blocks and cross-waves. Each eight-beat phrase establishes its motif before smoothly reshaping into the next.
+- Wall-to-wall changes reshape one shared lattice: row motion, spacing, cube proportions and pattern fields evolve continuously. Mixed scenes carry the incoming world across unfolding panel surfaces. There is no spatial wipe or seam flash.
+- The Director gives scene motion four beats in active sections and eight beats in openings/breakdowns, calculated from the current tempo. Manual motion duration remains adjustable. Rapid scene choices update one pending destination while the current animation completes.
+- The detailed Rare logo and editable DJ name still assemble across panel surfaces. The full supporting wall remains visible. Identity decisions remain stable through each stanza and release smoothly during scene motion.
+- **Prism Atrium** replaces Ember Basin with travelling architectural ribs, changing prism shapes, depth, brackets and eight beat-driven light formations.
+- **Pulse Causeway** replaces Tidal Expanse with perspective cube tiers, a mirrored ceiling, lifting banks, rails and eight beat-driven patterns. Fire and water have been removed.
+- All 18 scenes remain procedural and offline. Bass/kicks drive structural emphasis; snares and hats provide distinct accents. Patterns continue moving when audio stops.
+- Native artifact, scene-continuity and 4K GPU tests exercise the production rendering path. Ultra 4K caps the HDR scene at 3840×2160.
 
-See [validation and performance notes](docs/LIVING_WORLDS_VALIDATION.md) for measured results, coverage and limits. Protocol v13 and all 18 scene IDs remain compatible. Use the Stage and Console executables from the same package to see the updated names.
+See [validation and performance notes](docs/CONTINUOUS_CHOREOGRAPHY_VALIDATION.md) for measured results and limits. Console protocol v13 and scene IDs are retained. Use matching Stage and Console executables; network leaders and followers should all use this version because eight-beat scene motion can exceed the older sync receiver's three-second limit.
 
 The v0.13 Adaptive Show Grammar remains the foundation:
 
@@ -74,9 +72,9 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Key | World | Visual direction | Rare-mark role |
 |---|---|---|---|
 | `1` | Morph Wall | Broad glass panels carry flowing diagonals, waves and counterflow | Fine panel surfaces resolve into the detailed Rare mark or DJ name |
-| `2` | Ember Basin | Rising turbulent fire, advected embers, smoke and reflected ground light | Identity glows through the flame field during selected stanzas |
+| `2` | Prism Atrium | Travelling architectural ribs reshape through prism sections and eight light formations | Identity assembles as light within the atrium |
 | `3` | Orbital Garden | A breathing celestial landscape layers a central planet, eight orbiting bodies, atmospheric bands and sparse stars | Identity enters as distant architectural light rather than a foreground watermark |
-| `4` | Stagewall | Articulated panel faces and illuminated micro-pixels flow through eight patterns | Surface pixels align into readable identity while the full wall stays present |
+| `4` | Stagewall | Gliding cube rows join into clean ribbons, chevrons, radial waves and five further motifs | Fine surface pixels align into readable identity while the full wall stays present |
 | `5` | Wavewall | Articulated vertical slats perform columns, diagonals, gates, tiers, fans and pressure fronts over a restrained stage floor | No foreground watermark; the complete slat stage carries the Rare movement language |
 | `6` | Pixel Bank | Stable grouped pixels slowly rotate in and out as an abstract support loop | One polished DVD-style mark conducts wall impacts, corner bursts and reactive edge light |
 | `7` | Prism Cascade | Two continuously moving prism banks perform columns, counters, gates and diagonals with signal-separated lighting | One stable mark sits behind the shutter architecture without slicing or glitch displacement |
@@ -89,7 +87,7 @@ The research and design synthesis behind this release is documented in [Stage vi
 | `Y` | Panel Cascade | Panel banks fold and descend through row waves, diagonals and counterflow | Micro-surfaces roll into a readable identity and back to the cascade |
 | `U` | Signal Rail | Nine perspective rails carry synchronized light packets from a distant horizon through six phrase formations | No logo; transport motion, lane color and architectural convergence make the world distinct |
 | `I` | Kinetic Facade | A wide articulated elevation with eight flowing pattern families | Distributed surface light forms the identity while retaining the facade |
-| `O` | Tidal Expanse | A perspective ocean with moving waves, sky reflection, crest light and a distant sun | Identity appears as light carried across the water surface |
+| `O` | Pulse Causeway | Perspective cube tiers, mirrored ceiling banks and light rails move through eight motifs | Identity assembles within the architectural space |
 | `K` | Void Gates | Seven slow receding gates frame side-panel cues and a deliberately large central negative space | A restrained Rare-shaped void appears only during selected acts |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
@@ -125,7 +123,7 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 
 | Signal | Primary visual purpose |
 |---|---|
-| Bass | Sustained structural weight, membrane/floor emphasis, water displacement and broad light pressure |
+| Bass | Sustained structural weight, membrane/floor emphasis, cube lift and broad light pressure |
 | Kick | Near-real-time panel depth, controlled composition pump, radial pressure and short lighting hits |
 | Snare | Coordinated row and face-light accents that read as one deliberate structural hit without snapping object rotation |
 | Mids | Flow speed, parallax, ribbons, currents and environment travel |
@@ -147,7 +145,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Show | All eighteen worlds, five act cues, previous/next, Smart Director, automation hold, Clean Open, stage HUD, load/save presets, blackout, and safe fallback |
 | Mix + Director | Reaction profile, palette direction, sensitivity, bass, mids, highs, beat, logo scale, act override, automatic act resume, Smart Director, and timeline mode |
 | Audio Lab | Auto/EDM/Bass Music/Melodic detector profile, instrument evidence, accepted/rejected diagnostics, adaptive calibration, sample labeling, replay-ready CSV export, and latency |
-| Output | World dwell, transition language, render profile, live GPU budget, clean PNG capture, VSync/high-refresh output, Spout, fullscreen, HUD, device, monitor, timeline mode, and renderer shutdown |
+| Output | World dwell, scene motion, render profile, live GPU budget, clean PNG capture, VSync/high-refresh output, Spout, fullscreen, HUD, device, monitor, timeline mode, and renderer shutdown |
 | Production | Production-duty presets, output mastering, master brightness, mapped stage layouts, sync group and Local/Leader/Follower synchronization |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
@@ -186,7 +184,7 @@ The in-renderer panel and Console manipulate the same settings. Both report the 
 | `1`–`9` | Select worlds 1–9 and enter manual world mode |
 | `Q` / `W` / `E` | Select Kinetic Array, Kinetic Canopy or Pixel Loom |
 | `R` / `Y` / `U` | Select Matrix Vault, Panel Cascade or Signal Rail |
-| `I` / `O` / `K` | Select Kinetic Facade, Tidal Expanse or Void Gates |
+| `I` / `O` / `K` | Select Kinetic Facade, Pulse Causeway or Void Gates |
 | `[` / `]` | Previous or next world |
 | `0` or `A` | Toggle Smart Director |
 | `D` | Cycle active Windows playback devices |
@@ -211,12 +209,7 @@ When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, `U`, `I`, `O`, and `
 
 ## Factory show presets
 
-| Slot | Direction | Starting world | Default dwell / transition |
-|---|---|---|---|
-| `F1` Clean Open | Calm, Rare Cyan | Orbital Garden | 88 sec / 1.8 sec Horizon Rise |
-| `1` | Morph Wall | Broad glass panels carry flowing diagonals, waves and counterflow | Fine panel surfaces resolve into the detailed Rare mark or DJ name |
-| `2` | Ember Basin | Rising turbulent fire, advected embers, smoke and reflected ground light | Identity glows through the flame field during selected stanzas |
-| `4` | Stagewall | Articulated panel faces and illuminated micro-pixels flow through eight patterns | Surface pixels align into readable identity while the full wall stays present |
+Factory slots provide a calm opening, balanced club show, stage peak and aggressive timeline. Each stores its reaction tuning, starting world, palette and motion settings. Smart Director uses bar-length scene animation; manual changes use the saved motion duration.
 
 Saved presets include the current world, reaction tuning, fallback palette, dwell, transition, render profile, output mode, automation, timeline, Spout, monitor, production duty, mastering, mapped layout, master brightness, sync mode and sync group.
 
@@ -342,7 +335,7 @@ Successful pushes to `main` publish or refresh the **v0.16.0** GitHub release au
 
 - Tile-fragment DJ-name assembly and transition choreography
 - Family-specific carrier, architecture and environmental identity treatments
-- Ember Basin, Orbital Garden and Tidal Expanse world-scale scenes
+- Lumen Canyon, Orbital Garden and Rare Archipelago world-scale scenes
 - Current-frame identity accents with continuous autonomous motion underneath
 
 ### v0.15.0 — Choreography Showbrain
@@ -353,7 +346,7 @@ Successful pushes to `main` publish or refresh the **v0.16.0** GitHub release au
 - World-integrated particle, star and atmospheric identity reveals
 - Protocol v13 live choreography telemetry in Console
 
-### v0.16 — Show authoring
+### Future — Show authoring
 
 - Project-level show files and venue profiles
 - Editable world affinities, act states and transition grammar
@@ -387,6 +380,6 @@ THIRD_PARTY_NOTICES.md          Third-party licensing
 
 RareStage includes [Spout2](https://github.com/leadedge/Spout2) under the BSD 2-Clause License. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-### v0.16.0 — Living Worlds + Identity Surfaces (current source)
+### v0.17.0 — Continuous Choreography (current source)
 
-Detailed panel-surface identity, full-wall coverage, stable stanza decisions, eight flowing wall patterns, fire/water/aurora environments, a 4K render cap, and native artifact/performance validation. See the validation notes for what was measured locally; source changes do not imply a published GitHub release.
+Moving Stagewall rows, clean connected cube formations, shared animated scene surfaces, bar-length Director motion, Prism Atrium and Pulse Causeway. Includes the v0.16 detailed logo/name surfaces and full-wall coverage fixes. See the current validation notes; a local build does not imply a published GitHub release.

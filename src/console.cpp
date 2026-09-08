@@ -46,12 +46,12 @@ COLORREF blendColor(COLORREF from, COLORREF to, float amount) {
 }
 
 constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
-    L"MORPH WALL", L"EMBER BASIN", L"ORBITAL GARDEN",
+    L"MORPH WALL", L"PRISM ATRIUM", L"ORBITAL GARDEN",
     L"STAGEWALL", L"WAVEWALL", L"PIXEL BANK",
     L"PRISM CASCADE", L"AURORA RANGE", L"CHROMA BLADES",
     L"KINETIC ARRAY", L"KINETIC CANOPY", L"PIXEL LOOM",
     L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL RAIL",
-    L"KINETIC FACADE", L"TIDAL EXPANSE", L"VOID GATES"
+    L"KINETIC FACADE", L"PULSE CAUSEWAY", L"VOID GATES"
 };
 constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldKeys{
     L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8", L"9",
@@ -70,7 +70,7 @@ constexpr std::array<const wchar_t*, rarestage::control::PresetCount> PresetName
     L"CLEAN OPEN", L"MELODIC BLOOM", L"RARE DROP", L"GLITCH FINALE"
 };
 constexpr std::array<const wchar_t*, rarestage::control::TransitionStyleCount> TransitionNames{
-    L"MORPH MATCH", L"HORIZON RISE", L"SIGNAL VEIL", L"GATE OPEN"
+    L"ROW FLOW", L"RIBBON FLOW", L"ORBIT FLOW", L"DEPTH FOLD"
 };
 constexpr std::array<const wchar_t*, rarestage::control::QualityCount> QualityNames{
     L"PERFORMANCE", L"BALANCED", L"NATIVE HD", L"ULTRA 4K"
@@ -222,7 +222,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.16.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.17.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -1610,15 +1610,15 @@ private:
         RECT right{left.right + gap, body.top, body.right, body.bottom};
 
         fillRound(dc, left, 11, Panel, Line);
-        sectionLabel(dc, L"TIMING + TRANSITIONS", left.left + scale(14), left.top + scale(9), columnWidth - scale(28));
+        sectionLabel(dc, L"TIMING + SCENE MOTION", left.left + scale(14), left.top + scale(9), columnWidth - scale(28));
         int y = left.top + scale(39);
         parameterRow(dc, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(45)},
                      L"WORLD DWELL", std::to_wstring(static_cast<int>(std::lround(state_.worldDwellSeconds))) + L" SEC", Setting::Dwell);
         y += scale(53);
         parameterRow(dc, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(45)},
-                     L"TRANSITION", std::to_wstring(static_cast<int>(std::lround(state_.transitionSeconds * 10))) + L"/10 SEC", Setting::Transition);
+                     L"MOTION TIME", std::to_wstring(static_cast<int>(std::lround(state_.transitionSeconds * 10))) + L"/10 SEC", Setting::Transition);
 
-        sectionLabel(dc, L"TRANSITION LANGUAGE", left.left + scale(14), y + scale(58), columnWidth - scale(28));
+        sectionLabel(dc, L"MOTION PATH", left.left + scale(14), y + scale(58), columnWidth - scale(28));
         y += scale(87);
         const int optionGap = scale(7);
         const int optionWidth = (columnWidth - scale(28) - optionGap * 3) / 4;
