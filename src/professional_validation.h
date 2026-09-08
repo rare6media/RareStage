@@ -32,7 +32,7 @@ int runProfessionalValidation(){
  auto pixels=[&](){std::vector<float>result;context_->CopyResource(readback.Get(),backBuffer_.Get());D3D11_MAPPED_SUBRESOURCE map{};if(FAILED(context_->Map(readback.Get(),0,D3D11_MAP_READ,0,&map)))return result;
   for(UINT y=0;y<height_;y+=4)for(UINT x=0;x<width_;x+=4){const BYTE*p=static_cast<const BYTE*>(map.pData)+size_t(y)*map.RowPitch+x*4;for(int k=0;k<3;++k)result.push_back(p[k]/255.f);}context_->Unmap(readback.Get(),0);return result;};
  auto delta=[](const std::vector<float>&a,const std::vector<float>&b){if(a.empty()||a.size()!=b.size())return 1.0;double sum=0;for(size_t i=0;i<a.size();++i)sum+=std::abs(a[i]-b[i]);return sum/a.size();};
- auto fixture=[&](float seconds){Constants c{};c.resolution[0]=float(renderWidth_);c.resolution[1]=float(renderHeight_);c.time=seconds;c.tempoPhase=seconds*128.f/60.f;c.logoScale=1;c.palette=5;c.masterBrightness=.92f;c.masteringProfile=1;c.cueDensity=1;c.songSection=4;c.bass=.3f;c.mid=.35f;c.audioEnergy=.4f;c.patternSeed=4;c.previousPatternSeed=12;c.transition=1;return c;};
+ auto fixture=[&](float seconds){Constants c{};c.resolution[0]=float(renderWidth_);c.resolution[1]=float(renderHeight_);c.time=seconds;c.tempoPhase=seconds*128.f/60.f;c.logoScale=1;c.palette=5;c.masterBrightness=.92f;c.masteringProfile=1;c.cueDensity=1;c.songSection=4;c.bass=.3f;c.mid=.35f;c.audioEnergy=.4f;c.patternSeed=36;c.previousPatternSeed=12;c.transition=1;return c;};
  std::ofstream pairs(output/"all-pairs.csv");pairs<<"from,to,max_temporal_delta,endpoint_delta,near_endpoint_delta\n";
  bool pairPassed=true;
  for(int from=0;from<WorldCount;++from)for(int to=0;to<WorldCount;++to){if(from==to)continue;

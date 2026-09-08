@@ -1,27 +1,41 @@
 #pragma once
+#include <algorithm>
+#include <cmath>
+// Seconds, deliberately independent of beat-phase corrections. A corner approach blends
+// the continuing orbit into an exact corner with zero terminal velocity and acceleration.
 struct CornerChoreography {
-    float x{},y{},vx{.11f},vy{.08f},lastBeat{-1},startBeat{},targetBeat{},startX{},startY{},startVx{},startVy{},targetX{},targetY{},hitBeat{-100};
-    unsigned drops{};bool travelling{},predictionLatched{};
-    void aim(float beat,float arrival){
-        travelling=true;startBeat=beat;targetBeat=std::max(beat+.5f,arrival);startX=x;startY=y;startVx=vx;startVy=vy;
-        targetX=x>=0?1.f:-1.f;targetY=y>=0?1.f:-1.f;
+    float x{},y{},vx{.16f},vy{.119f},lastBeat{-1},startBeat{},targetBeat{},targetX{},targetY{},hitBeat{-100};
+    float orbitOrigin{},originX{},originY{};bool fromCorner{},travelling{},predictionLatched{},holdCorner{};
+    unsigned drops{};
+    void orbit(float seconds,float&px,float&py,float&dx,float&dy)const{
+        const float t=std::max(0.f,seconds-orbitOrigin),ramp=1-std::exp(-t*2),phase=fromCorner?t-.5f*ramp:t;
+        if(fromCorner){px=originX*std::cos(phase*.16f);py=originY*std::cos(phase*.119f);dx=-originX*.16f*std::sin(phase*.16f)*ramp;dy=-originY*.119f*std::sin(phase*.119f)*ramp;}
+        else{px=std::sin(phase*.16f);py=std::sin(phase*.119f);dx=.16f*std::cos(phase*.16f);dy=.119f*std::cos(phase*.119f);}
     }
-    void update(float beat,bool predicted,float lead,unsigned dropCount){
-        if(lastBeat<0){lastBeat=beat;drops=dropCount;}
-        const float dt=std::clamp(beat-lastBeat,0.f,.25f);lastBeat=beat;
-        if(predicted&&!predictionLatched&&!travelling&&beat-hitBeat>2){aim(beat,beat+std::clamp(lead,.5f,8.f));predictionLatched=true;}
+    void aim(float seconds,float arrival,bool hold=false){
+        if(travelling){holdCorner|=hold;return;}
+        if(holdCorner)return;
+        travelling=true;holdCorner=hold;startBeat=seconds;targetBeat=std::max(seconds+1.5f,arrival);
+        float px,py,dx,dy;orbit(targetBeat,px,py,dx,dy);targetX=px>=0?1.f:-1.f;targetY=py>=0?1.f:-1.f;
+    }
+    void release(float seconds){if(!holdCorner)return;holdCorner=false;if(travelling)return;orbitOrigin=seconds;originX=x;originY=y;fromCorner=true;}
+    void update(float seconds,bool predicted,float lead,unsigned dropCount){
+        if(lastBeat<0){lastBeat=seconds;orbitOrigin=seconds;drops=dropCount;}
+        lastBeat=seconds;
+        if(predicted&&!predictionLatched&&!travelling&&!holdCorner&&seconds-hitBeat>3&&lead>=1.5f){aim(seconds,seconds+std::min(lead,6.f));predictionLatched=true;}
         if(!predicted)predictionLatched=false;
-        if(dropCount!=drops){drops=dropCount;if(!travelling&&beat-hitBeat>1)aim(beat,beat+1.f);}
+        // An unanticipated drop lights the environment; it never changes the mark's path.
+        if(dropCount!=drops){drops=dropCount;hitBeat=seconds;}
+        if(holdCorner&&!travelling){vx=vy=0;return;}
+        float px,py,dx,dy;orbit(seconds,px,py,dx,dy);
         if(travelling){
-            const float duration=targetBeat-startBeat,u=std::clamp((beat-startBeat)/duration,0.f,1.f);
-            const float a=2*u*u*u-3*u*u+1,b=u*u*u-2*u*u+u,c=-2*u*u*u+3*u*u;
-            x=std::clamp(a*startX+b*duration*startVx+c*targetX,-1.f,1.f);y=std::clamp(a*startY+b*duration*startVy+c*targetY,-1.f,1.f);
-            if(u>=1){travelling=false;hitBeat=beat;vx=-targetX*.11f;vy=-targetY*.08f;}
-        }else{
-            x+=vx*dt;y+=vy*dt;
-            if(x>1){x=2-x;vx=-std::abs(vx);}if(x<-1){x=-2-x;vx=std::abs(vx);}
-            if(y>1){y=2-y;vy=-std::abs(vy);}if(y<-1){y=-2-y;vy=std::abs(vy);}
-        }
+            const float duration=targetBeat-startBeat,u=std::clamp((seconds-startBeat)/duration,0.f,1.f);
+            const float s=u*u*u*(u*(u*6-15)+10),ds=30*u*u*(u-1)*(u-1)/duration;
+            x=std::lerp(px,targetX,s);y=std::lerp(py,targetY,s);
+            vx=(1-s)*dx+ds*(targetX-px);vy=(1-s)*dy+ds*(targetY-py);
+            if(u>=1){travelling=false;hitBeat=seconds;orbitOrigin=seconds;originX=x;originY=y;fromCorner=true;vx=vy=0;}
+        }else{x=px;y=py;vx=dx;vy=dy;}
     }
-    float impact(float beat)const{return std::exp(-std::max(0.f,beat-hitBeat)*8.f);}
+    bool arrived()const{return holdCorner&&!travelling;}
+    float impact(float seconds)const{return std::exp(-std::max(0.f,seconds-hitBeat)*5.f);}
 };

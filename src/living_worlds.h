@@ -30,6 +30,13 @@ float wallPattern(float kind,float2 id,float2 center,float phase){
 float motifBlend(float clock){return liquidEase(smoothstep(.48,.99,frac(clock)));}
 bool isPanelWorld(float world){return abs(world)<.1||abs(world-3)<.1||abs(world-9)<.1||abs(world-11)<.1||abs(world-13)<.1||abs(world-15)<.1;}
 float2 wallScale(float world){return world<1?float2(8,7):world<4?float2(10,9):world<10?float2(12,9):world<12?float2(22,15):world<14?float2(13,9):float2(16,10);}
+float2 arrangedWallScale(float world,float seed){
+ float2 scale=wallScale(world);float variant=fmod(floor(seed/16),4);
+ if(variant>.5&&variant<1.5)scale*=.78;
+ else if(variant>1.5&&variant<2.5)scale*=float2(.84,1.22);
+ else if(variant>2.5)scale*=float2(1.26,.74);
+ return scale;
+}
 float stageStyle(float world){return isPanelWorld(world)&&abs(world-11)>.1&&abs(world-13)>.1?1:0;}
 float rowGesture(float bank,float row,float clock){
  bank=fmod(bank,16);
@@ -65,7 +72,7 @@ WallSurface wallSurface(float2 p,float world,float seed,float opening){
  WallSurface g;
  float morph=liquidEase(transition);
  bool familyMorph=isPanelWorld(scene)&&isPanelWorld(previousScene)&&abs(scene-previousScene)>.1;
- g.scale=familyMorph?lerp(wallScale(previousScene),wallScale(scene),morph):wallScale(world);
+ g.scale=familyMorph?lerp(arrangedWallScale(previousScene,previousPatternSeed),arrangedWallScale(scene,patternSeed),morph):arrangedWallScale(world,seed);
  g.stage=familyMorph?lerp(stageStyle(previousScene),stageStyle(scene),morph):stageStyle(world);
  float clock=tempoPhase*.125,blend=motifBlend(clock),bank=authoredMotif(floor(clock),seed),nextBank=authoredMotif(floor(clock)+1,seed);
  float cascadeAmount=familyMorph?lerp(1-step(.1,abs(previousScene-13)),1-step(.1,abs(scene-13)),morph):1-step(.1,abs(world-13));
@@ -119,7 +126,7 @@ float3 choreographyWall(float2 p,float world,float3 primary,float3 accent,float3
  WallSurface g=wallSurface(p,world,seed,opening);
  float support=.28+.72*easeBand(g.signal),settle=liquidEase(identityWeight);
  float2 drift=float2(sin(g.center.y*9+tempoPhase*.21),cos(g.center.x*8-tempoPhase*.18))*.085*(1-settle);
- float mask=sampleChoreographyIdentity(g.materialPoint+drift,0,min(.88*logoScale,.92),0);
+ float mask=sampleChoreographyIdentity(identityTransport(g.materialPoint+drift,(1-sqrt(saturate(identityWeight)))*.6,identityProgram()),0,min(.88*logoScale,.92),0);
  float3 hue=lerp(spectral,primary,.5+.5*sin(g.id.x*.34-g.id.y*.26+time*.11));
  // Stagewall uses one main color and a coordinated accent band, with clean cube faces.
  float3 stageHue=lerp(formationColor(primary,accent,spectral,g.id.y+g.id.x*.3,tempoPhase,g.signal),primary,sqrt(saturate(identityWeight))*.7);
@@ -194,8 +201,7 @@ float3 prismAtrium(float2 p,float pressure,float snareHit,float hatHit,float ene
  float2 floorP=float2(p.x,p.y-.30);
  float runway=exp(-abs(floorP.x)*5)*lineGlow(floorP.y,.004);
  c+=runway*accent*(.07+.14*pressure);
- float identity=sampleChoreographyIdentity(p,0,.82*logoScale,0);
- c+=identity*identityWeight*lerp(primary,accent,.35)*(.58+.17*snareHit);
+ c+=materialIdentity(p,0,.82*logoScale,primary,accent,1);
  return c;
 }
 float3 pulseCauseway(float2 p,float pressure,float snareHit,float hatHit,float energy){
@@ -228,8 +234,7 @@ float3 pulseCauseway(float2 p,float pressure,float snareHit,float hatHit,float e
   float ceiling=roundedFill(float2(x,(q.y+.32-lift*.34)*7),float2(.42,.11+.13*signal),.03,aa);
   c+=ceiling*life*hue*(.045+.10*signal+.012*pressure);
  }
- float identity=sampleChoreographyIdentity(p,float2(0,-.05),.82*logoScale,0);
- c+=identity*identityWeight*lerp(primary,accent,.35)*(.58+.05*snareHit);
+ c+=materialIdentity(p,float2(0,-.05),.82*logoScale,primary,accent,16);
  return c;
 }
 float3 auroraWorld(float2 p,float pressure,float snareHit,float hatHit,float energy) {

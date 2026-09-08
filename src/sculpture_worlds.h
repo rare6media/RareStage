@@ -27,7 +27,7 @@ float3 ribbonFoundry(float2 p,float pressure,float snareHit,float hatHit){
  float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
  float clock=tempoPhase*.125,settle=sqrt(saturate(identityWeight));
  float3 c=float3(.004,.009,.024);
- float mask=sampleChoreographyIdentity(p,0,.82*logoScale,0);
+
  // Long metal ribbons weave, fan, braid and meet as a single luminous membrane.
  [unroll]for(int lane=0;lane<9;lane++){
   float l=lane-4;
@@ -43,9 +43,9 @@ float3 ribbonFoundry(float2 p,float pressure,float snareHit,float hatHit){
   float metallic=.45+.55*saturate(.5-d/max(width,.001));
   c+=face*hue*(.10+.20*metallic+.065*chase+.018*pressure);
   c+=edge*lerp(hue,accent,.5)*(.035+.035*hatHit+.035*snareHit);
-  c+=face*mask*identityWeight*lerp(primary,accent,.25)*.58;
+
  }
- return c;
+ return c+materialIdentity(p,0,.82*logoScale,primary,accent,18);
 }
 float3 haloEngine(float2 p,float pressure,float snareHit,float hatHit){
  float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
@@ -68,9 +68,7 @@ float3 haloEngine(float2 p,float pressure,float snareHit,float hatHit){
   c+=exp(-abs(d)*90)*hue*.018;
   c+=face*pow(pattern,6)*accent*(.05+.04*snareHit+.025*hatHit);
  }
- float mask=sampleChoreographyIdentity(p,0,.76*logoScale,0);
- // The same radial material grows into the identity's filled surface.
- c+=mask*identityWeight*lerp(primary,accent,.35)*(.53+.04*pressure);
+ c+=materialIdentity(p,0,.76*logoScale,primary,accent,19);
  return c;
 }
 float3 vectorSpeedway(float2 p,float pressure,float snareHit,float hatHit){
@@ -101,8 +99,7 @@ float3 vectorSpeedway(float2 p,float pressure,float snareHit,float hatHit){
   float chase=.5+.5*cos(a*8-tempoPhase*.785398);
   c+=band*life*lerp(primary,spectral,a)*(.13+.19*chase+.025*hatHit);
  }
- float identity=sampleChoreographyIdentity(p,float2(0,-.03),.8*logoScale,0);
- c+=identity*identityWeight*lerp(primary,accent,.3)*.58;
+ c+=materialIdentity(p,float2(0,-.03),.8*logoScale,primary,accent,20);
  return c;
 }
 )HLSL"

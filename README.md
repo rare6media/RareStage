@@ -4,25 +4,25 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.19.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.20.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.19.0
+## What changed in 0.20.0
 
-Version 0.19.0 is **Sculptures + Show Direction**.
+Version 0.20.0 is **Performance Worlds**: one combined scene, identity and long-set choreography update.
 
-- **21 scenes, preserving all existing worlds.** Ribbon Foundry (`Z`) weaves broad luminous strips; Halo Engine (`X`) counter-rotates solid rings into iris and petal formations; Vector Speedway (`J`) travels through a perspective track and arch rig. Each has an authored motif bank and continuous musical motion.
-- **Smoother Pulse Causeway.** Depth layers stay sorted, recycled tiers fade through their end planes, and geometry follows the continuous musical clock. Kick/snare accents illuminate the structure with restrained brightness instead of moving the banks.
-- **Scene-aware handoffs.** Surface worlds keep their shared moving lattice. Ribbon, perspective, radial and atmospheric scenes use their own deformation directions and aligned composition anchors. Non-wall pairs no longer turn into an unrelated cube carrier.
-- **A Director with route memory.** It compares a next scene and a compatible follow-up, tracks recent visits and category repetition, reserves peak energy during builds, and plans from sustained musical energy. An eight-beat rehearsal lock prevents isolated hits from replacing a prepared route; a confirmed chapter or category change can invalidate it.
-- **Pattern development.** Modern scenes establish a motif, repeat it, answer it and develop it. Per-scene motif history favors underused, section-appropriate entry patterns. The motif program stays fixed for a visit, including across hits and identity reveals.
-- Timed scene changes start on the next eight-beat motif boundary. Qualified chapter cues retain their quicker musical response. `A` controls automatic cycling and `Space` holds it; manual scene picks preserve the automatic setting.
-- Eight palettes, Alt+Enter/F11 fullscreen, synchronized display mirrors and the Pixel Bank drop-to-corner choreography remain available.
+- **Nine scene rebuilds.** Prism Cascade has broad folded surfaces; Chroma Blades has solid sweeping fins; Kinetic Canopy has suspended pendulum beams. Signal Rail has repeated musical lane sequences. Matrix Vault has rectangular architectural slabs, while Void Gates has a radial iris. Aurora Range gains layered curtains, reflections and foreground ridges. Wavewall becomes **Resonance Range**, an opaque moving relief landscape. Pixel Bank receives a new circuit background and travel choreography.
+- **Eight identity entrances and eight exits.** Row arrivals, column lifts, orbital assembly, expansion, fragments, folds, weaving and split formations carry the Rare mark and DJ name into their readable hold. Entrance and exit choices are latched for each appearance, and their material finish stays continuous through the hold.
+- **Four arrangements and sixteen motif seeds.** Walls can use larger cubes, tall columns and broad rows. Other worlds change framing and proportion while retaining their recognizable geometry. A visit owns a stable program; its motifs establish, repeat, answer and develop through the musical clock.
+- **Long-set session memory.** The Director accounts for total scene exposure and previously used scene pairings. It also balances program combinations, palettes and identity choreography. The existing sustained-energy routing, category rules and eight-beat rehearsal lock remain in use.
+- **Smooth Pixel Bank.** The logo follows elapsed time independently of beat corrections. Music illuminates the surroundings. Scheduled and manual local departures plan a corner arrival before the handoff; unexpected drops do not pull the logo off its path. A forecast with enough lead time may also schedule a corner arrival.
+- **Compiled shaders travel with the package.** Startup loads validated bytecode, with embedded-source recovery for missing or damaged cache files.
+- Stagewall remains the motion reference. Timed scene changes, Alt+Enter/F11 fullscreen and synchronized local display mirrors remain available.
 
-Use the matching Stage and Console from this package: Console protocol **v15**, network packet **v3**. Network peers must also use the matching version. Local display mirrors still receive the same rendered frame.
+Use the matching Stage and Console from this package: Console protocol **v15**, network packet **v3**. Local mirrors receive the same completed render. Network followers follow the leader's scene timing and do not defer its cues for a local Pixel Bank exit.
 
-See [validation, performance and design notes](docs/SCULPTURES_SHOW_DIRECTION.md). GPU throughput is measured separately from physical display synchronization; 4K/120 capability depends on the machine and output setup.
+See [implementation and validation notes](docs/PERFORMANCE_WORLDS.md) and the [roadmap to v0.30](docs/ROADMAP_V0_30.md). This update brings selected roadmap work forward; musical-corpus evaluation, runtime composition feedback and full 4K/120 qualification remain future work.
 
 ## Engine at a glance
 
@@ -51,20 +51,20 @@ See [validation, performance and design notes](docs/SCULPTURES_SHOW_DIRECTION.md
 | `2` | Prism Atrium | Travelling architectural ribs reshape through prism sections and sixteen light formations | Identity assembles as light within the atrium |
 | `3` | Orbital Garden | A breathing celestial landscape layers a central planet, eight orbiting bodies, atmospheric bands and sparse stars | Identity enters as distant architectural light rather than a foreground watermark |
 | `4` | Stagewall | Gliding cube rows join into clean ribbons, chevrons, radial waves and thirteen further motifs | Fine surface pixels align into readable identity while the full wall stays present |
-| `5` | Wavewall | Articulated vertical slats perform columns, diagonals, gates, tiers, fans and pressure fronts over a restrained stage floor | No foreground watermark; the complete slat stage carries the Rare movement language |
-| `6` | Pixel Bank | Stable grouped pixels slowly rotate in and out as an abstract support loop | One polished DVD-style mark conducts wall impacts, corner bursts and reactive edge light |
-| `7` | Prism Cascade | Two continuously moving prism banks perform columns, counters, gates and diagonals with signal-separated lighting | One stable mark sits behind the shutter architecture without slicing or glitch displacement |
-| `8` | Aurora Range | Four moving aurora curtains, distant stars and terrain | Identity is carried by the atmospheric light field |
-| `9` | Chroma Blades | Elongated articulated glass blades perform columns, diagonals, radial pushes, gates, fans, blocks, cascades and crosses | No logo; motion, color and stage framing define the world |
+| `5` | Resonance Range | Ten opaque contour terraces move through interlocking wave and relief patterns | Material fragments assemble into a readable mark or DJ name within the terrain |
+| `6` | Pixel Bank | A circuit field and musical waves surround a continuously travelling mark | Smooth corner arrivals precede local scene departures; hits illuminate the background |
+| `7` | Prism Cascade | Broad folded prism ribbons cascade in choreographed banks | Material fragments enter, resolve and disperse using independent choreography |
+| `8` | Aurora Range | Five luminous curtains, a reflective basin, foreground ridges and stars | Identity is carried by the atmospheric light field |
+| `9` | Chroma Blades | Large solid fins fan and counter-sweep around a central opening | Choreographed material fragments form the mark or DJ name |
 | `Q` | Kinetic Array | Turning tile banks develop waves, diagonals, blocks and counterflow | Tiles align their illuminated surfaces for a detailed identity resolve |
-| `W` | Kinetic Canopy | Suspended ceiling panels perform rows, columns, diagonals, split gates, checks, fans and lifts above a perspective runway | No logo; canopy architecture and converging floor light define the identity |
+| `W` | Kinetic Canopy | Solid suspended beams swing through pendulum and bank patterns above reflected floor light | Fragment entrances and releases develop within the suspended rig |
 | `E` | Pixel Loom | A dense 22×15 pixel instrument with sixteen continuously blended patterns | Fine luminous cells resolve the mark or DJ name |
-| `R` | Matrix Vault | Receding architectural frames move steadily in one direction behind grouped data panels, etched glyph light and corridor pressure | The mark appears as temporary negative space inside the vault, never as a foreground watermark |
+| `R` | Matrix Vault | Solid nested rectangular slabs travel through a deep architectural vault | Segmented identity assembles and releases within the vault |
 | `Y` | Panel Cascade | Panel banks fold and descend through row waves, diagonals and counterflow | Micro-surfaces roll into a readable identity and back to the cascade |
-| `U` | Signal Rail | Nine perspective rails carry synchronized light packets from a distant horizon through six phrase formations | No logo; transport motion, lane color and architectural convergence make the world distinct |
+| `U` | Signal Rail | Nine solid perspective lanes carry repeating note sequences toward a moving cross-bank | Material identity appears as a planned formation within the lane composition |
 | `I` | Kinetic Facade | A wide articulated elevation with sixteen flowing pattern families | Distributed surface light forms the identity while retaining the facade |
 | `O` | Pulse Causeway | Perspective cube tiers, mirrored ceiling banks and light rails move through sixteen motifs | Identity assembles within the architectural space |
-| `K` | Void Gates | Seven slow receding gates frame side-panel cues and a deliberately large central negative space | A restrained Rare-shaped void appears only during selected acts |
+| `K` | Void Gates | A solid radial iris opens through six, eight, ten or twelve petal arrangements | Independent fragment entrances and releases form the identity at the iris |
 | `Z` | Ribbon Foundry | Broad ribbons weave, fan, braid and join through authored motif programs | The ribbon membrane carries the identity |
 | `X` | Halo Engine | Counter-rotating solid rings develop iris, petal and orbital formations | Radial material illuminates the identity surface |
 | `J` | Vector Speedway | A travelling track and arch rig develop lane chases and perspective rhythms | Identity is revealed within the track composition |
@@ -369,6 +369,10 @@ Moving Stagewall rows, clean connected cube formations, shared animated scene su
 
 Sixteen wall/architectural motifs, eight palettes, timed bar-aligned Director cycles, forecast DVD corner arrivals, repaired fullscreen shortcuts and clean multi-screen mirrors. Current validation covers the renderer, choreography, timed cues, window behavior, mirror readback and Screens controls.
 
-### v0.19.0 — Sculptures + Show Direction (current source)
+### v0.20.0 — Performance Worlds (current source)
+
+Nine rebuilt scenes, eight identity entrances/exits, four arrangements, long-set session memory and smooth Pixel Bank corner departures. See [release notes](docs/PERFORMANCE_WORLDS.md).
+
+### v0.19.0 — Sculptures + Show Direction
 
 Three additional worlds, sorted continuous Causeway motion, scene-aware material handoffs, rehearsed next/follow-up routes and remembered motif programs. See [validation and design notes](docs/SCULPTURES_SHOW_DIRECTION.md).

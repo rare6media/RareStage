@@ -47,7 +47,7 @@ COLORREF blendColor(COLORREF from, COLORREF to, float amount) {
 
 constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
     L"MORPH WALL", L"PRISM ATRIUM", L"ORBITAL GARDEN",
-    L"STAGEWALL", L"WAVEWALL", L"PIXEL BANK",
+    L"STAGEWALL", L"RESONANCE RANGE", L"PIXEL BANK",
     L"PRISM CASCADE", L"AURORA RANGE", L"CHROMA BLADES",
     L"KINETIC ARRAY", L"KINETIC CANOPY", L"PIXEL LOOM",
     L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL RAIL",
@@ -226,7 +226,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.19.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.20.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);

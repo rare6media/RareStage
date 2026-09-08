@@ -9,8 +9,8 @@ float2 handoffFlow(float2 p,float amount){
  return flow*.045*amount;
 }
 float2 categoryFlow(float2 p,float world){
- if(abs(world-2)<.1||abs(world-19)<.1)return rotate2(p,.055*sin(tempoPhase*.19635))-p;
- if(abs(world-1)<.1||abs(world-12)<.1||abs(world-14)<.1||abs(world-16)<.1||abs(world-17)<.1||abs(world-20)<.1)return p*.055;
+ if(abs(world-2)<.1||abs(world-17)<.1||abs(world-19)<.1)return rotate2(p,.055*sin(tempoPhase*.19635))-p;
+ if(abs(world-1)<.1||abs(world-12)<.1||abs(world-14)<.1||abs(world-16)<.1||abs(world-20)<.1)return p*.055;
  return float2(sin(p.y*4+tempoPhase*.19635)*.025,sin(p.x*3-tempoPhase*.19635)*.020);
 }
 float4 ps(O i):SV_TARGET{

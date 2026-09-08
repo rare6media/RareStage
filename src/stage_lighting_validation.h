@@ -20,13 +20,15 @@ int runStageLightingValidation(){
     check("mirror_remove",outputs_.configure(synthetic,0,0)&&outputs_.count()==0);
     check("mirror_reconnect",outputs_.configure(synthetic,2,0)&&outputs_.count()==1);
     context_->ClearRenderTargetView(rtv_.Get(),color);check("mirror_reconnect_frame",outputs_.present(backBuffer_.Get(),true));outputs_.clear();
-    for(int hz:{60,120,144}){
-        CornerChoreography dvd;float previousX=0,previousY=0,maxStep=0;bool exact=false;
-        for(int frame=0;frame<=hz*5;++frame){float beat=frame*2.f/hz;dvd.update(beat,beat>=2&&beat<6,6-beat,beat>=6?1:0);maxStep=std::max(maxStep,std::hypot(dvd.x-previousX,dvd.y-previousY));previousX=dvd.x;previousY=dvd.y;if(std::abs(beat-6)<.001f)exact=std::abs(dvd.x)==1&&std::abs(dvd.y)==1;}
-        check(("corner_forecast_"+std::to_string(hz)).c_str(),exact&&maxStep<.10f);
-    }
-    CornerChoreography surprise;surprise.update(0,false,0,0);surprise.update(.02f,false,0,1);check("unpredicted_drop_no_teleport",std::abs(surprise.x)<.01&&std::abs(surprise.y)<.01);
-    for(int n=2;n<=102;++n)surprise.update(n*.01f,false,0,1);check("unpredicted_drop_arrives",std::abs(surprise.x)==1&&std::abs(surprise.y)==1);
+    check("smooth_corner_and_long_set_memory",PerformanceSelfTest());
+    started_=Clock::now();world_=previousWorld_=5;transitionStarted_=-100;tempoPhase_=16;settings_.syncMode=0;automatic_=true;frozen_=false;
+    cornerMotion_=CornerChoreography{};cornerMotion_.update(0,false,0,0);selectWorld(8,true);
+    check("pixel_departure_queues_scene",world_==5&&pixelExitWorld_==8&&cornerMotion_.travelling);
+    cornerMotion_.update(cornerMotion_.targetBeat,false,0,0);frozen_=true;servicePixelExit(AudioFrame{},4);
+    check("pixel_departure_respects_hold",world_==5&&pixelExitWorld_==8);
+    frozen_=false;servicePixelExit(AudioFrame{},4);check("pixel_departure_after_corner",world_==8&&pixelExitWorld_<0);
+    world_=previousWorld_=5;transitionStarted_=-100;cornerMotion_.release(4);selectWorld(12,true);settings_.syncMode=2;servicePixelExit(AudioFrame{},5);
+    check("network_cancels_local_departure",pixelExitWorld_<0&&world_==5);settings_.syncMode=0;
     started_=Clock::now();world_=3;previousWorld_=3;transitionStarted_=-100;automatic_=true;frozen_=false;settings_.timeline=0;songSection_=DriveSection;worldChangeArmed_=false;nextWorldAt_=10;tempoPhase_=21.2f;worldCueBeat_=-1;AudioFrame audio{};
     updateTimedDirector(audio,10);check("timed_cycle_waits_for_bar",world_==3&&worldChangeArmed_&&worldCueBeat_==24);
     tempoPhase_=24;updateTimedDirector(audio,11.4f);check("steady_track_changes_world",world_!=3&&!worldChangeArmed_&&nextWorldAt_>11.4f);
@@ -57,7 +59,7 @@ int runStageLightingValidation(){
             else if(frame>=1200&&frame<1320){c.scene=5;c.previousScene=16;c.transition=(frame-1200)/120.f;}
             else if(frame>=1320)c.scene=c.previousScene=5;
             const float dropBeat=1560.f/60.f*128.f/60.f;
-            dvd.update(c.tempoPhase,frame>=1440&&frame<1560,dropBeat-c.tempoPhase,frame>=1560?1:0);c.dvdX=dvd.x;c.dvdY=dvd.y;c.dvdCorner=dvd.impact(c.tempoPhase);c.dvdControlled=1;
+            dvd.update(c.time,frame>=1440&&frame<1560,(dropBeat-c.tempoPhase)*60.f/128.f,frame>=1560?1:0);c.dvdX=dvd.x;c.dvdY=dvd.y;c.dvdCorner=dvd.impact(c.time);c.dvdControlled=1;
             if(frame>=1560){c.dropPulse=std::exp(-(frame-1560)/60.f*4);c.songSection=2;}
             pollGpuTimers();drawScene(c);wchar_t name[40]{};swprintf_s(name,L"frame-%04d.png",frame);if(!saveBackBufferPng(output/"preview"/name))return 16;
         }

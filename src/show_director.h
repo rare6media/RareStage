@@ -10,10 +10,10 @@ namespace rarestage::show {
 struct Scene { int category, motion; float energy, density; };
 inline constexpr std::array<Scene,21> Scenes{{
  {0,0,.42f,.85f},{2,2,.54f,.50f},{3,3,.25f,.28f},{0,0,.68f,.90f},
- {1,1,.36f,.65f},{0,0,.58f,.35f},{1,1,.72f,.75f},{3,4,.35f,.38f},
+ {3,4,.40f,.76f},{0,0,.58f,.35f},{1,1,.72f,.75f},{3,4,.43f,.65f},
  {1,1,.48f,.65f},{0,0,.64f,.85f},{1,1,.50f,.60f},{0,0,.60f,.85f},
  {2,2,.70f,.85f},{0,0,.66f,.85f},{2,2,.57f,.55f},{0,0,.66f,.85f},
- {2,2,.46f,.65f},{2,2,.40f,.40f},{1,1,.48f,.55f},{3,3,.56f,.50f},{2,2,.65f,.70f}
+ {2,2,.46f,.65f},{3,3,.57f,.72f},{1,1,.48f,.55f},{3,3,.56f,.50f},{2,2,.65f,.70f}
 }};
 inline float Compatibility(int from,int to){
  const auto&a=Scenes[from];const auto&b=Scenes[to];
@@ -35,10 +35,11 @@ struct Context {
 struct Plan {int next{-1},then{-1},alternative{-1};float score{-10000},runner{-10000};};
 class Director {
  std::array<int,21> lastVisit_{};
+ std::array<unsigned,21> exposure_{};std::array<std::array<unsigned,21>,21> edges_{};int previous_{-1};
  int visits_{},familyRun_{},lastMotion_{-1};
 public:
  Director(){lastVisit_.fill(-100);}
- void visit(int scene){++visits_;lastVisit_[scene]=visits_;int motion=Scenes[scene].motion;familyRun_=motion==lastMotion_?familyRun_+1:1;lastMotion_=motion;}
+ void visit(int scene){if(previous_>=0)++edges_[previous_][scene];previous_=scene;++exposure_[scene];++visits_;lastVisit_[scene]=visits_;int motion=Scenes[scene].motion;familyRun_=motion==lastMotion_?familyRun_+1:1;lastMotion_=motion;}
  int familyRun()const{return familyRun_;}
  Plan plan(const Context&c)const{
   Plan result,incumbent;
@@ -51,6 +52,7 @@ public:
    const auto&n=Scenes[next];
    const bool same=n.motion==Scenes[c.current].motion;
    float immediate=c.fit[next]+Compatibility(c.current,next)*.65f-fatigue(next);
+   immediate-=std::log1p(float(exposure_[next]))*.38f+std::log1p(float(edges_[c.current][next]))*.48f;
    immediate+=contrast?(same?-.78f:.38f):(same?.22f:0.f);
    if(c.section==1)immediate-=std::max(0.f,n.energy-.62f)*1.8f; // reserve the peak
    if(c.section==3||c.section==0)immediate-=n.density*.25f;
