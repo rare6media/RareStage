@@ -888,6 +888,7 @@ static bool ProductionPackSelfTest(){
 }
 
 static bool ClubLoopSelfTest(){
+    const auto liquid=[](float value){value=std::clamp(value,0.f,1.f);return value*value*value*(value*(value*6.f-15.f)+10.f);};
     constexpr std::array<int,18> Families{0,3,3,0,1,0,1,3,1,0,0,0,2,0,2,0,3,2};
     constexpr std::array<const char*,4> CategoryNames{"PanelPixel","RibbonGlass","DepthTransport","Atmosphere"};
     constexpr std::array<const char*,18> SceneScopes{"stage_system","environment","environment","stage_system","stage_system","stage_system","stage_system","environment","stage_system","stage_system","stage_system","stage_system","depth_world","stage_system","depth_world","stage_system","environment","depth_world"};
@@ -904,7 +905,7 @@ static bool ClubLoopSelfTest(){
     }
     const std::wstring sanitized=SanitizeDjName(L"  RARE CLUB  ");
     const std::wstring bounded=SanitizeDjName(std::wstring(80,L'X'));
-    std::ofstream choreography("RareStage-choreography-reference.csv",std::ios::binary);choreography<<"refresh_hz,frame,stanza_progress,formation_weight,stage\n";for(const int refresh:std::array<int,3>{60,120,144}){const float duration=16.f*60.f/130.f;const int frames=int(std::ceil(duration*refresh));float previous=0,peak=0;for(int frame=0;frame<=frames;++frame){const float stanza=std::min(1.f,frame/float(frames));const float assemble=liquidProgress(std::clamp((stanza-.16f)/.30f,0.f,1.f));const float release=1.f-liquidProgress(std::clamp((stanza-.72f)/.24f,0.f,1.f));const float weight=assemble*release;const int stage=stanza<.16f?0:stanza<.46f?1:stanza<.72f?2:3;if(frame>0&&std::abs(weight-previous)>.018f)return false;previous=weight;peak=std::max(peak,weight);if(frame%(refresh/12)==0||frame==frames)choreography<<refresh<<','<<frame<<','<<stanza<<','<<weight<<','<<stage<<'\n';}if(previous>.001f||peak<.98f)return false;}
+    std::ofstream choreography("RareStage-choreography-reference.csv",std::ios::binary);choreography<<"refresh_hz,frame,stanza_progress,formation_weight,stage\n";for(const int refresh:std::array<int,3>{60,120,144}){const float duration=16.f*60.f/130.f;const int frames=int(std::ceil(duration*refresh));float previous=0,peak=0;for(int frame=0;frame<=frames;++frame){const float stanza=std::min(1.f,frame/float(frames));const float assemble=liquid(std::clamp((stanza-.16f)/.30f,0.f,1.f));const float release=1.f-liquid(std::clamp((stanza-.72f)/.24f,0.f,1.f));const float weight=assemble*release;const int stage=stanza<.16f?0:stanza<.46f?1:stanza<.72f?2:3;if(frame>0&&std::abs(weight-previous)>.018f)return false;previous=weight;peak=std::max(peak,weight);if(frame%(refresh/12)==0||frame==frames)choreography<<refresh<<','<<frame<<','<<stanza<<','<<weight<<','<<stage<<'\n';}if(previous>.001f||peak<.98f)return false;}
     return contract.good()&&choreography.good()&&environmentCount>=4&&sanitized==L"RARE CLUB"&&bounded.size()==24;
 }
 
