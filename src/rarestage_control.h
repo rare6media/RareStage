@@ -8,11 +8,11 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v12";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v13";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
 inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
-inline constexpr std::uint32_t ProtocolVersion = 12;
+inline constexpr std::uint32_t ProtocolVersion = 13;
 inline constexpr std::uint32_t WorldCount = 18;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 4;
@@ -149,6 +149,8 @@ struct alignas(64) SharedState {
     std::int32_t tempoAnchor{};
     std::int32_t effectiveTempoAnchor{128};
     std::int32_t loopPeriod{};
+    std::int32_t choreographyStage{};
+    std::int32_t identityKind{};
     std::uint32_t lastCommandSerial{};
     CommandStatus lastCommandStatus{CommandStatus::None};
     float fps{};
@@ -218,6 +220,9 @@ struct alignas(64) SharedState {
     float patternBlend{};
     float loopPhase{};
     float transitionCompatibility{1.0f};
+    float choreographyPhase{};
+    float identityWeight{};
+    float stanzaProgress{};
     std::uint32_t transientClass{};
     std::uint32_t acceptedKickCount{};
     std::uint32_t acceptedSnareCount{};
@@ -241,6 +246,8 @@ struct alignas(64) SharedState {
     wchar_t patternName[48]{};
     wchar_t djName[32]{};
     wchar_t categoryName[32]{};
+    wchar_t choreographyName[32]{};
+    wchar_t identityTarget[32]{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");
