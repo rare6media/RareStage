@@ -2,7 +2,13 @@
 R"HLSL(
 bool isRibbonRig(float world){return sceneRig[(int)world].y==2;}
 float3 ribbonPose(float world){return abs(world-22)<.1?float3(.38,.72,.006):abs(world-23)<.1?float3(1.570796,.12,.010):float3(0,0,0);}
-float rigGesture(float clock,float lane,float position,float seed){
+float rigGesture(float clock,float lane,float position,float seed,bool old){
+ float3 modes=phraseModes(seed,old),shaping=phraseShapeFor(old);
+ if((old?oldPhraseProgram.w:phraseProgram.w)>.5){
+  float a=sculptureMotif(modes.x,lane,position,tempoPhase*.392699);
+  float b=sculptureMotif(modes.y,lane,position,tempoPhase*.392699);
+  return lerp(a,b,modes.z)*shaping.x+shaping.z*sin(lane*.6-tempoPhase*.19635);
+ }
  return lerp(sculptureMotif(authoredMotif(floor(clock),seed),lane,position,tempoPhase*.392699),sculptureMotif(authoredMotif(floor(clock)+1,seed),lane,position,tempoPhase*.392699),motifBlend(clock));
 }
 float3 composedRibbon(float2 p,float world,float pressure,float snareHit,float hatHit){
@@ -26,8 +32,8 @@ float3 composedRibbon(float2 p,float world,float pressure,float snareHit,float h
  c+=lerp(primary,spectral,.65)*(.006+.026*pow(field,4));
  [loop]for(int lane=0;lane<11;++lane){
   float l=lane-5;
-  float gesture=rigGesture(clock,l,q.x,patternSeed);
-  if(bridge)gesture=lerp(rigGesture(clock,l,q.x,previousPatternSeed),gesture,blend);
+  float gesture=rigGesture(clock,l,q.x,patternSeed,false);
+  if(bridge)gesture=lerp(rigGesture(clock,l,q.x,previousPatternSeed,true),gesture,blend);
   float bankArc=.5+.5*sin((floor(clock)+motifBlend(clock))*.785398+variant*.45);
   float road=sin(q.x*(2.1+variant*.15)-tempoPhase*.098175)*pose.y*(.18+.12*bankArc);
   float path=l*.087+gesture*.054+sin(q.x*3.1-tempoPhase*.19635+l*.75)*.042+road;

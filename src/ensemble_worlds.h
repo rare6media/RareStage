@@ -21,63 +21,29 @@ float4 finPose(float mode,float u,float side,float span){
  else {anchor.y=side*(.20+.075*cos(abs(u)*4-phase));angle=-side*u*.8+sin(phase)*.24;stretch=1.08;}
  return float4(anchor,angle,stretch);
 }
-float3 kineticEnsemble(float2 p,float pressure,float snareHit,float hatHit){
- float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
- float aspect=resolution.x/resolution.y,span=aspect*.50;
- float clock=tempoPhase/16,blend=ensembleBlend(clock);
- float mode=ensembleMode(floor(clock),patternSeed),nextMode=ensembleMode(floor(clock)+1,patternSeed);
- float3 c=ensembleBackdrop(p,primary,spectral,tempoPhase*.098175);
- float variant=sceneVariant();
- // Two interlocking banks span the frame; their shared pose makes waves, fans,
- // opposing sweeps and arches readable even without percussion.
- [loop]for(int bank=0;bank<2;++bank){
-  float side=bank==0?-1:1;
-  [loop]for(int fin=0;fin<9;++fin){
-   float u=(fin-4)/4.0;
-   float4 pose=lerp(finPose(mode,u,side,span),finPose(nextMode,u,side,span),blend);
-   pose.xy+=float2(side*.022*sin(tempoPhase*.098175),variant*.006*side);
-   float2 q=rotate2(p-pose.xy,pose.z);
-   float width=min(.14,aspect*.095),height=(.22+.015*variant)*pose.w;
-   q.x+=q.y*.18*side;
-   // Tapered, folded leaves have a broad face, spine and visibly different facets.
-   float taper=max(0,1-abs(q.y)/height);
-   float d=max(abs(q.x)-width*taper,abs(q.y)-height);
-   float aa=max(.0012,1.3/resolution.y),face=1-smoothstep(-aa,aa,d);
-   float shadow=exp(-max(d,0)*65)*(1-face);
-   c*=1-shadow*.28;
-   float chase=.5+.5*cos(u*3.141592-tempoPhase*.785398+bank*3.141592);
-   float3 hue=lerp(bank==0?primary:accent,spectral,.06+.06*sin(u*2+tempoPhase*.098175));
-   float facet=lerp(.28,.66,smoothstep(-aa,aa,q.x+q.y*.10));
-   float spine=exp(-abs(q.x+q.y*.10)*450);
-   float3 surface=hue*(facet+.055*chase+.010*pressure)+accent*spine*.08;
-   float edge=1-smoothstep(aa,aa+.007,-d);
-   surface+=hue*edge*(.035+.035*snareHit+.025*hatHit);
-   c=lerp(c,surface,face);
-  }
- }
- return c+materialIdentity(p,0,.82*logoScale,primary,accent,10);
-}
 float3 orbitalEnsemble(float2 p,float pressure,float snareHit,float hatHit){
  float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
  float aspect=resolution.x/resolution.y,variant=sceneVariant(),clock=tempoPhase/16;
- float mode=ensembleMode(floor(clock),patternSeed),blend=ensembleBlend(clock);
+ float3 modes=phraseModes(patternSeed,false),shaping=phraseShapeFor(false);float mode=modes.x,blend=modes.z;
  
  // Discrete programs are mixed as periodic signals, never as a wrapped angle.
- float fan=lerp(cos(mode*1.047198),cos(ensembleMode(floor(clock)+1,patternSeed)*1.047198),blend);
+ float fan=lerp(cos(mode*1.047198),cos(modes.y*1.047198),blend);
  float phase=tempoPhase*.19634954;
+ float answer=lerp(sin(mode*1.047198),sin(modes.y*1.047198),blend);
  float3 c=ensembleBackdrop(p,spectral,primary,phase*.5);
  // A large central rotor and two counter-rotating wings fill wide displays.
  // On narrow displays they stack vertically instead of falling off the sides.
  [loop]for(int rotor=0;rotor<3;++rotor){
   float side=rotor==0?-1:rotor==1?1:0;
   float2 anchor=aspect>=1?float2(side*aspect*.43,side*.075*sin(phase)):float2(side*.055*sin(phase),side*.40);
+  anchor*=shaping.y;anchor+=float2(side*answer*.018*sin(phase),shaping.z*.08*side);
   float radius=rotor==2?.43:.38;
   float2 q=p-anchor;q.x/=max(.70,aspect*.64);
   float r=length(q),angle=atan2(q.y,q.x);
   float direction=rotor==2?1:-1;
   [loop]for(int tier=0;tier<3;++tier){
    float count=8+2*variant;
-   float turn=direction*phase*.50+(tier%2==0?1:-1)*.14*sin(phase+fan);
+   float turn=direction*phase*.50+(tier%2==0?1:-1)*.14*shaping.x*sin(phase+fan)+answer*.10*sin(phase+tier);
    float sector=(angle-turn)*count/6.283185;
    float lane=floor(sector),local=frac(sector)-.5;
    float laneAngle=(lane+.5)*6.283185/count+turn;

@@ -14,8 +14,8 @@ int runVisualValidation(bool benchmark) {
     ComPtr<ID3D11Texture2D>readback;D3D11_TEXTURE2D_DESC desc{};backBuffer_->GetDesc(&desc);
     desc.Usage=D3D11_USAGE_STAGING;desc.BindFlags=0;desc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;desc.MiscFlags=0;
     if(!benchmark&&FAILED(device_->CreateTexture2D(&desc,nullptr,&readback)))return 11;
-    auto drain=[&](){context_->Flush();const auto deadline=Clock::now()+std::chrono::seconds(10);for(;;){pollGpuTimers();bool pending=false;for(const auto&slot:gpuTimers_)pending|=slot.pending;if(!pending)return true;if(Clock::now()>deadline)return false;Sleep(1);}};
-    bool passed=true;
+    auto drain=[&](){context_->Flush();const auto deadline=Clock::now()+std::chrono::seconds(10);for(;;){pollGpuTimers();bool pending=false;for(const auto&slot:gpuTimers_)pending|=slot.pending;if(!pending)return true;if(Clock::now()>deadline){StartupLog("GPU benchmark query drain timed out");return false;}Sleep(1);}};
+    bool passed=true;std::array<int,WorldCount>timingRetries{};std::ofstream retries;if(benchmark){retries.open(output/"timing-retries.csv");retries<<"world,attempt,valid_samples,rejected_samples,skipped_samples\n";}
     const std::array<int,WorldCount>worlds{0,3,9,11,13,15,1,7,16,2,4,5,6,8,10,12,14,17,18,19,20,21,22,23};
     for(int world:worlds){
         const bool wall=world==0||world==3||world==9||world==11||world==13||world==15;
@@ -25,7 +25,7 @@ int runVisualValidation(bool benchmark) {
             if(!drain())return 11;validationGpuSamples_.clear();collectValidationGpu_=false;
             std::vector<float>previous;Clock::time_point benchmarkStart{};
             for(int frame=0;frame<frames;++frame){
-                if(benchmark&&frame==120){if(!drain())return 11;validationGpuSamples_.clear();collectValidationGpu_=true;benchmarkStart=Clock::now();}
+                if(benchmark&&frame==120){if(!drain())return 11;validationGpuSamples_.clear();validationGpuRejected_=validationGpuSkipped_=0;collectValidationGpu_=true;benchmarkStart=Clock::now();}
                 pollGpuTimers();Constants c{};
                 c.resolution[0]=float(renderWidth_);c.resolution[1]=float(renderHeight_);
                 c.time=benchmark?float(frame)/120.f:float(frame)*16.f/128.f*60.f/128.f;
@@ -33,6 +33,7 @@ int runVisualValidation(bool benchmark) {
                 c.masterBrightness=.92f;c.masteringProfile=1;c.cueDensity=1;c.songSection=2;
                 c.visualMovement=2;c.patternSeed=float(world%8);c.idleLife=1;
                 c.tempoPhase=benchmark?std::max(0,frame-120)*128.f/960.f:c.time*128.f/60.f;c.beatIndex=std::floor(c.tempoPhase);
+                if(benchmark&&rarestage::show::PhraseFamily(world)>=0)c.phrase={2,4,liquidProgress(std::fmod(c.tempoPhase,16.f)/16.f),1,1.16f,1.04f,.18f,3};
                 c.stanzaProgress=std::fmod(c.tempoPhase,16.f)/16.f;
                 c.identityKind=float(kind);c.identityWeight=liquidProgress((c.stanzaProgress-.16f)/.30f)*(1-liquidProgress((c.stanzaProgress-.72f)/.24f));
                 c.movementProgress=liquidProgress(c.stanzaProgress);
@@ -58,7 +59,13 @@ int runVisualValidation(bool benchmark) {
             if(!drain())return 11;collectValidationGpu_=false;
             if(benchmark){
                 const double duration=std::chrono::duration<double>(Clock::now()-benchmarkStart).count();
-                auto samples=validationGpuSamples_;if(samples.size()!=960)return 11;std::sort(samples.begin(),samples.end());
+                auto samples=validationGpuSamples_;if(samples.size()!=960){
+                    retries<<world<<','<<timingRetries[world]<<','<<samples.size()<<','<<validationGpuRejected_<<','<<validationGpuSkipped_<<'\n';retries.flush();
+                    StartupLog(("Incomplete GPU timestamps: scene "+std::to_string(world)+", valid "+std::to_string(samples.size())+", rejected "+std::to_string(validationGpuRejected_)+", skipped "+std::to_string(validationGpuSkipped_)).c_str());
+                    // Retry the complete deterministic scene window once. Never report
+                    // a partial percentile or silently discard an individual slow frame.
+                    if(timingRetries[world]++==0){--kind;continue;}return 11;
+                }std::sort(samples.begin(),samples.end());
                 double total=0;for(float sample:samples)total+=sample;
                 const auto percentile=[&](double p){return samples[std::min(samples.size()-1,size_t(std::ceil(samples.size()*p)-1))];};
                 report<<world<<",3840,2160,1,"<<samples.size()<<','<<total/samples.size()<<','<<percentile(.95)<<','<<percentile(.99)<<','<<samples.back()<<",8.33333,"<<960/duration<<'\n';
@@ -68,7 +75,14 @@ int runVisualValidation(bool benchmark) {
     }
     // Exercise production stanza decisions with disruptive section revisions while a name holds.
     world_=3;worldBeatOrigin_=0;identityCycle_=-1;movementRevision_=-1;settings_.djIdentity=1;
-    tempoPhase_=40;updateWorldProgression();const float latchedKind=identityKind_;
+    // Establish a scheduled reveal on its boundary before examining the hold.
+    // The old fixture relied on every even stanza revealing, which spacing replaces.
+    automatic_=false;frozen_=false;transitionStarted_=-100;songSection_=4;identitySpacing_={};phraseConductor_.begin(3,0,0);
+    tempoPhase_=32;updateWorldProgression();tempoPhase_=40;updateWorldProgression();const float latchedKind=identityKind_;
     for(int section=0;section<5;++section){songSection_=section;++sectionRevision_;movementRevision_=-1;updateWorldProgression();if(identityKind_!=latchedKind||identityWeight_<.98f)passed=false;}
+    songSection_=4;world_=0;worldBeatOrigin_=32;identityCycle_=-1;movementRevision_=-1;
+    tempoPhase_=48;updateWorldProgression();if(identityStanza_||identityWeight_!=0)passed=false;
+    worldBeatOrigin_=0;identityCycle_=-1;movementRevision_=-1;tempoPhase_=96;updateWorldProgression();tempoPhase_=104;updateWorldProgression();
+    if(identityKind_==latchedKind||identityWeight_<.98f)passed=false;
     return passed?0:12;
 }

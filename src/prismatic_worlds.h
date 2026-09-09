@@ -3,8 +3,8 @@ R"HLSL(
 float3 prismEnsemble(float2 p,float pressure,float snareHit,float hatHit){
  float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
  float aspect=resolution.x/resolution.y,phase=tempoPhase*.19634954,variant=sceneVariant();
- float clock=tempoPhase/16,blend=ensembleBlend(clock);
- float mode=ensembleMode(floor(clock),patternSeed),nextMode=ensembleMode(floor(clock)+1,patternSeed);
+ float3 modes=phraseModes(patternSeed,false),shaping=phraseShapeFor(false);
+ float blend=modes.z,mode=modes.x,nextMode=modes.y;
  float bank=lerp(sin(mode*1.047198),sin(nextMode*1.047198),blend);
  float3 c=ensembleBackdrop(p,primary,spectral,phase*.5);
  // Inverse row lookup keeps an infinite descending stream continuous at recycling.
@@ -17,7 +17,8 @@ float3 prismEnsemble(float2 p,float pressure,float snareHit,float hatHit){
   [loop]for(int neighbor=-2;neighbor<=2;++neighbor){
    float index=row+neighbor,cy=(index+.5)*.255+offset;
    float wave=sin(cy*4-phase+lane*.6);
-   float cx=lane*aspect*.35+wave*.055+bank*lane*.045;
+   float answer=lerp(cos(mode*1.047198),cos(nextMode*1.047198),blend);
+   float cx=lane*aspect*.35*shaping.y+wave*.055*shaping.x+bank*lane*.045+answer*.025*sin(cy*5-phase)+shaping.z*.12*lane;
    float turn=.20*sin(phase+lane*.7)+bank*.28+direction*.14*sin(cy*3-phase);
    float2 q=rotate2(p-float2(cx,cy),turn);
    float2 scale=float2(aspect*.155,.153+.008*variant);
@@ -48,39 +49,13 @@ float3 bladePose(float mode,float lane,float side,float span){
  else {anchor.y+=sin(abs(lane)*.75-phase)*.06;angle=side*.25+lane*.10*sin(phase);}
  return float3(anchor,angle);
 }
-float3 chromaEnsemble(float2 p,float pressure,float snareHit,float hatHit){
- float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
- float aspect=resolution.x/resolution.y,clock=tempoPhase/16,blend=ensembleBlend(clock);
- float mode=ensembleMode(floor(clock),patternSeed),nextMode=ensembleMode(floor(clock)+1,patternSeed);
- float3 c=ensembleBackdrop(p,spectral,primary,tempoPhase*.098175);
- // Two banks of long, broad blades answer each other: scissor, zipper, fan, sweep.
- [loop]for(int bank=0;bank<2;++bank){
-  float side=bank==0?-1:1;
-  [loop]for(int blade=0;blade<6;++blade){
-   float lane=blade-2.5;
-   float3 pose=lerp(bladePose(mode,lane,side,aspect),bladePose(nextMode,lane,side,aspect),blend);
-   float2 q=rotate2(p-pose.xy,pose.z);
-   float width=.043+.003*sceneVariant(),extent=aspect*(.285+.018*sin(lane*.65-tempoPhase*.19635));
-   float d=max(abs(q.y)-width,abs(q.x+q.y*2.1)-extent);
-   float aa=max(.0012,1.3/resolution.y),face=1-smoothstep(-aa,aa,d);
-   c*=1-exp(-max(d,0)*75)*(1-face)*.25;
-   float3 hue=lerp(bank==0?primary:accent,spectral,.06+.06*sin(lane*.7+tempoPhase*.098175));
-   float facet=lerp(.22,.64,smoothstep(-aa,aa,q.y+width*.32));
-   float inlay=1-smoothstep(.002,.005,abs(q.y-width*.48));
-   float chase=.5+.5*cos(q.x*7-tempoPhase*.785398+lane*.8);
-   float3 surface=hue*(facet+.025*chase+.008*pressure);
-   surface+=lerp(hue,accent,.3)*inlay*(.08+.035*snareHit+.025*hatHit);
-   c=lerp(c,surface,face);
-  }
- }
- return c+materialIdentity(p,0,.82*logoScale,primary,accent,8);
-}
 float3 vaultEnsemble(float2 p,float pressure,float snareHit,float hatHit){
  float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
  float aspect=resolution.x/resolution.y,phase=tempoPhase*.19634954,variant=sceneVariant();
- float clock=tempoPhase/16,blend=ensembleBlend(clock);
- float mode=ensembleMode(floor(clock),patternSeed),nextMode=ensembleMode(floor(clock)+1,patternSeed);
+ float3 modes=phraseModes(patternSeed,false),shaping=phraseShapeFor(false);
+ float blend=modes.z,mode=modes.x,nextMode=modes.y;
  float lock=lerp(cos(mode*1.047198),cos(nextMode*1.047198),blend);
+ float counter=lerp(sin(mode*1.047198),sin(nextMode*1.047198),blend);
  float3 c=ensembleBackdrop(p,spectral,primary,phase*.5);
  // Different-sized solid square frames turn as a linked mechanism. No tunnel
  // recycling, thin wireframe outlines or dependence on individual beat kicks.
@@ -89,8 +64,9 @@ float3 vaultEnsemble(float2 p,float pressure,float snareHit,float hatHit){
   float column=index%3-1,row=index/3-1;
   float center=element==8?1:0,side=fmod(index,2)<.5?-1:1;
   float2 anchor=float2(column*aspect*.35,row*.34);
-  anchor+=float2(row*.035*sin(phase),column*.035*cos(phase));
-  float angle=side*phase*.25+(row+column)*.22*lock+side*.30*sin(phase+row*.55);
+  anchor*=shaping.y;anchor+=float2(row*.035*sin(phase),column*.035*cos(phase))*shaping.x;
+  anchor.x+=row*shaping.z*.10*sin(phase);
+  float angle=side*phase*.25+(row+column)*.22*lock+side*.30*shaping.x*sin(phase+row*.55)+counter*.16*sin(phase+column*.8);
   float size=min(.24,aspect*.31)*(1+.12*sin(index*1.570796))*(1+.10*center);
   float2 q=rotate2(p-anchor,angle);
   float distance=max(abs(q.x),abs(q.y)),thickness=size*(.24+.025*variant);

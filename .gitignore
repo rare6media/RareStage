@@ -37,3 +37,6 @@ build-v21.log
 RareStage-v21-*.json
 
 /RareStage-ensemble-validation/
+
+/RareStage-phrase-validation/
+/build-v22.log

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(RareStage VERSION 0.21.1 LANGUAGES CXX)
+project(RareStage VERSION 0.22.0 LANGUAGES CXX)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -30,6 +30,14 @@ if(MSVC)
   target_compile_options(RareStageProtocolTests PRIVATE /W4 /permissive- /EHsc /utf-8)
 endif()
 add_test(NAME RareStageControlProtocol COMMAND RareStageProtocolTests)
+
+add_executable(RareStagePhraseTests tests/phrase_conductor_test.cpp)
+target_compile_features(RareStagePhraseTests PRIVATE cxx_std_20)
+target_include_directories(RareStagePhraseTests PRIVATE src)
+if(MSVC)
+  target_compile_options(RareStagePhraseTests PRIVATE /W4 /permissive- /EHsc /utf-8)
+endif()
+add_test(NAME RareStagePhraseConductor COMMAND RareStagePhraseTests)
 
 option(RARESTAGE_ENABLE_SPOUT "Build the clean Spout2 stage-output sender" ON)
 if(RARESTAGE_ENABLE_SPOUT)

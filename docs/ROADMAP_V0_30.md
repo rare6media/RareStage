@@ -1,6 +1,6 @@
 # RareStage roadmap: v0.21.0 to v0.30.0
 
-Status: revised after the combined v0.21 implementation, September 8, 2026. “v30” means v0.30.0 in this roadmap. These are planned capabilities and acceptance criteria, not completed features or calendar commitments.
+Status: revised for the v0.22 implementation, September 9, 2026. “v30” means v0.30.0 in this roadmap. These are planned capabilities and acceptance criteria, not completed features or calendar commitments.
 
 ## The destination
 
@@ -49,7 +49,7 @@ The v0.22 choreography milestone should develop these different visual families 
 |---|---|---|
 | **0.20** | Performance Worlds, identity choreography and session memory | Nine scene rebuilds, more arrangements, varied identity entrances/exits and smooth Pixel Bank departures. Performance measurement continues; isolated qualification remains open. |
 | **0.21** | **Implemented: Show Composer combined update** | Shared wall/ribbon bridges, three new scenes, conditional branches, recurring themes, theme controls and route cost estimates. |
-| **0.22** | Musical choreography programs | Distinct non-wall ensembles establish, repeat, answer and resolve; new scenes must add a different visual language. |
+| **0.22** | **Implemented core: Phrase Conductor** | Distinct non-wall ensembles establish, repeat, answer and resolve; new scenes must add a different visual language. |
 | **0.23** | A stronger musical timeline | The Director distinguishes sustained groove, rising tension, release and uncertainty more reliably. |
 | **0.24** | Conditional show planning | Builds have prepared continuations for a drop, a continued build or a breakdown. |
 | **0.25** | Internal rehearsal | Candidate routes are checked before appearing live. Ribbon Racetrack exercises continuous spatial journeys. |
@@ -81,11 +81,15 @@ Add **Folding Cathedral**: Stagewall rows stretch into ribs, then unfold into ar
 
 ## v0.22 — Choreography programs
 
+**Implemented core:** six named programs in each of eight non-wall scenes; Establish / Hold / Answer / Develop / Resolve decisions, eight-beat pose interpolation, short-fill rejection at this decision layer, session program memory, shared peak cooldown, identity spacing, and the two directed Blades–Canopy geometry bridges. Stagewall keeps its existing choreography. The conductor consumes existing confirmed section evidence; it does not add a new musical classifier. See [implementation and validation](PHRASE_CONDUCTOR.md).
+
+Remaining: broader authored gesture coverage, richer handoffs between different families, real-track listening review and objective musical-evidence evaluation. Scene additions are conditional on adding a distinct visual language.
+
 Turn motifs into reusable musical gestures: row travel, column lifts, opposing banks, fans, rotations, convergence, expansion, suspension and release. Compose them into programs with a readable hold, an answer, a development and a resolution.
 
 Allow the Director to extend or vary a program at safe musical boundaries. Keep base movement alive during weak or missing percussion. Separate sustained structural movement from short lighting accents.
 
-Add **Pendulum Hall** and **Resonance Terrain**. Their patterns must have distinct silhouettes and movement, rather than differing only in color or speed.
+**Pendulum Hall** and **Resonance Terrain** remain optional proposals. Develop the existing non-wall ensembles first; add a scene only when its silhouettes and movement meet the revised quality bar.
 
 **Exit:** each program remains identifiable with audio muted, aligns with the musical clock when audio is present, and can extend or exit without a motion reset. Preserve the favorite Stagewall/Cascade behavior through comparison captures.
 

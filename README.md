@@ -4,9 +4,21 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.21.1**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.22.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.22.0
+
+**Phrase Conductor** gives eight non-wall ensembles musical programs that establish, hold, answer, develop and resolve.
+
+- Prism Cascade, Chroma Blades, Kinetic Canopy, Matrix Vault, Halo Engine and the three ribbon worlds now receive deliberate movement choices from Smart Director. Each keeps six named programs with its own shapes and movement.
+- A stable groove holds a recognizable formation before a related answer. Sustained builds and confirmed drops can develop it; breakdowns and approaching departures can resolve it. Decisions use eight-beat boundaries, and pose changes unfold over eight beats without restarting the musical clock.
+- Program memory spaces recent formations and action combinations. Stronger drop articulation has a 96-beat cooldown shared across scene visits. Identity alternates Rare mark/name, waits for a settled scene, and is spaced by at least 64 beats across the set.
+- Blades and Canopy share eighteen pieces that continuously change pose, taper and bevel. These two new directed bridges bring the total to **50 native handoffs**; the remaining 502 ordered pairs use category-aware material transport.
+- Console shows the current named formation and musical intention. Local mirrors receive the same completed frame. Network v5 includes current/outgoing conductor samples and pattern seeds; peers must use the same version.
+
+The scene count stays at 24. Stagewall retains its existing movement programs. Musical-corpus accuracy, live image evaluation and 4K/120 qualification are not claimed by this update. See [Phrase Conductor implementation and validation](docs/PHRASE_CONDUCTOR.md).
 
 ## What changed in 0.21.1
 
@@ -34,7 +46,7 @@ Version 0.21.0 is **Show Composer**, combining shared movement rules with condit
 - **Route rehearsal and GPU cost.** The Director compares nominal anchor and velocity envelopes and samples scene GPU cost asynchronously. Under budget pressure, measured expensive handoffs lose priority. This is an analytic estimate, not a live image-quality evaluator or a frame-rate guarantee.
 - Stagewall, continuous musical motion, varied Rare/DJ identity entrances, smooth Pixel Bank departures, Alt+Enter/F11 fullscreen and synchronized local mirrors remain available.
 
-Use the matching Stage and Console: Console protocol **v16**, network packet **v4**. Network packets now carry the leader's theme; network peers must match. Local mirrors still receive the same completed frame.
+Use the matching Stage and Console: Console protocol **v17**, network packet **v5**. Network packets carry the leader's theme and phrase state; network peers must match. Local mirrors still receive the same completed frame.
 
 See [Show Composer implementation and validation](docs/SHOW_COMPOSER.md), [v0.20 scene improvements](docs/PERFORMANCE_WORLDS.md) and the [roadmap to v0.30](docs/ROADMAP_V0_30.md). Musical-corpus evaluation, runtime composition feedback and full 4K/120 qualification remain future work.
 
@@ -146,7 +158,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 | Screens | Main display selection and synchronized clean-frame mirrors on up to eight displays |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v16 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, Showbrain choreography, identity target, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v17 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, Showbrain choreography, identity target, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
 
 Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 

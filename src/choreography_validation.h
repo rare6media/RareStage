@@ -12,7 +12,7 @@ int runChoreographyValidation(bool benchmark){
         for(UINT y=0;y<height_;y+=2){const auto*row=static_cast<const BYTE*>(map.pData)+size_t(y)*map.RowPitch;for(UINT x=0;x<width_;x+=2)for(int channel=0;channel<3;++channel)result.push_back(row[x*4+channel]/255.f);}
         context_->Unmap(readback.Get(),0);return result;};
     auto difference=[](const std::vector<float>&a,const std::vector<float>&b){if(a.empty()||a.size()!=b.size())return 1.0;double delta=0;for(size_t n=0;n<a.size();++n)delta+=std::abs(a[n]-b[n]);return delta/a.size();};
-    auto drain=[&](){context_->Flush();const auto deadline=Clock::now()+std::chrono::seconds(10);for(;;){pollGpuTimers();bool pending=false;for(const auto&slot:gpuTimers_)pending|=slot.pending;if(!pending)return true;if(Clock::now()>deadline)return false;Sleep(1);}};
+    auto drain=[&](){context_->Flush();const auto deadline=Clock::now()+std::chrono::seconds(10);for(;;){pollGpuTimers();bool pending=false;for(const auto&slot:gpuTimers_)pending|=slot.pending;if(!pending)return true;if(Clock::now()>deadline){StartupLog("Handoff benchmark query drain timed out");return false;}Sleep(1);}};
     auto fixture=[&](float time){Constants c{};c.resolution[0]=float(renderWidth_);c.resolution[1]=float(renderHeight_);c.time=time;c.tempoPhase=time*128.f/60.f;c.logoScale=1;c.palette=0;c.masterBrightness=.92f;c.masteringProfile=1;c.cueDensity=1;c.songSection=2;c.visualMovement=2;c.bass=.3f;c.mid=.4f;c.high=.2f;c.audioEnergy=.4f;c.transition=1;return c;};
     std::vector<std::array<int,2>>pairs{{3,13},{13,3},{3,9},{9,11},{15,0},{1,3},{3,1},{16,3},{3,16},{1,16},{16,7},{2,17},{3,18},{18,19},{19,20},{20,3},{16,18},{16,20},{1,19},{20,16},{3,21},{21,3},{18,22},{22,23},{23,18},{21,22},{23,3}};
     if(benchmark){const std::array<std::array<int,2>,9> rebuilt{{{6,8},{8,10},{10,14},{14,12},{12,17},{17,7},{7,4},{4,5},{5,16}}};pairs.insert(pairs.end(),rebuilt.begin(),rebuilt.end());}
@@ -25,7 +25,7 @@ int runChoreographyValidation(bool benchmark){
         validationGpuSamples_.clear();collectValidationGpu_=benchmark;
         std::vector<float>previous;
         for(int frame=0;frame<=120;++frame){
-            Constants c=fixture(8.f+frame/60.f);c.previousScene=float(pair[0]);c.scene=float(pair[1]);c.previousPatternSeed=float(2+style*3);c.patternSeed=float(5+style*3);c.transition=frame/120.f;c.transitionStyle=float(style);if(benchmark){c.tempoPhase=frame*128.f/120.f;c.previousPatternSeed=12;c.patternSeed=8;}
+            Constants c=fixture(8.f+frame/60.f);c.previousScene=float(pair[0]);c.scene=float(pair[1]);c.previousPatternSeed=float(2+style*3);c.patternSeed=float(5+style*3);c.transition=frame/120.f;c.transitionStyle=float(style);if(benchmark){c.tempoPhase=frame*128.f/120.f;c.previousPatternSeed=12;c.patternSeed=8;c.phrase={2,4,.5f,1,1.16f,1.04f,.18f,3};c.previousPhrase={1,3,.7f,1,.8f,.96f,-.18f,4};}
             pollGpuTimers();drawScene(c);
             if(benchmark){context_->Flush();if(frame%8==7&&!drain())return 14;continue;}
             const auto current=pixels();const double delta=previous.empty()?0:difference(current,previous);previous=current;
@@ -39,7 +39,7 @@ int runChoreographyValidation(bool benchmark){
             if(style==0&&frame%30==0){drawScene(c);const auto name="morph-"+std::to_string(pair[0])+"-"+std::to_string(pair[1])+"-"+std::to_string(frame)+".png";if(!saveBackBufferPng(output/name))passed=false;}
         }
         if(!drain())return 14;collectValidationGpu_=false;
-        if(benchmark){auto samples=validationGpuSamples_;if(samples.size()!=121)return 14;std::sort(samples.begin(),samples.end());double sum=0;for(float sample:samples)sum+=sample;report<<pair[0]<<','<<pair[1]<<",3840,2160,"<<samples.size()<<','<<sum/samples.size()<<','<<samples[size_t(samples.size()*.95)]<<','<<samples[size_t(samples.size()*.99)]<<','<<samples.back()<<'\n';report.flush();}
+        if(benchmark){auto samples=validationGpuSamples_;if(samples.size()!=121){StartupLog(("Incomplete handoff GPU timestamps: "+std::to_string(pair[0])+" to "+std::to_string(pair[1])+", valid "+std::to_string(samples.size())).c_str());return 14;}std::sort(samples.begin(),samples.end());double sum=0;for(float sample:samples)sum+=sample;report<<pair[0]<<','<<pair[1]<<",3840,2160,"<<samples.size()<<','<<sum/samples.size()<<','<<samples[size_t(samples.size()*.95)]<<','<<samples[size_t(samples.size()*.99)]<<','<<samples.back()<<'\n';report.flush();}
     }
     if(!benchmark){
         // 20-second, 60 fps capture: row motion, identity, then two geometric scene handoffs.
