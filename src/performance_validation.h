@@ -19,8 +19,9 @@ int runPerformanceValidation(){
   ++rendered;
  }
  check("all_scene_arrangements_render",passed,rendered);check("minimum_scene_luma",lowest>.018,lowest);
+ if(std::wcsstr(GetCommandLineW(),L"--arrangements-only"))return passed?0:22;
  std::ofstream identity(output/"identities.csv");identity<<"world,kind,entrance,exit,max_frame_delta,hold_style_delta\n";double maxChange=0,maxHold=0;
- for(int world:{3,6,10,14,17,7,21,22,23})for(int kind=0;kind<2;++kind)for(int style=0;style<8;++style){std::vector<float>previous;double maximum=0;
+ for(int world:{3,6,8,10,12,14,17,7,19,21,22,23})for(int kind=0;kind<2;++kind)for(int style=0;style<8;++style){std::vector<float>previous;double maximum=0;
   for(int f=0;f<=240;++f){Constants c=fixture(16+f/60.f);c.scene=c.previousScene=float(world);c.identityKind=float(kind);c.morphPad1=float(style);c.morphPad2=float((style+3)%8);c.stanzaProgress=f/240.f;c.identityWeight=liquidProgress((c.stanzaProgress-.1f)/.3f)*(1-liquidProgress((c.stanzaProgress-.72f)/.27f));drawScene(c);auto current=pixels();if(!previous.empty())maximum=std::max(maximum,delta(previous,current));previous=current;
    if(f==90||f==150||f==210){const auto name="identity-"+std::to_string(world)+"-"+std::to_string(kind)+"-"+std::to_string(style)+"-"+std::to_string(f)+".png";if(!saveBackBufferPng(output/name))passed=false;}
   }

@@ -61,7 +61,7 @@ int runProfessionalValidation(){
  if(std::wcsstr(GetCommandLineW(),L"--endpoints-only"))return pairPassed?0:19;
  std::ofstream motion(output/"sculpture-motion.csv");motion<<"world,max_silent_delta,mean_motion,mean_hit_delta\n";
  bool motionPassed=true;
- for(int world:{16,18,19,20,21,22,23}){std::vector<float>previous;double maximum=0,sum=0,hits=0;
+ for(int world:{6,8,10,12,16,18,19,20,21,22,23}){std::vector<float>previous;double maximum=0,sum=0,hits=0;
   for(int frame=0;frame<1920;++frame){Constants c=fixture(frame/60.f);c.scene=c.previousScene=float(world);drawScene(c);auto current=pixels();if(!previous.empty()){double change=delta(current,previous);sum+=change;maximum=std::max(maximum,change);}previous=current;
    if(frame%60==0){c.kick=c.beat=c.snare=1;drawScene(c);hits+=delta(current,pixels());}
   }

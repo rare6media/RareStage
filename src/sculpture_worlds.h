@@ -23,54 +23,6 @@ float sculptSignal(float clock,float lane,float position){
  float bank=authoredMotif(floor(clock),patternSeed),nextBank=authoredMotif(floor(clock)+1,patternSeed);
  return lerp(sculptureMotif(bank,lane,position,tempoPhase*.392699),sculptureMotif(nextBank,lane,position,tempoPhase*.392699),motifBlend(clock));
 }
-float3 ribbonFoundry(float2 p,float pressure,float snareHit,float hatHit){
- float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
- float clock=tempoPhase*.125,settle=sqrt(saturate(identityWeight));
- float3 c=float3(.004,.009,.024);
-
- // Long metal ribbons weave, fan, braid and meet as a single luminous membrane.
- [unroll]for(int lane=0;lane<9;lane++){
-  float l=lane-4;
-  float gesture=sculptSignal(clock,l,p.x);
-  float path=l*.075+gesture*.047+sin(p.x*2.5-tempoPhase*.19635+l*.28)*.025;
-  path=lerp(path,l*.086,settle);
-  float width=lerp(.016+.008*(.5+.5*cos(p.x*3+l*.5-tempoPhase*.3927)),.047,settle);
-  float d=p.y-path,aa=max(.001,1.2/resolution.y);
-  float face=1-smoothstep(width-aa,width+aa,abs(d));
-  float edge=exp(-abs(abs(d)-width)*500);
-  float chase=.5+.5*cos(p.x*5-l*.65-tempoPhase*.785398);
-  float3 hue=formationColor(primary,accent,spectral,l,tempoPhase,chase);
-  float metallic=.45+.55*saturate(.5-d/max(width,.001));
-  c+=face*hue*(.10+.20*metallic+.065*chase+.018*pressure);
-  c+=edge*lerp(hue,accent,.5)*(.035+.035*hatHit+.035*snareHit);
-
- }
- return c+materialIdentity(p,0,.82*logoScale,primary,accent,18);
-}
-float3 haloEngine(float2 p,float pressure,float snareHit,float hatHit){
- float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
- float clock=tempoPhase*.125,settle=sqrt(saturate(identityWeight));
- float3 c=float3(.004,.008,.022);
- // Nested solid torus bands: breathing iris, counter-rotation, petals and orbital fans.
- [unroll]for(int ring=0;ring<7;ring++){
-  float radius=.10+ring*.064;
-  float2 q=rotate2(p,tempoPhase*.049087*(ring%2?1:-1));
-  q.y/= .78+.12*sin(tempoPhase*.098175+ring*.32);
-  float angle=atan2(q.y,q.x),r=length(q);
-  float shape=sculptSignal(clock,float(ring)-3,angle);
-  float ridge=radius+shape*.013*(1-settle);
-  float d=r-ridge,aa=max(.001,1.2/resolution.y);
-  float width=.010+.004*(.5+.5*sin(angle*3+tempoPhase*.3927+ring));
-  float face=1-smoothstep(width-aa,width+aa,abs(d));
-  float pattern=.5+.5*cos(angle*4-ring*.8-tempoPhase*.785398);
-  float3 hue=formationColor(primary,accent,spectral,ring*1.1,tempoPhase,pattern);
-  c+=face*hue*(.15+.24*pattern+.02*pressure);
-  c+=exp(-abs(d)*90)*hue*.018;
-  c+=face*pow(pattern,6)*accent*(.05+.04*snareHit+.025*hatHit);
- }
- c+=materialIdentity(p,0,.76*logoScale,primary,accent,19);
- return c;
-}
 float3 vectorSpeedway(float2 p,float pressure,float snareHit,float hatHit){
  float3 primary,accent,spectral;rarePalette(palette,primary,accent,spectral);
  float clock=tempoPhase*.125;

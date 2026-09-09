@@ -35,13 +35,21 @@ The shared catalog covers names, operator keys, geometry families, anchors, nomi
 
 These are completed implementation slices, not completion claims for every acceptance criterion below. The remaining milestones retain their original numbers for traceability. See [Show Composer](SHOW_COMPOSER.md) for exact behavior and evidence.
 
+## Visual direction after v0.21
+
+Stagewall is the movement-quality benchmark, not the visual template for every scene. Prioritize rebuilding incomplete non-wall worlds into full compositions with distinct silhouettes, coordinated foreground/supporting elements and several readable movement programs. Avoid multiplying suspended bars, round tubing, tile grids or near-duplicate terrain scenes simply to increase the scene count.
+
+The v0.21.1 visual revision begins this with staggered prism streams, interlocking blade banks, linked rotating square frames, interlocking fins in Kinetic Canopy, segmented rotor ensembles in Halo Engine and wider folded ribbon compositions. A 96-beat, three-aspect composition check supplements the existing temporal/identity tests. It is offline validation, not a live Director image evaluator.
+
+The v0.22 choreography milestone should develop these different visual families and their handoffs before adding another wall-derived scene. Pendulum Hall and Resonance Terrain are proposals subject to this revised quality bar, not required additions.
+
 ## Release sequence
 
 | Release | Main milestone | What the audience or operator should notice |
 |---|---|---|
 | **0.20** | Performance Worlds, identity choreography and session memory | Nine scene rebuilds, more arrangements, varied identity entrances/exits and smooth Pixel Bank departures. Performance measurement continues; isolated qualification remains open. |
 | **0.21** | **Implemented: Show Composer combined update** | Shared wall/ribbon bridges, three new scenes, conditional branches, recurring themes, theme controls and route cost estimates. |
-| **0.22** | Musical choreography programs | Patterns establish, repeat, answer and resolve. Pendulum Hall and Resonance Terrain extend the repertoire. |
+| **0.22** | Musical choreography programs | Distinct non-wall ensembles establish, repeat, answer and resolve; new scenes must add a different visual language. |
 | **0.23** | A stronger musical timeline | The Director distinguishes sustained groove, rising tension, release and uncertainty more reliably. |
 | **0.24** | Conditional show planning | Builds have prepared continuations for a drop, a continued build or a breakdown. |
 | **0.25** | Internal rehearsal | Candidate routes are checked before appearing live. Ribbon Racetrack exercises continuous spatial journeys. |

@@ -341,13 +341,15 @@ void compositeLogo(inout float3 color,float4 mark,float opacity,float light){flo
 #include "sculpture_worlds.h"
 #include "performance_worlds.h"
 #include "composer_worlds.h"
+#include "ensemble_worlds.h"
+#include "prismatic_worlds.h"
 R"(
 float3 renderWorld(float2 p,float s,float patternSeed,float opening){
  float aspect=resolution.x/resolution.y;float music=tempoPhase*6.283185;float t=time;
  // Four stable stage arrangements per visit. Each keeps its own motif development.
  float arrangement=fmod(floor(patternSeed/16),4);
  if(abs(s-5)>.1){p.x+=sin(p.y*4-tempoPhase*.19635)*themeBraid*.018;p=rotate2(p,themeFan*.035*sin(tempoPhase*.098175));p.y+=sin(p.x*3+tempoPhase*.098175)*themeOrbit*.022;}
- if(!isPanelWorld(s)&&!isRibbonRig(s)&&abs(s-5)>.1){
+ if(!isPanelWorld(s)&&!isRibbonRig(s)&&abs(s-5)>.1&&abs(s-10)>.1&&abs(s-19)>.1&&abs(s-6)>.1&&abs(s-8)>.1&&abs(s-12)>.1){
   if(arrangement>.5&&arrangement<1.5)p*=float2(.82,1.06);
   else if(arrangement>1.5&&arrangement<2.5)p=rotate2(p,.20)*.90;
   else if(arrangement>2.5)p*=float2(1.16,.80);
@@ -363,14 +365,14 @@ float3 renderWorld(float2 p,float s,float patternSeed,float opening){
  if(s<16.5&&s>=15.5)return max(pulseCauseway(p,bassPump,snarePulse,hatPulse,actEnergy)+hitTint,0);
  if(abs(s-4)<.1)return reliefWave(p,bassPump,snarePulse,hatPulse);
  if(abs(s-5)<.1)return pixelPerformance(p,bassPump,snarePulse,hatPulse);
- if(abs(s-6)<.1)return prismPerformance(p,bassPump,snarePulse,hatPulse);
- if(abs(s-8)<.1)return chromaPerformance(p,bassPump,snarePulse,hatPulse);
- if(abs(s-10)<.1)return canopyPerformance(p,bassPump,snarePulse,hatPulse);
- if(abs(s-12)<.1)return vaultPerformance(p,bassPump,snarePulse,hatPulse);
+ if(abs(s-6)<.1)return prismEnsemble(p,bassPump,snarePulse,hatPulse);
+ if(abs(s-8)<.1)return chromaEnsemble(p,bassPump,snarePulse,hatPulse);
+ if(abs(s-10)<.1)return kineticEnsemble(p,bassPump,snarePulse,hatPulse);
+ if(abs(s-12)<.1)return vaultEnsemble(p,bassPump,snarePulse,hatPulse);
  if(abs(s-14)<.1)return signalPerformance(p,bassPump,snarePulse,hatPulse);
  if(abs(s-17)<.1)return voidPerformance(p,bassPump,snarePulse,hatPulse);
  if(isRibbonRig(s))return composedRibbon(p,s,bassPump,snarePulse,hatPulse);
- if(s>18.5&&s<19.5)return haloEngine(p,bassPump,snarePulse,hatPulse);
+ if(s>18.5&&s<19.5)return orbitalEnsemble(p,bassPump,snarePulse,hatPulse);
  if(abs(s-20)<.1)return vectorSpeedway(p,bassPump,snarePulse,hatPulse);
  float vignette=1-smoothstep(.28,1.12,length(p));float field=flowField(p*.78,t*.085+tempoPhase*.010);float breathe=.5+.5*sin(t*.24+tempoPhase*.10);float3 c=float3(.0015,.004,.012)+lerp(spectral,primary,field)*(.009+.011*audioEnergy+.004*idle)*vignette;c+=lerp(primary,accent,musicalNovelty)*movementArc*musicalNovelty*.004*vignette;
  float dustNear=livingDust(p+float2(t*.007,-t*.004),t*.52,18,.76-detail*.035);float dustFar=livingDust(rotate2(p,-.08)-float2(t*.003,t*.002),-t*.31,11,.80-detail*.025);float2 frontP=rotate2(p,.16);float lightFront=exp(-abs(frontP.y-sin(frontP.x*1.35+t*.075)*.10-sin(t*.032)*.29)*6.5);c+=(dustNear*primary+dustFar*spectral)*(.010+.012*breathe+.010*detail);c+=lightFront*lerp(primary,spectral,.42)*(.005+.007*actEnergy+.004*audioEnergy);
@@ -409,7 +411,7 @@ class App {
 public:
     ~App(){outputs_.clear();shutdownControl();}
     bool init(HINSTANCE instance) {
-        validationMode_=std::wcsstr(GetCommandLineW(),L"--performance-test")||std::wcsstr(GetCommandLineW(),L"--professional-test")||std::wcsstr(GetCommandLineW(),L"--release-validation")||std::wcsstr(GetCommandLineW(),L"--stage-lighting-test")||std::wcsstr(GetCommandLineW(),L"--choreography-test")||std::wcsstr(GetCommandLineW(),L"--choreography-benchmark")||std::wcsstr(GetCommandLineW(),L"--visual-regression-test")||std::wcsstr(GetCommandLineW(),L"--benchmark-4k");if(!validationMode_)settings_.load();else{settings_.spout=0;settings_.syncMode=0;}settings_.djName=SanitizeDjName(settings_.djName);audio_.setProfile(settings_.audioProfile);sync_.setMode(settings_.syncMode);automatic_=settings_.automatic!=0;visualPalette_=float(settings_.palette);directorPalette_=settings_.palette;activeTransitionSeconds_=settings_.transitionSeconds;activeTransitionStyle_=settings_.transitionStyle;effectiveTempoAnchor_=settings_.tempoAnchor==2?130:128;visualBpm_=stableBpm_=float(effectiveTempoAnchor_);if(!sync_.setMode(settings_.syncMode)){settings_.syncMode=0;syncStatus_=L"SYNC SOCKET UNAVAILABLE";}else syncStatus_=settings_.syncMode==1?L"LEADER ARMED / GROUP "+std::to_wstring(settings_.syncGroup):settings_.syncMode==2?L"FOLLOWER WAITING / GROUP "+std::to_wstring(settings_.syncGroup):L"LOCAL / STANDALONE";
+        validationMode_=std::wcsstr(GetCommandLineW(),L"--ensemble-test")||std::wcsstr(GetCommandLineW(),L"--performance-test")||std::wcsstr(GetCommandLineW(),L"--professional-test")||std::wcsstr(GetCommandLineW(),L"--release-validation")||std::wcsstr(GetCommandLineW(),L"--stage-lighting-test")||std::wcsstr(GetCommandLineW(),L"--choreography-test")||std::wcsstr(GetCommandLineW(),L"--choreography-benchmark")||std::wcsstr(GetCommandLineW(),L"--visual-regression-test")||std::wcsstr(GetCommandLineW(),L"--benchmark-4k");if(!validationMode_)settings_.load();else{settings_.spout=0;settings_.syncMode=0;}settings_.djName=SanitizeDjName(settings_.djName);audio_.setProfile(settings_.audioProfile);sync_.setMode(settings_.syncMode);automatic_=settings_.automatic!=0;visualPalette_=float(settings_.palette);directorPalette_=settings_.palette;activeTransitionSeconds_=settings_.transitionSeconds;activeTransitionStyle_=settings_.transitionStyle;effectiveTempoAnchor_=settings_.tempoAnchor==2?130:128;visualBpm_=stableBpm_=float(effectiveTempoAnchor_);if(!sync_.setMode(settings_.syncMode)){settings_.syncMode=0;syncStatus_=L"SYNC SOCKET UNAVAILABLE";}else syncStatus_=settings_.syncMode==1?L"LEADER ARMED / GROUP "+std::to_wstring(settings_.syncGroup):settings_.syncMode==2?L"FOLLOWER WAITING / GROUP "+std::to_wstring(settings_.syncGroup):L"LOCAL / STANDALONE";
         StartupLog("Creating RareStage window class");
         WNDCLASSW wc{};wc.hInstance=instance;wc.lpfnWndProc=WndProc;wc.lpszClassName=L"RareStageWindow";wc.hCursor=LoadCursor(nullptr,IDC_ARROW);RegisterClassW(&wc);
         hwnd_=CreateWindowExW(0,wc.lpszClassName,L"RareStage",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,1280,720,nullptr,nullptr,instance,this);
@@ -428,6 +430,7 @@ public:
 #include "stage_lighting_validation.h"
 #include "professional_validation.h"
 #include "performance_validation.h"
+#include "ensemble_validation.h"
     void enableReferenceCaptureTest(){referenceCaptureMode_=true;automatic_=false;frozen_=false;hudVisible_=false;settings_.vsync=0;settings_.quality=0;world_=0;previousWorld_=0;songSection_=DropSection;manualSectionOverrideUntil_=1.0e9f;referenceQuality_=0;referenceWorld_=0;referenceWarmup_=0;std::error_code error;std::filesystem::create_directories("RareStage-reference-captures",error);SetWindowPos(hwnd_,nullptr,0,0,640,360,SWP_NOMOVE|SWP_NOZORDER);}
     int run(){MSG msg{};while(msg.message!=WM_QUIT){if(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);}else render();}audio_.stop();return(int)msg.wParam;}
 private:
@@ -1070,7 +1073,8 @@ int WINAPI wWinMain(HINSTANCE h,HINSTANCE,LPWSTR,int){
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);HRESULT com=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);App app;
     if(!app.init(h)){StartupLog("Startup failed");if(SUCCEEDED(com))CoUninitialize();return 1;}
     if(std::wcsstr(GetCommandLineW(),L"--release-validation")){
-        std::ofstream log("RareStage-release-validation.log");int result=app.runPerformanceValidation();log<<"performance "<<result<<std::endl;
+        std::ofstream log("RareStage-release-validation.log");int result=app.runEnsembleValidation();log<<"ensembles "<<result<<std::endl;
+        if(!result){result=app.runPerformanceValidation();log<<"performance "<<result<<std::endl;}
         if(!result){result=app.runStageLightingValidation();log<<"lighting "<<result<<std::endl;}
         if(!result){result=app.runProfessionalValidation();log<<"professional "<<result<<std::endl;}
         if(!result){result=app.runVisualValidation(false);log<<"artifacts "<<result<<std::endl;}
@@ -1079,6 +1083,7 @@ int WINAPI wWinMain(HINSTANCE h,HINSTANCE,LPWSTR,int){
         if(!result){result=app.runChoreographyValidation(true);log<<"scene_gpu "<<result<<std::endl;}
         app.requestClose();app.run();return result;
     }
+    if(std::wcsstr(GetCommandLineW(),L"--ensemble-test")){const int result=app.runEnsembleValidation();app.requestClose();app.run();return result;}
     if(std::wcsstr(GetCommandLineW(),L"--performance-test")){const int result=app.runPerformanceValidation();app.requestClose();app.run();return result;}
     if(std::wcsstr(GetCommandLineW(),L"--professional-test")){const int result=app.runProfessionalValidation();app.requestClose();app.run();return result;}
     if(std::wcsstr(GetCommandLineW(),L"--stage-lighting-test")){const int result=app.runStageLightingValidation();app.requestClose();app.run();return result;}

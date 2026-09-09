@@ -4,9 +4,24 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.21.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.21.1**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.21.1
+
+This visual revision develops eight non-wall scenes into fuller ensembles with different silhouettes.
+
+- **Prism Cascade (7):** staggered streams of faceted prisms descend and rise through coordinated waves and rotations.
+- **Chroma Blades (9):** broad opposing blade banks interlock, scissor, fan and sweep through six phrase programs.
+- **Matrix Vault (R):** varied-size square frames form a linked rotating mechanism, including an independently turning inner square.
+- **Kinetic Canopy (W):** two opposing banks of tapered, folded fins form arches, fans, braids and sweeping waves. Six continuous 16-beat pose programs replace the suspended bars.
+- **Halo Engine (X):** three coordinated, segmented rotors replace thin nested rings. Broad faceted blades move in counter-rotation; narrow displays stack the supporting rotors vertically.
+- **Ribbon Foundry (Z), Ribbon Racetrack (V), Kinetic Monument (N):** wider folded surfaces, interleaved travelling waves, stronger color separation and surrounding motion. Monument spreads its formation to fit wide screens. The shared rig continues to gather, turn and release during native handoffs.
+- The new ensembles keep structural motion on the musical clock. Percussion lights their edges without moving the geometry.
+- A dedicated composition check samples the eight scenes over 96 beats, four arrangements and landscape, portrait and wide displays. It measures foreground occupation above the dim background in every quadrant.
+
+See [the non-wall visual revision](docs/ENSEMBLE_WORLDS.md). These changes develop existing worlds; the broader musical-judgment and Director roadmap remains in progress.
 
 ## What changed in 0.21.0
 
@@ -52,24 +67,24 @@ See [Show Composer implementation and validation](docs/SHOW_COMPOSER.md), [v0.20
 | `4` | Stagewall | Gliding cube rows join into clean ribbons, chevrons, radial waves and thirteen further motifs | Fine surface pixels align into readable identity while the full wall stays present |
 | `5` | Resonance Range | Ten opaque contour terraces move through interlocking wave and relief patterns | Material fragments assemble into a readable mark or DJ name within the terrain |
 | `6` | Pixel Bank | A circuit field and musical waves surround a continuously travelling mark | Smooth corner arrivals precede local scene departures; hits illuminate the background |
-| `7` | Prism Cascade | Broad folded prism ribbons cascade in choreographed banks | Material fragments enter, resolve and disperse using independent choreography |
+| `7` | Prism Cascade | Three staggered streams of faceted prisms travel in coordinated waves | Material fragments enter, resolve and disperse using independent choreography |
 | `8` | Aurora Range | Five luminous curtains, a reflective basin, foreground ridges and stars | Identity is carried by the atmospheric light field |
-| `9` | Chroma Blades | Large solid fins fan and counter-sweep around a central opening | Choreographed material fragments form the mark or DJ name |
+| `9` | Chroma Blades | Broad opposing blade banks form scissors, zippers, fans and travelling sweeps | Choreographed material fragments form the mark or DJ name |
 | `Q` | Kinetic Array | Turning tile banks develop waves, diagonals, blocks and counterflow | Tiles align their illuminated surfaces for a detailed identity resolve |
-| `W` | Kinetic Canopy | Solid suspended beams swing through pendulum and bank patterns above reflected floor light | Fragment entrances and releases develop within the suspended rig |
+| `W` | Kinetic Canopy | Interlocking tapered fins form arches, braids, fans and opposing waves | Segmented identity enters and releases between the fin formations |
 | `E` | Pixel Loom | A dense 22×15 pixel instrument with sixteen continuously blended patterns | Fine luminous cells resolve the mark or DJ name |
-| `R` | Matrix Vault | Solid nested rectangular slabs travel through a deep architectural vault | Segmented identity assembles and releases within the vault |
+| `R` | Matrix Vault | Varied-size square frames and an inner square form a linked rotating mechanism | Segmented identity assembles and releases within the vault |
 | `Y` | Panel Cascade | Panel banks fold and descend through row waves, diagonals and counterflow | Micro-surfaces roll into a readable identity and back to the cascade |
 | `U` | Signal Rail | Nine solid perspective lanes carry repeating note sequences toward a moving cross-bank | Material identity appears as a planned formation within the lane composition |
 | `I` | Kinetic Facade | A wide articulated elevation with sixteen flowing pattern families | Distributed surface light forms the identity while retaining the facade |
 | `O` | Pulse Causeway | Perspective cube tiers, mirrored ceiling banks and light rails move through sixteen motifs | Identity assembles within the architectural space |
 | `K` | Void Gates | A solid radial iris opens through six, eight, ten or twelve petal arrangements | Independent fragment entrances and releases form the identity at the iris |
-| `Z` | Ribbon Foundry | Broad ribbons weave, fan, braid and join through authored motif programs | The ribbon membrane carries the identity |
-| `X` | Halo Engine | Counter-rotating solid rings develop iris, petal and orbital formations | Radial material illuminates the identity surface |
+| `Z` | Ribbon Foundry | Broad folded surfaces weave and overlap through travelling wave programs | The ribbon membrane carries the identity |
+| `X` | Halo Engine | Three segmented rotors counter-rotate through coordinated fan formations | Radial material illuminates the identity surface |
 | `J` | Vector Speedway | A travelling track and arch rig develop lane chases and perspective rhythms | Identity is revealed within the track composition |
 | `C` | Folding Cathedral | Folded architectural wall ribs | Ribs assemble the identity into a readable surface |
-| `V` | Ribbon Racetrack | Sweeping continuous ribbon lanes | Lane material carries the fragmented identity |
-| `N` | Kinetic Monument | Rising sculptural columns | Columns unfold into the identity membrane |
+| `V` | Ribbon Racetrack | Wide folded lanes curve, braid and sweep across the frame | Lane material carries the fragmented identity |
+| `N` | Kinetic Monument | Aspect-aware sculptural folds spread across the stage | Columns unfold into the identity membrane |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 
@@ -123,7 +138,7 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 
 | Page | Controls |
 |---|---|
-| Show | All twenty-one worlds, five act cues, previous/next, Smart Director, automation hold, Clean Open, stage HUD, load/save presets, blackout, and safe fallback |
+| Show | All twenty-four worlds, five act cues, previous/next, Smart Director, automation hold, Clean Open, stage HUD, load/save presets, blackout, and safe fallback |
 | Mix + Director | Reaction profile, palette direction, sensitivity, bass, mids, highs, beat, logo scale, act override, automatic act resume, Smart Director, and timeline mode |
 | Audio Lab | Auto/EDM/Bass Music/Melodic detector profile, instrument evidence, accepted/rejected diagnostics, adaptive calibration, sample labeling, replay-ready CSV export, and latency |
 | Output | World dwell, scene motion, render profile, live GPU budget, clean PNG capture, VSync/high-refresh output, Spout, fullscreen, HUD, device, monitor, timeline mode, and renderer shutdown |
@@ -372,7 +387,7 @@ Moving Stagewall rows, clean connected cube formations, shared animated scene su
 
 Sixteen wall/architectural motifs, eight palettes, timed bar-aligned Director cycles, forecast DVD corner arrivals, repaired fullscreen shortcuts and clean multi-screen mirrors. Current validation covers the renderer, choreography, timed cues, window behavior, mirror readback and Screens controls.
 
-### v0.21.0 — Show Composer (current source)
+### v0.21.0 — Show Composer
 
 Three new scenes, native wall/ribbon bridges, conditional branches, analytic route rehearsal with measured GPU-cost feedback, recurring themes and theme hold controls. [Details and evidence](docs/SHOW_COMPOSER.md).
 
