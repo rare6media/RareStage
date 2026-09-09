@@ -46,7 +46,7 @@ COLORREF blendColor(COLORREF from, COLORREF to, float amount) {
 }
 
 const auto WorldNames=[](){std::array<const wchar_t*,rarestage::control::WorldCount> names{};for(size_t i=0;i<names.size();++i)names[i]=rarestage::show::Scenes[i].wideName;return names;}();
-const auto WorldKeys=[](){std::array<std::wstring,rarestage::control::WorldCount> keys{};for(size_t i=0;i<keys.size();++i)keys[i]=std::wstring(1,wchar_t(rarestage::show::Scenes[i].key));return keys;}();
+const auto WorldKeys=[](){std::array<std::wstring,rarestage::control::WorldCount> keys{};for(size_t i=0;i<keys.size();++i)keys[i]=rarestage::show::Scenes[i].key?std::wstring(1,wchar_t(rarestage::show::Scenes[i].key)):L"";return keys;}();
 constexpr std::array<const wchar_t*, rarestage::control::SectionCount> SectionNames{
     L"OPEN", L"BUILD", L"DROP", L"BREAKDOWN", L"DRIVE"
 };
@@ -218,7 +218,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.22.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.23.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -1300,7 +1300,7 @@ private:
         const int leftWidth = static_cast<int>((body.right - body.left) * 0.63f);
         RECT worlds{body.left, body.top, body.left + leftWidth, body.bottom};
         fillRound(dc, worlds, 11, Panel, Line);
-        sectionLabel(dc, L"WORLD CUES  /  TWENTY-FOUR AUTHORED ENVIRONMENTS",
+        sectionLabel(dc, L"WORLD CUES  /  THIRTY-TWO AUTHORED SCENES",
                      worlds.left + scale(14), worlds.top + scale(9), worlds.right - worlds.left - scale(28));
 
         const int themeY=worlds.top+scale(35);
@@ -1309,8 +1309,8 @@ private:
         drawText(dc,connected_&&state_.themeName[0]?state_.themeName:L"THEMES FOLLOW THE SHOW",RECT{worlds.left+scale(263),themeY,worlds.right-scale(14),themeY+scale(29)},smallFont_,Cyan);
         const int gridTop = worlds.top + scale(76);
         const int gridGap = scale(8);
-        const int columns = 3;
-        const int rows = 8;
+        const int columns = 4;
+        const int rows = (int(WorldNames.size())+columns-1)/columns;
         const int gridWidth = (worlds.right - worlds.left - scale(28) - gridGap * (columns - 1)) / columns;
         const int gridHeight = (worlds.bottom - gridTop - scale(14) - gridGap * (rows - 1)) / rows;
         for (int index = 0; index < static_cast<int>(WorldNames.size()); ++index) {
@@ -1320,7 +1320,7 @@ private:
                         gridTop + row * (gridHeight + gridGap),
                         worlds.left + scale(14) + column * (gridWidth + gridGap) + gridWidth,
                         gridTop + row * (gridHeight + gridGap) + gridHeight};
-            const std::wstring label = std::wstring(WorldKeys[index]) + L"  /  " + WorldNames[index];
+            const std::wstring label = (WorldKeys[index].empty()?L"":WorldKeys[index]+L" / ") + WorldNames[index];
             addButton(dc, button, label, Action::World, index, connected_ && state_.world == index, Cyan);
         }
 

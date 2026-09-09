@@ -4,9 +4,22 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.22.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.23.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.23.0
+
+**Kinetic Playgrounds** adds eight scenes with ten named movement programs each, bringing the catalog to 32 scenes. The focus is readable actions, coordinated motion and smoother scene handoffs.
+
+- **Axis Puzzle and Sliding Shutters:** alternating row/column strokes, opposing banks, zipper moves, lane locks, stairs and cross shuttles. Color groups remain visible while the pieces move. Both join the shared wall geometry rig; Stagewall and Panel Cascade retain their established movement.
+- **Orbit Relay, Iris Bloom, Domino Circuit, Elastic Loom, Pendulum Choir and Magnetic Assembly:** twenty persistent pieces become circulating tokens, opening petals, tipping cards, woven surfaces, swinging groups and docking formations. Their ten programs are named in [the scene guide](docs/KINETIC_PLAYGROUNDS.md).
+- The six object scenes transform their pieces directly into each other. Together with the new wall bridges, the catalog now has **106 directed native geometry handoffs**. The other **886 ordered pairs** use category-aware material transport with deformation bounded to the frame edges.
+- Automatic handoffs involving a new scene take eight beats. Other cross-family handoffs receive six beats during active sections; existing quiet-section and Blades/Canopy eight-beat behavior remains. Manual duration still follows the operator's setting.
+- Object poses are calculated once per scene pass on the CPU and uploaded as a small pose array. The GPU shades the current pieces; it does not evaluate every movement program for every screen pixel.
+- The Console fits all 32 scenes. New scenes are selected there or with Previous/Next; existing keyboard shortcuts remain. Matching Console protocol is **v18**, network protocol **v6**.
+
+This update adds 80 authored programs to the eight new scenes; it does not claim ten programs in every older scene. The 100+ scene / 10+ pattern catalog target, stronger musical-evidence evaluation, live image rehearsal and 4K/120 qualification remain roadmap work. The runtime stays deterministic and offline.
 
 ## What changed in 0.22.0
 
@@ -46,7 +59,7 @@ Version 0.21.0 is **Show Composer**, combining shared movement rules with condit
 - **Route rehearsal and GPU cost.** The Director compares nominal anchor and velocity envelopes and samples scene GPU cost asynchronously. Under budget pressure, measured expensive handoffs lose priority. This is an analytic estimate, not a live image-quality evaluator or a frame-rate guarantee.
 - Stagewall, continuous musical motion, varied Rare/DJ identity entrances, smooth Pixel Bank departures, Alt+Enter/F11 fullscreen and synchronized local mirrors remain available.
 
-Use the matching Stage and Console: Console protocol **v17**, network packet **v5**. Network packets carry the leader's theme and phrase state; network peers must match. Local mirrors still receive the same completed frame.
+Use the matching Stage and Console: Console protocol **v18**, network packet **v6**. Network packets carry the leader's theme and phrase state; network peers must match. Local mirrors still receive the same completed frame.
 
 See [Show Composer implementation and validation](docs/SHOW_COMPOSER.md), [v0.20 scene improvements](docs/PERFORMANCE_WORLDS.md) and the [roadmap to v0.30](docs/ROADMAP_V0_30.md). Musical-corpus evaluation, runtime composition feedback and full 4K/120 qualification remain future work.
 
@@ -58,7 +71,7 @@ See [Show Composer implementation and validation](docs/SHOW_COMPOSER.md), [v0.20
 | Audio | WASAPI loopback from the selected active Windows playback device |
 | Analysis | Sample-rate-aware 2048-point FFT with 50% overlap, adaptive band-limited spectral flux, sustained bass, kick, snare, hats, mids, highs, RMS, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection plus a sustained musical-ending confidence state |
-| Visual system | Twenty-four authored Rare worlds organized into four VDJ categories, with 64/96-beat loop grammar, act-specific 2D animation, layered parallax and selective 2.5D depth |
+| Visual system | Thirty-two authored Rare worlds organized into four VDJ categories, with 64/96-beat loop grammar, act-specific 2D animation, layered parallax and selective 2.5D depth |
 | Director | Conditional continued/drop/breakdown branches, six shared themes, analytic route rehearsal and measured GPU cost; musical-stage prediction, prepared-world pre-roll, internal-loop progression, category filtering, 128/130 club anchors, ending holds, set-wide memory, adaptive cue density, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
 | Show control | Seven-page RareStage Console with editable DJ identity, category and tempo controls, plus a Direct2D/DirectWrite in-renderer overlay |
@@ -97,6 +110,14 @@ See [Show Composer implementation and validation](docs/SHOW_COMPOSER.md), [v0.20
 | `C` | Folding Cathedral | Folded architectural wall ribs | Ribs assemble the identity into a readable surface |
 | `V` | Ribbon Racetrack | Wide folded lanes curve, braid and sweep across the frame | Lane material carries the fragmented identity |
 | `N` | Kinetic Monument | Aspect-aware sculptural folds spread across the stage | Columns unfold into the identity membrane |
+| Console | Axis Puzzle | Colored cube groups trade horizontal rows and vertical columns | Moving faces settle into the mark/name |
+| Console | Sliding Shutters | Wide slats interlock, exchange lanes and open in opposing banks | Slat surfaces carry the identity |
+| Console | Orbit Relay | Circulating tokens trace relays, figure eights and rendezvous | Tokens gather into identity surfaces |
+| Console | Iris Bloom | Petals open, spiral, fan and return | Petals flatten into an identity formation |
+| Console | Domino Circuit | Cards tip through chains, racks, grids and fans | Cards align to carry the mark/name |
+| Console | Elastic Loom | Broad strips weave, pleat and unfold | Strips settle into readable identity surfaces |
+| Console | Pendulum Choir | Coordinated swinging groups trade waves and answers | Tokens assemble into an identity formation |
+| Console | Magnetic Assembly | Pieces dock into grids, rings, arches and corner banks | Docked pieces carry the identity |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 

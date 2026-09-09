@@ -1,4 +1,5 @@
 #include "phrase_conductor.h"
+#include "play_poses.h"
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -50,5 +51,30 @@ int main(){
  PhraseFrame invalid;invalid.to=std::numeric_limits<float>::quiet_NaN();check("nonfinite_network_program_rejected",!ValidPhraseFrame(invalid));
  invalid={};invalid.from=2.5f;check("fractional_program_rejected",!ValidPhraseFrame(invalid));
  check("banks_have_native_bridge",NativeBridge(8,10)&&NativeBridge(10,8)&&!NativeBridge(8,18));
+ bool expanded=true;for(int scene=24;scene<32;++scene){PhraseMemory m;PhraseConductor c;std::array<bool,MaxPhrasePrograms> seen{};
+  for(int song=0;song<20;++song){float start=song*256.f;c.begin(scene,(song*13)%64,start);for(int bar=0;bar<32;++bar){PhraseEvidence e;e.sectionAge=16;e.section=bar<16?4:bar<24?2:3;e.revision=song*4+bar/8;float beat=start+bar*8;c.update(beat,e,m);auto f=c.sample(beat);expanded&=ValidPhraseFrame(f)&&f.to<ProgramCount(scene);seen[int(f.to)]=true;}}
+  expanded&=std::count(seen.begin(),seen.end(),true)==10;
+ }
+ check("new_scenes_visit_all_ten_programs",expanded);
+ check("zero_key_does_not_select_unbound_scene",SceneForKey(0)==-1);
+ invalid={};invalid.to=10;check("out_of_catalog_program_rejected",!ValidPhraseFrame(invalid));
+ check("fine_to_broad_grids_use_material_transport",!NativeBridge(11,24)&&!NativeBridge(24,11)&&!NativeBridge(11,25)&&!NativeBridge(25,11));
+ check("new_geometry_bridges",NativeBridge(24,3)&&NativeBridge(25,24)&&NativeBridge(26,31)&&!NativeBridge(25,26));
+ bool poses=true;double maximumSpeed=0;for(int world=26;world<32;++world)for(int mode=0;mode<10;++mode)for(int id=0;id<20;++id)for(int frame=0;frame<1920;++frame){float beat=frame/60.f;auto a=rarestage::play::playPose(float(world),float(mode),float(id),beat),b=rarestage::play::playPose(float(world),float(mode),float(id),beat+1.f/60);
+  poses&=std::isfinite(a.center.x)&&std::isfinite(a.center.y)&&std::isfinite(a.angle)&&std::abs(a.center.x)<1.4f&&std::abs(a.center.y)<1.4f&&a.size.x>0&&a.size.y>0;
+  maximumSpeed=std::max(maximumSpeed,double(std::hypot(b.center.x-a.center.x,b.center.y-a.center.y)*60));
+ }
+ check("all_object_programs_have_finite_bounded_motion",poses&&maximumSpeed<1.5);
+ bool everyProgramMoves=true;
+ for(int world=26;world<32;++world)for(int mode=0;mode<10;++mode){double travel=0;
+  for(int id=0;id<20;++id)for(int frame=0;frame<1920;++frame){float beat=frame/60.f;auto a=rarestage::play::playPose(float(world),float(mode),float(id),beat),b=rarestage::play::playPose(float(world),float(mode),float(id),beat+1.f/60);
+   travel+=std::hypot(b.center.x-a.center.x,b.center.y-a.center.y)+std::abs(b.angle-a.angle)*std::hypot(a.size.x,a.size.y)+std::hypot(b.size.x-a.size.x,b.size.y-a.size.y);
+  }
+  if(travel/20<=.10)std::cerr<<"Insufficient geometry travel: scene "<<world<<", program "<<mode<<", per piece "<<travel/20<<'\n';
+  everyProgramMoves&=travel/20>.10;
+ }
+ check("every_object_program_moves_geometry_without_audio_or_lighting",everyProgramMoves);
+ auto longRun=rarestage::play::playPose(27,1,19,10000);check("long_sets_do_not_accumulate_blend_spins",std::abs(longRun.angle)<7);
+ invalid={9,9,1,1,1,1,0,0};check("program_range_matches_network_scene",ValidPhraseForScene(invalid,24)&&!ValidPhraseForScene(invalid,8));
  return passed?0:1;
 }

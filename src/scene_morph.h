@@ -13,6 +13,12 @@ float2 categoryFlow(float2 p,float world){
  if(sceneRig[(int)world].x==2)return p*.055;
  return float2(sin(p.y*4+tempoPhase*.19635)*.025,sin(p.x*3-tempoPhase*.19635)*.020);
 }
+float2 boundedMaterialPoint(float2 p,float2 proposed,float2 aspect){
+ // Deformation approaches the frame edge smoothly instead of sampling past it
+ // and stretching the last texel into a bright stationary streak.
+ float2 margin=max(aspect*.5-abs(p),.00001),movement=proposed-p;
+ return p+movement/(1+abs(movement)/margin);
+}
 float4 ps(O i):SV_TARGET{
  float2 p=(i.uv-.5)*float2(resolution.x/resolution.y,1);
  return float4(renderWorld(p,scene,patternSeed,morphPad0),1);
@@ -42,6 +48,8 @@ float4 psMorph(O i):SV_TARGET{
   destinationPoint=p+destinationAnchor-anchor+flow;
 
  }
+ sourcePoint=boundedMaterialPoint(p,sourcePoint,aspect);
+ destinationPoint=boundedMaterialPoint(p,destinationPoint,aspect);
  float3 source=morphSource.Sample(linearSampler,sourcePoint/aspect+.5).rgb;
  float3 destination=postScene.Sample(linearSampler,destinationPoint/aspect+.5).rgb;
  return float4(lerp(source,destination,weight)*shade,1);

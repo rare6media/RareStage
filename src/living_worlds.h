@@ -29,7 +29,8 @@ float wallPattern(float kind,float2 id,float2 center,float phase){
 }
 float motifBlend(float clock){return liquidEase(smoothstep(.48,.99,frac(clock)));}
 bool isPanelWorld(float world){return sceneRig[(int)world].y==1;}
-float2 wallScale(float world){return abs(world-21)<.1?float2(13,3):world<1?float2(8,7):world<4?float2(10,9):world<10?float2(12,9):world<12?float2(22,15):world<14?float2(13,9):float2(16,10);}
+bool nativeWallPair(float a,float b){return isPanelWorld(a)&&isPanelWorld(b)&&!((abs(a-11)<.1&&b>=24)||(abs(b-11)<.1&&a>=24));}
+float2 wallScale(float world){return abs(world-24)<.1?float2(9,9):abs(world-25)<.1?float2(3.6,11):abs(world-21)<.1?float2(13,3):world<1?float2(8,7):world<4?float2(10,9):world<10?float2(12,9):world<12?float2(22,15):world<14?float2(13,9):float2(16,10);}
 float2 arrangedWallScale(float world,float seed){
  float2 scale=wallScale(world);float variant=fmod(floor(seed/16),4);
  if(variant>.5&&variant<1.5)scale*=.78;
@@ -62,6 +63,9 @@ float columnGesture(float bank,float column,float phase){
  float amount=bank>=8?1:0;
  return amount*sin(column*.65-phase*.785398)*(bank<9?.85:bank<11?.35:bank<13?.75:.45);
 }
+)HLSL"
+#include "puzzle_motion.h"
+R"HLSL(
 float3 formationColor(float3 primary,float3 accent,float3 spectral,float lane,float phase,float signal){
  float colorWave=.5+.5*sin(lane*.48-phase*.1963495+themeAccent*.6);
  float3 base=lerp(primary,spectral,smoothstep(.28,.76,colorWave));
@@ -71,26 +75,27 @@ struct WallSurface {float2 center,local,scale,materialPoint,id;float width,heigh
 WallSurface wallSurface(float2 p,float world,float seed,float opening){
  WallSurface g;
  float morph=liquidEase(transition);
- bool familyMorph=isPanelWorld(scene)&&isPanelWorld(previousScene)&&abs(scene-previousScene)>.1;
+ bool familyMorph=nativeWallPair(scene,previousScene)&&abs(scene-previousScene)>.1;
  g.scale=familyMorph?lerp(arrangedWallScale(previousScene,previousPatternSeed),arrangedWallScale(scene,patternSeed),morph):arrangedWallScale(world,seed);
  g.stage=familyMorph?lerp(stageStyle(previousScene),stageStyle(scene),morph):stageStyle(world);
  float clock=tempoPhase*.125,blend=motifBlend(clock),bank=authoredMotif(floor(clock),seed),nextBank=authoredMotif(floor(clock)+1,seed);
  float cascadeAmount=familyMorph?lerp(1-step(.1,abs(previousScene-13)),1-step(.1,abs(scene-13)),morph):1-step(.1,abs(world-13));
  float arrayAmount=familyMorph?lerp(1-step(.1,abs(previousScene-9)),1-step(.1,abs(scene-9)),morph):1-step(.1,abs(world-9));
  float settle=max(sqrt(saturate(identityWeight)),liquidEase(opening));
- float cathedral=familyMorph?lerp(step(20.5,previousScene),step(20.5,scene),morph):step(20.5,world);
+ float cathedral=familyMorph?lerp(1-step(.1,abs(previousScene-21)),1-step(.1,abs(scene-21)),morph):1-step(.1,abs(world-21));
  float2 vaultPoint=p;vaultPoint.y+=(abs(p.x)*.46+sin(abs(p.x)*3-tempoPhase*.098175)*.055)*cathedral*(1-settle);
+ float puzzleAmount=familyMorph?lerp(previousScene>=24?1:0,scene>=24?1:0,morph):(world>=24?1:0);
  float2 grid=vaultPoint*g.scale;
  // Inverse-map the entire infinite row before selecting a cell. Travel across cell
  // boundaries therefore carries geometry continuously instead of clipping each cube.
- grid.y-=sin(p.x*2.1-tempoPhase*.19)*.32*g.stage*(1-settle);
+ grid.y-=sin(p.x*2.1-tempoPhase*.19)*.32*g.stage*(1-settle)*(1-puzzleAmount);
  float column=floor(grid.x);
- float columnOffset=lerp(columnGesture(bank,column,tempoPhase),columnGesture(nextBank,column,tempoPhase),blend);
- if(familyMorph){float oldBank=authoredMotif(floor(clock),previousPatternSeed),oldNextBank=authoredMotif(floor(clock)+1,previousPatternSeed);columnOffset=lerp(lerp(columnGesture(oldBank,column,tempoPhase),columnGesture(oldNextBank,column,tempoPhase),blend),columnOffset,morph);}
+ float columnOffset=authoredLane(world,seed,column,true,false);
+ if(familyMorph)columnOffset=lerp(authoredLane(previousScene,previousPatternSeed,column,true,true),authoredLane(scene,patternSeed,column,true,false),morph);
  grid.y-=columnOffset*g.stage*(1-settle);
  float row=floor(grid.y);
- float offset=lerp(rowGesture(bank,row,tempoPhase),rowGesture(nextBank,row,tempoPhase),blend);
- if(familyMorph){float oldBank=authoredMotif(floor(clock),previousPatternSeed),oldNextBank=authoredMotif(floor(clock)+1,previousPatternSeed);float oldOffset=lerp(rowGesture(oldBank,row,tempoPhase),rowGesture(oldNextBank,row,tempoPhase),blend);offset=lerp(oldOffset,offset,morph);}
+ float offset=authoredLane(world,seed,row,false,false);
+ if(familyMorph)offset=lerp(authoredLane(previousScene,previousPatternSeed,row,false,true),authoredLane(scene,patternSeed,row,false,false),morph);
  grid.x-=offset*g.stage*(1-settle);
  g.id=floor(grid);g.local=frac(grid)-.5;g.center=(g.id+.5)/g.scale;
  g.signal=lerp(wallPattern(bank,g.id,g.center,tempoPhase*.785398),wallPattern(nextBank,g.id,g.center,tempoPhase*.785398),blend);
@@ -106,6 +111,8 @@ WallSurface wallSurface(float2 p,float world,float seed,float opening){
  g.join=g.stage*smoothstep(.40,.87,g.signal)*(1-settle);
  g.width=lerp(lerp(.39*(.38+.62*abs(cos(turn))),.5,g.join),.493,settle);
  g.height=lerp(.38,.493,settle);
+ float puzzleWidth=familyMorph?lerp(abs(previousScene-25)<.1?.492:.43,abs(scene-25)<.1?.492:.43,morph):(abs(world-25)<.1?.492:.43);
+ g.width=lerp(g.width,lerp(puzzleWidth,.493,settle),puzzleAmount);g.height=lerp(g.height,lerp(.43,.493,settle),puzzleAmount);
  g.width=lerp(g.width,.5,opening);g.height=lerp(g.height,.5,opening);
  g.local=rotate2(g.local,arrayAmount*turn*.55);
  float radius=lerp(.035,.004,settle);
@@ -127,7 +134,7 @@ float3 choreographyWall(float2 p,float world,float3 primary,float3 accent,float3
                        float pressure,float snareHit,float hatHit,float energy,float seed,float opening) {
  WallSurface g=wallSurface(p,world,seed,opening);
  float cathedral=abs(world-21)<.1?1:0;
- if(isPanelWorld(scene)&&isPanelWorld(previousScene))cathedral=lerp(abs(previousScene-21)<.1?1:0,abs(scene-21)<.1?1:0,liquidEase(transition));
+ if(nativeWallPair(scene,previousScene))cathedral=lerp(abs(previousScene-21)<.1?1:0,abs(scene-21)<.1?1:0,liquidEase(transition));
  // Broad ribs occupy much more screen area than small cubes: keep transient light restrained.
  float response=1-cathedral*.74;pressure*=response;snareHit*=response;hatHit*=response;
  float support=.28+.72*easeBand(g.signal),settle=liquidEase(identityWeight);
@@ -137,15 +144,20 @@ float3 choreographyWall(float2 p,float world,float3 primary,float3 accent,float3
  // Stagewall uses one main color and a coordinated accent band, with clean cube faces.
  float3 stageHue=lerp(formationColor(primary,accent,spectral,g.id.y+g.id.x*.3,tempoPhase,g.signal),primary,sqrt(saturate(identityWeight))*.7);
  hue=lerp(hue,stageHue,g.stage);
+ float puzzleAmount=nativeWallPair(scene,previousScene)?lerp(previousScene>=24?1:0,scene>=24?1:0,liquidEase(transition)):(world>=24?1:0);
+ float groupColor=fmod(abs(floor(g.id.x/3)+floor(g.id.y/2)),3);
+ float3 puzzleHue=groupColor<.5?primary:groupColor<1.5?accent:spectral;
+ hue=lerp(hue,pow(max(puzzleHue,0),1.8),puzzleAmount*(1-settle));
  float band=smoothstep(.48,.89,g.signal);
  float pulse=.14*pressure*(.4+.6*g.signal)+.045*snareHit;
  float light=lerp(.05+.15*support,.065+.23*band,g.stage)+pulse;
+ light=lerp(light,.22+.09*support+.035*pressure,puzzleAmount*(1-settle));
  float3 c=float3(.004,.008,.019)+hue*(.015+.016*support);
  c=lerp(c,hue*light+float3(.006,.012,.025),g.face);
  c+=g.side*hue*(.05+.08*support)+g.edge*lerp(hue,accent,.25)*(.045+.1*hatHit+.06*snareHit);
  float bevel=glassHighlight(g.local,float2(g.width,g.height))*g.face*(1-settle);
  c+=bevel*lerp(primary,accent,.3)*g.stage*(.04+.05*pressure);
- c+=g.face*g.stage*band*accent*(.065+.1*pressure)*(1-settle);
+ c+=g.face*g.stage*band*accent*(.065+.1*pressure)*(1-puzzleAmount)*(1-settle);
  float formation=settle*mask;
  c+=g.face*g.pixels*lerp(primary,accent,.3)*(.045*support*(1-settle)*(1-g.stage)+formation*(.82+.26*pressure+.12*snareHit));
  c+=g.face*formation*lerp(primary,accent,.5)*.035;

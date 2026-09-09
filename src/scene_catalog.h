@@ -13,7 +13,7 @@ inline constexpr auto Scenes=std::array{
 #undef RS_WIDE
 #undef RS_WIDE_IMPL
 inline constexpr int SceneCount=int(Scenes.size());
-inline int SceneForKey(int key){for(int i=0;i<SceneCount;++i)if(Scenes[i].key==key)return i;return -1;}
+inline int SceneForKey(int key){for(int i=0;i<SceneCount;++i)if(key!=0&&Scenes[i].key==key)return i;return -1;}
 inline bool SurfaceWall(int id){return id>=0&&id<SceneCount&&Scenes[id].bridge==1;}
-inline bool NativeBridge(int a,int b){return a>=0&&b>=0&&a<SceneCount&&b<SceneCount&&Scenes[a].bridge!=0&&Scenes[a].bridge==Scenes[b].bridge;}
+inline bool NativeBridge(int a,int b){if((a==11&&b>=24&&b<=25)||(b==11&&a>=24&&a<=25))return false;return a>=0&&b>=0&&a<SceneCount&&b<SceneCount&&Scenes[a].bridge!=0&&Scenes[a].bridge==Scenes[b].bridge;}
 }

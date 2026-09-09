@@ -25,8 +25,8 @@ jobs:
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.22.0") {
-              throw "$binary is missing the expected publisher or v0.22.0 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.23.0") {
+              throw "$binary is missing the expected publisher or v0.23.0 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -65,6 +65,14 @@ jobs:
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--phrase-test" -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Phrase choreography render failed: $($process.ExitCode)" }
           if (@(Import-Csv RareStage-phrase-validation/phrases.csv).Count -ne 24 -or @(Import-Csv RareStage-phrase-validation/bank-bridges.csv).Count -ne 216) { throw "Incomplete phrase render coverage" }
+      - name: Kinetic playground programs and native handoffs
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--play-test" -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Playground rendering failed: $($process.ExitCode)" }
+          if (@(Import-Csv RareStage-play-validation/patterns.csv).Count -ne 240) { throw "Expected 80 programs in three aspects" }
+          if (@(Import-Csv RareStage-play-validation/program-blends.csv).Count -ne 720) { throw "Expected every ordered within-scene program change" }
+          if (@(Import-Csv RareStage-play-validation/bridges.csv).Count -ne 504) { throw "Expected 56 new native edges with nine program combinations" }
       - name: Performance choreography and long-set contract
         shell: pwsh
         run: |
@@ -147,7 +155,7 @@ jobs:
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--professional-test" -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Scene route/continuity validation failed: $($process.ExitCode)" }
           $pairs = @(Import-Csv RareStage-professional-validation/all-pairs.csv)
-          if ($pairs.Count -ne 552) { throw "All 552 ordered scene pairs must be covered" }
+          if ($pairs.Count -ne 992) { throw "All 992 ordered scene pairs must be covered" }
       - name: Shader self-test
         shell: pwsh
         run: |
@@ -266,7 +274,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.22.0"
+            version = "0.23.0"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -299,6 +307,8 @@ jobs:
             RareStage-visual-validation/*.png
             RareStage-choreography-validation/morph-frames.csv
             RareStage-choreography-validation/*.png
+            RareStage-play-validation/*.csv
+            RareStage-play-validation/scene-*.png
             RareStage-phrase-validation/*.csv
             RareStage-phrase-validation/scene-*.png
             build/RareStage-phrase-contracts.csv
@@ -314,14 +324,14 @@ jobs:
             RareStage-rehearsal-contract.csv
             RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.22.0 release
+      - name: Publish v0.23.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.22.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.22.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.23.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.23.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.22.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.22.0 — Phrase Conductor" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.23.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.23.0 — Kinetic Playgrounds" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

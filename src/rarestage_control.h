@@ -9,11 +9,11 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v17";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v18";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
 inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
-inline constexpr std::uint32_t ProtocolVersion = 17;
+inline constexpr std::uint32_t ProtocolVersion = 18;
 inline constexpr std::uint32_t WorldCount = rarestage::show::SceneCount;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 8;

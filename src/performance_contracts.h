@@ -29,7 +29,7 @@ inline bool PerformanceSelfTest(){
  for(int song=0;song<20;++song)for(int cue=0;cue<8;++cue){context.section=cue%5;context.energy=context.section==2?.7f:.4f;context.trend=context.section==1?.08f:0;auto p=director.plan(context);if(p.next<0||p.next==context.current){passed=false;continue;}scenes[p.next]=true;if(!routes[context.current][p.next]){routes[context.current][p.next]=true;++distinctRoutes;}director.visit(p.next);context.current=p.next;}
  check("twenty_song_scene_coverage",std::count(scenes.begin(),scenes.end(),true)==rarestage::show::SceneCount,std::count(scenes.begin(),scenes.end(),true));check("twenty_song_route_variety",distinctRoutes>=70,distinctRoutes);
 
- for(int i=0;i<rarestage::show::SceneCount;++i)check("catalog_key_"+std::to_string(i),rarestage::show::SceneForKey(rarestage::show::Scenes[i].key)==i);
+ for(int i=0;i<rarestage::show::SceneCount;++i)check("catalog_key_"+std::to_string(i),(i>=24||rarestage::show::Scenes[i].key!=0)&&(rarestage::show::Scenes[i].key?rarestage::show::SceneForKey(rarestage::show::Scenes[i].key)==i:rarestage::show::SceneForKey(0)==-1));
  check("legacy_scene_keys",rarestage::show::SceneForKey('U')==14&&rarestage::show::SceneForKey('I')==15);
  // Composer routes must be conditional, fresh, category-safe and canceled by intervention.
  using namespace rarestage::show;

@@ -15,6 +15,7 @@ int runChoreographyValidation(bool benchmark){
     auto drain=[&](){context_->Flush();const auto deadline=Clock::now()+std::chrono::seconds(10);for(;;){pollGpuTimers();bool pending=false;for(const auto&slot:gpuTimers_)pending|=slot.pending;if(!pending)return true;if(Clock::now()>deadline){StartupLog("Handoff benchmark query drain timed out");return false;}Sleep(1);}};
     auto fixture=[&](float time){Constants c{};c.resolution[0]=float(renderWidth_);c.resolution[1]=float(renderHeight_);c.time=time;c.tempoPhase=time*128.f/60.f;c.logoScale=1;c.palette=0;c.masterBrightness=.92f;c.masteringProfile=1;c.cueDensity=1;c.songSection=2;c.visualMovement=2;c.bass=.3f;c.mid=.4f;c.high=.2f;c.audioEnergy=.4f;c.transition=1;return c;};
     std::vector<std::array<int,2>>pairs{{3,13},{13,3},{3,9},{9,11},{15,0},{1,3},{3,1},{16,3},{3,16},{1,16},{16,7},{2,17},{3,18},{18,19},{19,20},{20,3},{16,18},{16,20},{1,19},{20,16},{3,21},{21,3},{18,22},{22,23},{23,18},{21,22},{23,3}};
+    if(benchmark){for(int scene=24;scene<32;++scene)pairs.push_back({scene,scene==31?3:scene+1});}
     if(benchmark){const std::array<std::array<int,2>,9> rebuilt{{{6,8},{8,10},{10,14},{14,12},{12,17},{17,7},{7,4},{4,5},{5,16}}};pairs.insert(pairs.end(),rebuilt.begin(),rebuilt.end());}
     std::ofstream report(output/(benchmark?"morph-gpu.csv":"morph-frames.csv"));
     if(benchmark)report<<"from,to,width,height,samples,mean_ms,p95_ms,p99_ms,max_ms\n";
@@ -62,7 +63,9 @@ int runChoreographyValidation(bool benchmark){
         StageSyncPacket packet{};packet.transitionSeconds=8.f*60.f/65.f;if(!ValidStageSyncPacket(packet,packet.groupId))passed=false;
         packet.transitionSeconds=8.01f;if(ValidStageSyncPacket(packet,packet.groupId))passed=false;
         transitionStarted_=-100;visualBpm_=128;songSection_=2;selectWorld(3,true);
-        if(std::abs(activeTransitionSeconds_-4.f*60.f/128.f)>.0001f)passed=false;
+        if(std::abs(activeTransitionSeconds_-6.f*60.f/128.f)>.0001f)passed=false;
+        transitionStarted_=-100;selectWorld(13,true);if(std::abs(activeTransitionSeconds_-4.f*60.f/128.f)>.0001f)passed=false;
+        transitionStarted_=-100;selectWorld(24,true);if(std::abs(activeTransitionSeconds_-8.f*60.f/128.f)>.0001f)passed=false;
         transitionStarted_=-100;songSection_=3;selectWorld(1,true);
         if(std::abs(activeTransitionSeconds_-8.f*60.f/128.f)>.0001f)passed=false;
     }

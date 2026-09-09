@@ -1,5 +1,5 @@
 #pragma once
-#include "scene_catalog.h"
+#include "scene_programs.h"
 #include <cmath>
 #include <string>
 
@@ -7,9 +7,11 @@ namespace rarestage::show {
 enum class PhraseAction { Establish, Repeat, Answer, Develop, Resolve };
 inline constexpr const wchar_t* PhraseActions[]{L"ESTABLISH",L"HOLD THE GROOVE",L"ANSWER",L"DEVELOP",L"RESOLVE"};
 inline int PhraseFamily(int scene) {
+ if(PlayScene(scene))return 6+scene-24;
  switch(scene){case 6:return 0;case 8:return 1;case 10:return 2;case 12:return 3;case 19:return 4;case 18:case 22:case 23:return 5;default:return -1;}
 }
 inline const wchar_t* PhraseName(int scene,int mode) {
+ if(PlayScene(scene))return PlayProgramNames[scene-24][std::clamp(mode,0,9)];
  static constexpr const wchar_t* names[6][6]={
   {L"COUNTERFLOW",L"CRYSTAL BRAID",L"OPEN STREAMS",L"LINKED TILT",L"PRISM CROWN",L"RETURNING WAVE"},
   {L"SCISSOR",L"INTERLOCK",L"TRAVELLING CUT",L"MIRRORED FAN",L"BLADE SWEEP",L"FOLDED ANSWER"},
@@ -28,20 +30,21 @@ struct PhraseFrame {
 };
 static_assert(sizeof(PhraseFrame)==32);
 inline bool ValidPhraseFrame(const PhraseFrame& f){
- return std::isfinite(f.from)&&f.from>=0&&f.from<=5&&f.from==std::floor(f.from)&&
- std::isfinite(f.to)&&f.to>=0&&f.to<=5&&f.to==std::floor(f.to)&&
+ return std::isfinite(f.from)&&f.from>=0&&f.from<MaxPhrasePrograms&&f.from==std::floor(f.from)&&
+ std::isfinite(f.to)&&f.to>=0&&f.to<MaxPhrasePrograms&&f.to==std::floor(f.to)&&
  std::isfinite(f.blend)&&f.blend>=0&&f.blend<=1&&(f.enabled==0||f.enabled==1)&&
  std::isfinite(f.gain)&&f.gain>=.7f&&f.gain<=1.2f&&std::isfinite(f.spread)&&f.spread>=.9f&&f.spread<=1.06f&&
  std::isfinite(f.answer)&&std::abs(f.answer)<=.22f&&f.action>=0&&f.action<=4&&f.action==std::floor(f.action);
 }
+inline bool ValidPhraseForScene(const PhraseFrame& f,int scene){return ValidPhraseFrame(f)&&(!f.enabled||(f.from<ProgramCount(scene)&&f.to<ProgramCount(scene)));}
 struct PhraseEvidence {
  int section{4},revision{};
  float energy{.4f},confidence{1},sectionAge{},trend{};
  bool safe{true},held{},departing{};
 };
 class PhraseMemory {
- std::array<std::array<unsigned,30>,SceneCount> uses_{};
- std::array<std::array<float,6>,SceneCount> last_{};
+ std::array<std::array<unsigned,MaxPhrasePrograms*5>,SceneCount> uses_{};
+ std::array<std::array<float,MaxPhrasePrograms>,SceneCount> last_{};
  float lastPeak_{-1000};unsigned sequence_{};
 public:
  PhraseMemory(){for(auto& scene:last_)scene.fill(-1000);}
@@ -49,12 +52,12 @@ public:
  void peak(float beat){lastPeak_=beat;}
  int choose(int scene,int current,PhraseAction action,float beat){
   const int family=PhraseFamily(scene);int chosen=current;float best=-1e9f;
-  for(int mode=0;mode<6;++mode){if(mode==current)continue;
+  for(int mode=0;mode<ProgramCount(scene);++mode){if(mode==current)continue;
    float score=-float(uses_[scene][mode*5+int(action)])*.6f-std::max(0.f,48-(beat-last_[scene][mode]))*.05f;
    // Family-specific answers retain a related silhouette; development explores.
-   const int related=(current+(family==3||family==4?2:1))%6;
+   const int related=(current+(family==3||family==4?2:1))%ProgramCount(scene);
    if(action==PhraseAction::Answer&&mode==related)score+=.8f;
-   if(action==PhraseAction::Resolve&&(mode==0||mode==5))score+=.65f;
+   if(action==PhraseAction::Resolve&&(mode==0||mode==ProgramCount(scene)-1))score+=.65f;
    score+=float((mode*13+sequence_*7)%31)*.003f;
    if(score>best){best=score;chosen=mode;}
   }
@@ -69,7 +72,7 @@ public:
  int scene()const{return scene_;}PhraseAction action()const{return PhraseAction(int(state_.action));}
  void begin(int scene,int seed,float beat){
   scene_=scene;boundary_=int(std::floor(beat/8));repeat_=turn_=0;lastSectionRevision_=-1;began_=beat;changed_=beat-8;
-  state_={float((seed/4)%6),float((seed/4)%6),1,PhraseFamily(scene)>=0?1.f:0.f,1,1,0,0};source_=target_={1,1,0};
+  state_={float((seed/4)%ProgramCount(scene)),float((seed/4)%ProgramCount(scene)),1,PhraseFamily(scene)>=0?1.f:0.f,1,1,0,0};source_=target_={1,1,0};
  }
  PhraseFrame sample(float beat)const{
   PhraseFrame f=state_;f.blend=PhraseEase((beat-changed_)/duration_);

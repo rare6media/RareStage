@@ -16,7 +16,7 @@ int runVisualValidation(bool benchmark) {
     if(!benchmark&&FAILED(device_->CreateTexture2D(&desc,nullptr,&readback)))return 11;
     auto drain=[&](){context_->Flush();const auto deadline=Clock::now()+std::chrono::seconds(10);for(;;){pollGpuTimers();bool pending=false;for(const auto&slot:gpuTimers_)pending|=slot.pending;if(!pending)return true;if(Clock::now()>deadline){StartupLog("GPU benchmark query drain timed out");return false;}Sleep(1);}};
     bool passed=true;std::array<int,WorldCount>timingRetries{};std::ofstream retries;if(benchmark){retries.open(output/"timing-retries.csv");retries<<"world,attempt,valid_samples,rejected_samples,skipped_samples\n";}
-    const std::array<int,WorldCount>worlds{0,3,9,11,13,15,1,7,16,2,4,5,6,8,10,12,14,17,18,19,20,21,22,23};
+    const std::array<int,WorldCount>worlds{0,3,9,11,13,15,1,7,16,2,4,5,6,8,10,12,14,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
     for(int world:worlds){
         const bool wall=world==0||world==3||world==9||world==11||world==13||world==15;
         if(!benchmark&&!(wall||world==1||world==7||world==16||world==2||world>=18))continue;
