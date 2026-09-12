@@ -4,9 +4,14 @@
 #include <cstring>
 #include <cwchar>
 #include <iostream>
+#include <string>
 
 int main() {
     using namespace rarestage::control;
+    if(!std::wstring(MappingName).ends_with(L".v"+std::to_wstring(ProtocolVersion))){
+        std::cerr << "Control mapping must isolate incompatible protocol versions\n";
+        return 2;
+    }
 
     constexpr std::uint32_t serial = 0xfedcba98u;
     constexpr std::int32_t value = -42;
@@ -16,7 +21,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 35 || SectionCount != 5 || ProtocolVersion != 19 || AudioProfileCount != 4 ||
+    if (WorldCount != 38 || SectionCount != 5 || ProtocolVersion != 20 || AudioProfileCount != 4 ||
         MasteringProfileCount != 4 || StageLayoutCount != 4 || ProductionDutyCount != 5 || SyncModeCount != 3 ||
         SceneCategoryCount != 5 || TempoAnchorCount != 3) {
         std::cerr << "Protocol constants are stale\n";

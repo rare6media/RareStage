@@ -17,6 +17,7 @@ int runChoreographyValidation(bool benchmark){
     std::vector<std::array<int,2>>pairs{{3,13},{13,3},{3,9},{9,11},{15,0},{1,3},{3,1},{16,3},{3,16},{1,16},{16,7},{2,17},{3,18},{18,19},{19,20},{20,3},{16,18},{16,20},{1,19},{20,16},{3,21},{21,3},{18,22},{22,23},{23,18},{21,22},{23,3}};
     if(benchmark){for(int scene=24;scene<WorldCount;++scene)pairs.push_back({scene,scene==WorldCount-1?3:scene+1});}
     if(benchmark){const std::array<std::array<int,2>,9> rebuilt{{{6,8},{8,10},{10,14},{14,12},{12,17},{17,7},{7,4},{4,5},{5,16}}};pairs.insert(pairs.end(),rebuilt.begin(),rebuilt.end());}
+    if(benchmark)for(int from:{3,13,35,36,37})for(int to:{3,13,35,36,37}){std::array<int,2> pair{from,to};if(from!=to&&(from>=35||to>=35)&&std::find(pairs.begin(),pairs.end(),pair)==pairs.end())pairs.push_back(pair);}
     std::ofstream report(output/(benchmark?"morph-gpu.csv":"morph-frames.csv"));
     if(benchmark)report<<"from,to,width,height,samples,mean_ms,p95_ms,p99_ms,max_ms\n";
     else report<<"from,to,style,frame,phase,temporal_delta\n";

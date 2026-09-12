@@ -25,8 +25,8 @@ jobs:
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.24.0") {
-              throw "$binary is missing the expected publisher or v0.24.0 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.25.0") {
+              throw "$binary is missing the expected publisher or v0.25.0 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -70,9 +70,15 @@ jobs:
         run: |
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--play-test" -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Playground rendering failed: $($process.ExitCode)" }
-          if (@(Import-Csv RareStage-play-validation/patterns.csv).Count -ne 330) { throw "Expected 110 programs in three aspects" }
-          if (@(Import-Csv RareStage-play-validation/program-blends.csv).Count -ne 990) { throw "Expected every ordered within-scene program change" }
-          if (@(Import-Csv RareStage-play-validation/bridges.csv).Count -ne 882) { throw "Expected 98 playground native edges with nine program combinations" }
+          if (@(Import-Csv RareStage-play-validation/patterns.csv).Count -ne 420) { throw "Expected 140 programs in three aspects" }
+          if (@(Import-Csv RareStage-play-validation/program-blends.csv).Count -ne 1260) { throw "Expected every ordered within-scene program change" }
+          if (@(Import-Csv RareStage-play-validation/bridges.csv).Count -ne 936) { throw "Expected 104 playground/graphic native edges with nine program combinations" }
+      - name: Graphic composition, identity and handoff captures
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--graphic-test" -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Graphic composition capture failed: $($process.ExitCode)" }
+          if (@(Import-Csv RareStage-graphic-validation/visual-checks.csv).Count -ne 444) { throw "Incomplete graphic visual fixtures" }
       - name: Shared wall patterns across object materials
         shell: pwsh
         run: |
@@ -161,7 +167,7 @@ jobs:
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--professional-test" -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Scene route/continuity validation failed: $($process.ExitCode)" }
           $pairs = @(Import-Csv RareStage-professional-validation/all-pairs.csv)
-          if ($pairs.Count -ne 1190) { throw "All 1190 ordered scene pairs must be covered" }
+          if ($pairs.Count -ne 1406) { throw "All 1406 ordered scene pairs must be covered" }
       - name: Shader self-test
         shell: pwsh
         run: |
@@ -248,7 +254,7 @@ jobs:
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--visual-regression-test" -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Visual artifact regression failed with exit code $($process.ExitCode)" }
           $frames = @(Import-Csv RareStage-visual-validation/frames.csv)
-          if ($frames.Count -ne 51712) { throw "Expected 51712 phase, identity and instrument frames" }
+          if ($frames.Count -ne 57856) { throw "Expected 57856 phase, identity and instrument frames" }
       - name: Continuous scene choreography regression
         shell: pwsh
         run: |
@@ -284,7 +290,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.24.0"
+            version = "0.25.0"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -318,6 +324,8 @@ jobs:
             RareStage-choreography-validation/morph-frames.csv
             RareStage-choreography-validation/*.png
             RareStage-material-validation/*.csv
+            RareStage-graphic-validation/visual-checks.csv
+            RareStage-graphic-validation/stills/*.png
             RareStage-play-validation/*.csv
             RareStage-play-validation/scene-*.png
             RareStage-phrase-validation/*.csv
@@ -337,14 +345,14 @@ jobs:
             RareStage-rehearsal-contract.csv
             RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.24.0 release
+      - name: Publish v0.25.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.24.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.24.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.25.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.25.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.24.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.24.0 — Choreography Sequences" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.25.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.25.0 — Graphic Worlds" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

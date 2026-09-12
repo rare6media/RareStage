@@ -1,4 +1,4 @@
-// Scene handoffs use shared moving surfaces. No spatial old/new selection or wipe seam.
+// Shared surface handoffs; graphic worlds use a narrow travelling fold.
 R"HLSL(
 float2 handoffFlow(float2 p,float amount){
  float travel=tempoPhase*.16;
@@ -28,7 +28,9 @@ float4 psMorph(O i):SV_TARGET{
  float phase=liquidEase(transition),arc=sin(phase*3.141592);arc*=arc;
  float2 sourcePoint=p,destinationPoint=p;
  float weight=phase,shade=1;
- if(isPanelWorld(previousScene)){
+ if(isGraphicWorld(previousScene)||isGraphicWorld(scene)){
+  GraphicFold fold=graphicFold(p);sourcePoint=fold.sourcePoint;destinationPoint=fold.destinationPoint;weight=fold.weight;
+ }else if(isPanelWorld(previousScene)){
   WallSurface surface=wallSurface(p,previousScene,previousPatternSeed,phase);
   destinationPoint=surface.materialPoint+handoffFlow(surface.materialPoint,arc);
   weight=phase*surface.face;

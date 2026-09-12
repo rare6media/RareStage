@@ -34,7 +34,7 @@ public:
  int familyRun()const{return familyRun_;}
  Plan plan(const Context&c)const{
   Plan result,incumbent;
-  auto allowed=[&](int scene){return !c.category||Scenes[scene].category==c.category-1;};
+  auto allowed=[&](int scene){return AutoScene(scene)&&(!c.category||Scenes[scene].category==c.category-1);};
   auto fatigue=[&](int scene){const int age=visits_-lastVisit_[scene];return age<3?float(3-age)*.85f:0.f;};
   const bool contrast=familyRun_>=2;
   // Compare complete next/develop-or-release routes, not only the best immediate scene.

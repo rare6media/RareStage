@@ -4,9 +4,21 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.24.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.25.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.25.0
+
+**Graphic Worlds** adds Contour Currents, Ribbon Braid and Radial Fans: three filled 2D visual languages with ten named programs each. Contours compress and redirect, ribbons weave and exchange, and broad fans counter-rotate and open on the musical clock.
+
+- Thirty new geometry programs, coordinated palette colors and continuous within-scene development.
+- Travelling folds preserve readable compositions during graphic scene handovers. Rare/name reveals inherit moving band colors while the surrounding world continues.
+- The seven rejected scenes (IDs 28–34) remain manually selectable and are excluded from automatic routes and timelines.
+- The catalog contains 38 scenes, 188 named programs and 204 rendered previews; 31 scenes are eligible for automatic selection. The 100+ scene goal remains open.
+- Matching Console protocol 20 and UDP protocol 8. Existing shortcuts, fullscreen and synchronized local mirrors are preserved.
+
+See [programs, handoff behavior and validation](docs/GRAPHIC_WORLDS.md). Full-song listening review and complete 4K/120 output qualification remain open.
 
 ## What changed in 0.24.0
 

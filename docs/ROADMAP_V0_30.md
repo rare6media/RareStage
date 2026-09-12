@@ -1,6 +1,16 @@
 # RareStage roadmap: v0.21.0 to v0.30.0
 
-Status: revised for the v0.23 content implementation and the user's 100+ scene / 10+ pattern objective, September 9, 2026. “v30” means v0.30.0 in this roadmap. These are planned capabilities and acceptance criteria, not completed features or calendar commitments.
+Status: revised September 12, 2026 after the user's rejection of seven v0.23/v0.24 scenes. “v30” means v0.30.0 in this roadmap. These are planned capabilities and acceptance criteria, not completed features or calendar commitments.
+
+## Immediate correction after v0.24
+
+The user rejected **Domino Circuit, Elastic Loom, Pendulum Choir, Magnetic Assembly, Gearworks, Switchyard and Origami Parade**. Treat all seven as unfinished visual work. The v0.24 executable contained 35 scenes and 158 selectable programs; those were implementation counts, not evidence of artistic qualification.
+
+Rebuild composition and action before adding another catalog batch or treating internal rehearsal as the next standalone milestone. The user's subsequent clarification prioritizes visually striking **2D effects beyond panels**. Begin with Contour currents and Ribbon braid as two contrasting proofs, each with a complete musical phrase and an authored Stagewall handoff. Radial fans is the next comparison direction or an existing-scene rebuild. Evaluate their visual payoff before expanding patterns and use the findings to rebuild or replace the rejected scenes. Preserve the successful Stagewall behavior and stable scene IDs. See [Full-frame 2D choreography](GRAPHIC_2D_DIRECTION.md).
+
+The Director's next implementation should represent actions in progress, recognizable destinations, safe completion points and musically appropriate continuations. Its existing role names and numerical continuity tests cannot make weak underlying choreography compelling. See the [visual audit, source findings, reference study and rebuild brief](VISUAL_REBUILD_STUDY.md).
+
+The approved v0.25 implementation now adds Contour Currents, Ribbon Braid and Radial Fans with ten programs each, and excludes all seven rejected scenes from automatic routes while retaining manual access. It replaces the initial prototype order with a complete three-family comparison. See [Graphic Worlds](GRAPHIC_WORLDS.md) for exact behavior and validation. Rich action planning, live image rehearsal and the 100+ scene target remain open.
 
 ## The destination
 

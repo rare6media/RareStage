@@ -2,6 +2,7 @@
 #include "play_poses.h"
 #include "show_sequence.h"
 #include "catalog_model.h"
+#include "show_director.h"
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -62,13 +63,13 @@ int main(){
  invalid={};invalid.to=10;check("out_of_catalog_program_rejected",!ValidPhraseFrame(invalid));
  check("fine_to_broad_grids_use_material_transport",!NativeBridge(11,24)&&!NativeBridge(24,11)&&!NativeBridge(11,25)&&!NativeBridge(25,11));
  check("new_geometry_bridges",NativeBridge(24,3)&&NativeBridge(25,24)&&NativeBridge(26,31)&&!NativeBridge(25,26));
- bool poses=true;double maximumSpeed=0;for(int world=26;world<rarestage::show::SceneCount;++world)for(int mode=0;mode<10;++mode)for(int id=0;id<20;++id)for(int frame=0;frame<1920;++frame){float beat=frame/60.f;auto a=rarestage::play::playPose(float(world),float(mode),float(id),beat),b=rarestage::play::playPose(float(world),float(mode),float(id),beat+1.f/60);
+ bool poses=true;double maximumSpeed=0;for(int world=26;world<35;++world)for(int mode=0;mode<10;++mode)for(int id=0;id<20;++id)for(int frame=0;frame<1920;++frame){float beat=frame/60.f;auto a=rarestage::play::playPose(float(world),float(mode),float(id),beat),b=rarestage::play::playPose(float(world),float(mode),float(id),beat+1.f/60);
   poses&=std::isfinite(a.center.x)&&std::isfinite(a.center.y)&&std::isfinite(a.angle)&&std::abs(a.center.x)<1.4f&&std::abs(a.center.y)<1.4f&&a.size.x>0&&a.size.y>0;
   maximumSpeed=std::max(maximumSpeed,double(std::hypot(b.center.x-a.center.x,b.center.y-a.center.y)*60));
  }
  check("all_object_programs_have_finite_bounded_motion",poses&&maximumSpeed<1.5);
  bool everyProgramMoves=true;
- for(int world=26;world<rarestage::show::SceneCount;++world)for(int mode=0;mode<10;++mode){double travel=0;
+ for(int world=26;world<35;++world)for(int mode=0;mode<10;++mode){double travel=0;
   for(int id=0;id<20;++id)for(int frame=0;frame<1920;++frame){float beat=frame/60.f;auto a=rarestage::play::playPose(float(world),float(mode),float(id),beat),b=rarestage::play::playPose(float(world),float(mode),float(id),beat+1.f/60);
    travel+=std::hypot(b.center.x-a.center.x,b.center.y-a.center.y)+std::abs(b.angle-a.angle)*std::hypot(a.size.x,a.size.y)+std::hypot(b.size.x-a.size.x,b.size.y-a.size.y);
   }
@@ -88,7 +89,7 @@ int main(){
  }
  check("shared_fields_remain_bounded_at_motif_joins",fieldBounds&&seamDelta<.01f);
  bool inheritedBounds=true;double inheritedSpeed=0,travelDifference=0;
- for(int world=26;world<rarestage::show::SceneCount;++world)for(int mode=0;mode<10;++mode)for(int seed:{0,7,10,15})for(int id=0;id<20;++id)for(int frame=0;frame<480;++frame){
+ for(int world=26;world<35;++world)for(int mode=0;mode<10;++mode)for(int seed:{0,7,10,15})for(int id=0;id<20;++id)for(int frame=0;frame<480;++frame){
   float beat=frame/30.f;PhraseFrame state{float(mode),float(mode),1,1,1,1,0,0};
   auto a=rarestage::play::program(world,float(seed),state,id,beat),b=rarestage::play::program(world,float(seed),state,id,beat+1.f/30);
   auto base=rarestage::play::playPose(float(world),float(mode),float(id),beat);
@@ -110,7 +111,7 @@ int main(){
  sequence.visit(32,0,4,4,1,16,224,true);check("new_chapter_releases_old_motif",sequence.chapter()==1&&sequence.gesture()!=sequenceMotif);
  sequence.visit(30,2,4,5,1,16,256,false);check("manual_scene_reanchors_sequence",sequence.role()==0&&sequence.gesture()==ProgramGesture(30,2));
  bool better=true;double saved=0;int matches=0;std::ofstream entries("RareStage-entry-matching.csv");entries<<"from,to,beat,preferred,chosen,original_cost,matched_cost\n";
- for(int from=26;from<SceneCount;++from)for(int to=26;to<SceneCount;++to)if(from!=to)for(float beat:{5.f,80.f,8192.f}){
+ for(int from=26;from<35;++from)for(int to=26;to<35;++to)if(from!=to)for(float beat:{5.f,80.f,8192.f}){
   PhraseFrame source{2,2,1,1,1,1,0,0};int choice=rarestage::play::matchEntry(from,to,7,7,source,beat,0);
   auto original=rarestage::play::entryCost(from,to,7,7,source,beat,0),chosen=rarestage::play::entryCost(from,to,7,7,source,beat,choice);
   entries<<from<<','<<to<<','<<beat<<",0,"<<choice<<','<<original<<','<<chosen<<'\n';
@@ -126,6 +127,13 @@ int main(){
  std::array<bool,SceneCount> favorites{};favorites[33]=true;
  check("catalog_searches_program_names",CatalogSearch(L"figure eight sorter",0,false,favorites)==std::vector<int>{33});
  check("catalog_favorites_keep_stable_ids",CatalogSearch(L"",0,true,favorites)==std::vector<int>{33}&&CatalogSearch(L"",1,true,favorites).empty());
- check("catalog_counts_real_named_programs",NamedProgramCount()==158&&CatalogSearch(L"",0,false,favorites).size()==35);
+ check("catalog_counts_real_named_programs",NamedProgramCount()==188&&CatalogSearch(L"",0,false,favorites).size()==38);
+ bool graphics=true;for(int s=35;s<38;++s){graphics&=GraphicScene(s)&&!PlayScene(s)&&ProgramCount(s)==10&&PhraseFamily(s)>=0&&AutoScene(s);for(int p=0;p<10;++p)graphics&=std::wstring(PhraseName(s,p)).size()>4&&int(ProgramGesture(s,p))>=0&&int(ProgramGesture(s,p))<6;}
+ check("graphic_catalog_has_independent_named_programs",graphics&&NativeBridge(35,36)&&NativeBridge(36,37)&&NativeBridge(37,35)&&!NativeBridge(3,35));
+ Director automatic;Context selection;selection.fit.fill(0);bool curated=true;
+ for(int category=0;category<5;++category)for(int current=0;current<SceneCount;++current){selection.current=current;selection.category=category;
+  for(int bad=28;bad<35;++bad){selection.fit[bad]=1000;selection.preferred=bad;auto route=automatic.plan(selection);curated&=AutoScene(route.next)&&AutoScene(route.then)&&AutoScene(route.alternative);}
+ }
+ check("rejected_scenes_cannot_win_next_following_or_alternative",curated);
  return passed?0:1;
 }

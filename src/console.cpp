@@ -222,7 +222,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.24.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.25.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -2062,7 +2062,7 @@ private:
     UINT dpi_{96};
     std::array<bool,rarestage::show::SceneCount> catalogFavorites_{};
     std::wstring catalogQuery_;std::filesystem::path catalogPreviewPath_;HBITMAP catalogPreview_{};
-    int catalogScene_{32},catalogMode_{},catalogCategory_{},catalogPage_{};bool catalogEditing_{},catalogOnlyFavorites_{};
+    int catalogScene_{35},catalogMode_{},catalogCategory_{},catalogPage_{};bool catalogEditing_{},catalogOnlyFavorites_{};
     Page page_{Page::Show};
     POINT cursor_{-10000, -10000};
     float animationTime_{};

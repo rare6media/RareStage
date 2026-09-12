@@ -6,7 +6,7 @@ try {
     if ($process.ExitCode -ne 0) { throw "Catalog rendering failed: $($process.ExitCode)" }
     Add-Type -AssemblyName System.Drawing
     $images = @(Get-ChildItem -LiteralPath RareStage-sequence-validation/catalog -Filter '*.png')
-    if ($images.Count -ne 174) { throw "Expected 158 program previews and 16 continuous scene previews" }
+    if ($images.Count -ne 204) { throw "Expected 188 program previews and 16 continuous scene previews" }
     New-Item -ItemType Directory -Force assets/catalog,build/Release/assets/catalog | Out-Null
     foreach ($file in $images) {
         $bitmap = [System.Drawing.Image]::FromFile($file.FullName)

@@ -12,6 +12,7 @@ int runProfessionalValidation(){
   for(int cue=0;cue<100;++cue){context.section=(cue/4)%5;context.energy=context.section==2?.65f:context.section==3?.22f:.48f;context.trend=context.section==1?.08f:context.section==3?-.08f:0;
    for(int w=0;w<rarestage::show::SceneCount;++w)context.fit[w]=1.f-std::abs(context.energy-rarestage::show::Scenes[w].energy);
    const auto plan=director.plan(context);bool legal=plan.next>=0&&plan.next<rarestage::show::SceneCount&&plan.then>=0&&plan.then<rarestage::show::SceneCount&&plan.next!=context.current&&plan.then!=plan.next;
+   legal&=rarestage::show::AutoScene(plan.next)&&rarestage::show::AutoScene(plan.then);
    if(category)legal&=rarestage::show::Scenes[plan.next].category==category-1&&rarestage::show::Scenes[plan.then].category==category-1;
    if(!legal)passed=false;if(!category)seen[plan.next]=true;
    decisions<<cue<<','<<context.section<<','<<context.current<<','<<plan.next<<','<<plan.then<<','<<rarestage::show::Compatibility(context.current,plan.next)<<'\n';
@@ -25,6 +26,8 @@ int runProfessionalValidation(){
  tempoPhase_=112;audio.kick=audio.onset=audio.beat=1;refreshShowPlan(audio);check("eight_beat_rehearsal_lock",route_.next==locked);
  settings_.sceneCategory=2;refreshShowPlan(audio);check("filter_invalidates_rehearsal",worldFamily(route_.next)==1);
  settings_.sceneCategory=0;route_={};routeSection_=-1;
+ bool timelineCurated=true;for(int timeline=0;timeline<5;++timeline){settings_.timeline=timeline>0?1:0;presetIndex_=std::max(0,timeline-1);for(int candidate=0;candidate<WorldCount;++candidate){world_=candidate;timelineCurated&=rarestage::show::AutoScene(chooseAutoWorld(audio));}}
+ check("all_timeline_modes_skip_rejected_scenes",timelineCurated);settings_.timeline=0;presetIndex_=0;world_=3;
  songSection_=BuildSection;sectionRevision_=10;tempoPhase_=160;nextWorldAt_=60;refreshShowPlan(audio);
  const int preparedDrop=composer_.branches()[1].route.next;preparedWorld_=-1;predictedSection_=DropSection;preparePredictedWorld(audio,elapsed());check("forecast_uses_same_composer_branch",preparedWorld_==preparedDrop);
  songSection_=DropSection;++sectionRevision_;tempoPhase_=164;refreshShowPlan(audio);
