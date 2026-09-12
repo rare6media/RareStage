@@ -77,24 +77,24 @@ GraphicInk graphicRibbons(float2 p,float3 modes){
  return ink;
 }
 float4 radialSetup(int mode,int ring,float2 p){
- float t=tempoPhase*.1963495,side=ring==0?1:-1;
+ float t=tempoPhase*.1963495,side=ring==0?1:-1,speed=ring==0?.11219975:.15707975;
  float rotation=side*graphicStep((tempoPhase+(ring==0?0:2))/4)*(ring==0?.448799:.628319);
  float inner=ring==0?.23:.055,outer=ring==0?.61:.20,span=.80;
  if(mode==1){float open=.5-.5*cos(t);inner+=open*(ring==0?.10:.025);outer+=open*(ring==0?.13:.03);span*=1-.32*open;}
  else if(mode==2){rotation+=sin(t)*sin(atan2(p.y,p.x))*side*.25;outer*=.88+.12*cos(t);span=.66;}
- else if(mode==3){rotation=side*t*.52;span=.62;inner*=.75;}
+ else if(mode==3){rotation=side*tempoPhase*speed+side*.24*sin(t*.5);span=.62;inner*=.75;}
  else if(mode==4){inner*=1.1;outer*=.98;rotation+=side*.18*sin(t*2);span=.53+.22*(.5+.5*cos(t));}
- else if(mode==5){outer*=.73;inner*=.73;rotation=-rotation;span=.87;}
- else if(mode==6){rotation=side*graphicStep((tempoPhase+ring)/2)*.224399;outer*=.95;span=.48;}
- else if(mode==7){rotation=side*graphicStep((tempoPhase+ring*2)/8)*1.570796;span=.72;}
+ else if(mode==5){outer*=.73;inner*=.73;span=.87;}
+ else if(mode==6){rotation=side*graphicStep((tempoPhase+ring)/2)*speed*2;outer*=.95;span=.48;}
+ else if(mode==7){float clock=(tempoPhase+ring*2)/8;rotation=side*(tempoPhase*speed+.785398*(graphicStep(clock)-clock));span=.72;}
  else if(mode==8){float pressure=.5-.5*cos(t);inner*=.85+.35*pressure;outer*=.83+.23*pressure;span=.92;}
- else if(mode==9){inner*=1.25;outer*=1.08;rotation=side*t*.25;span=.72;}
+ else if(mode==9){inner*=1.25;outer*=1.08;rotation=side*tempoPhase*speed+side*.16*sin(t*.25);span=.72;}
  return float4(rotation,inner,outer,span);
 }
 GraphicInk graphicRadial(float2 p,float3 modes){
  GraphicInk ink;ink.distance=100;ink.color=0;
  float twin=lerp(modes.x==5?1:0,modes.y==5?1:0,modes.z);
- float2 q=p;q.x*=.82;q.x=lerp(q.x,abs(q.x)-min(.34,resolution.x/resolution.y*.24),twin);
+ float2 q=p;q.x*=.82;q.x-=sign(q.x)*min(.34,resolution.x/resolution.y*.24)*twin;
  float radius=length(q),angle=atan2(q.y,q.x);
  [unroll]for(int ring=0;ring<2;++ring){
   float4 shape=lerp(radialSetup((int)modes.x,ring,q),radialSetup((int)modes.y,ring,q),modes.z);

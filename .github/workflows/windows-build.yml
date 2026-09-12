@@ -79,6 +79,12 @@ jobs:
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--graphic-test" -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Graphic composition capture failed: $($process.ExitCode)" }
           if (@(Import-Csv RareStage-graphic-validation/visual-checks.csv).Count -ne 444) { throw "Incomplete graphic visual fixtures" }
+      - name: Graphic programs after a long running musical clock
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--play-test --graphic-only --long-clock" -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Long-running graphic motion failed: $($process.ExitCode)" }
+          if (@(Import-Csv RareStage-graphic-validation/long-clock/program-blends.csv).Count -ne 270) { throw "Incomplete late program coverage" }
       - name: Shared wall patterns across object materials
         shell: pwsh
         run: |
