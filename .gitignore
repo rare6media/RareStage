@@ -45,3 +45,9 @@ RareStage-v21-*.json
 /build-v23.log
 
 /RareStage-material-validation/
+
+/RareStage-sequence-validation/
+/build-v24.log
+/update_v24.py
+/RareStage-catalog-ui.bmp
+/assets/catalog/

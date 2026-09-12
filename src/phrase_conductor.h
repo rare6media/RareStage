@@ -38,7 +38,7 @@ inline bool ValidPhraseFrame(const PhraseFrame& f){
 }
 inline bool ValidPhraseForScene(const PhraseFrame& f,int scene){return ValidPhraseFrame(f)&&(!f.enabled||(f.from<ProgramCount(scene)&&f.to<ProgramCount(scene)));}
 struct PhraseEvidence {
- int section{4},revision{};
+ int section{4},revision{},preferred{-1};
  float energy{.4f},confidence{1},sectionAge{},trend{};
  bool safe{true},held{},departing{};
 };
@@ -50,7 +50,7 @@ public:
  PhraseMemory(){for(auto& scene:last_)scene.fill(-1000);}
  bool peakReady(float beat)const{return beat-lastPeak_>=96;}
  void peak(float beat){lastPeak_=beat;}
- int choose(int scene,int current,PhraseAction action,float beat){
+ int choose(int scene,int current,PhraseAction action,float beat,int preferred=-1){
   const int family=PhraseFamily(scene);int chosen=current;float best=-1e9f;
   for(int mode=0;mode<ProgramCount(scene);++mode){if(mode==current)continue;
    float score=-float(uses_[scene][mode*5+int(action)])*.6f-std::max(0.f,48-(beat-last_[scene][mode]))*.05f;
@@ -58,6 +58,7 @@ public:
    const int related=(current+(family==3||family==4?2:1))%ProgramCount(scene);
    if(action==PhraseAction::Answer&&mode==related)score+=.8f;
    if(action==PhraseAction::Resolve&&(mode==0||mode==ProgramCount(scene)-1))score+=.65f;
+   if(mode==preferred)score+=.85f;
    score+=float((mode*13+sequence_*7)%31)*.003f;
    if(score>best){best=score;chosen=mode;}
   }
@@ -73,6 +74,10 @@ public:
  void begin(int scene,int seed,float beat){
   scene_=scene;boundary_=int(std::floor(beat/8));repeat_=turn_=0;lastSectionRevision_=-1;began_=beat;changed_=beat-8;
   state_={float((seed/4)%ProgramCount(scene)),float((seed/4)%ProgramCount(scene)),1,PhraseFamily(scene)>=0?1.f:0.f,1,1,0,0};source_=target_={1,1,0};
+ }
+ void select(int mode,float beat){
+  auto current=sample(beat);state_.from=state_.to;state_.to=float(std::clamp(mode,0,ProgramCount(scene_)-1));state_.blend=0;
+  source_=target_={current.gain,current.spread,current.answer};changed_=beat;began_=beat;state_.action=0;
  }
  PhraseFrame sample(float beat)const{
   PhraseFrame f=state_;f.blend=PhraseEase((beat-changed_)/duration_);
@@ -94,7 +99,7 @@ public:
   if(e.section==2)lastSectionRevision_=e.revision;
   if(next==PhraseAction::Repeat){++repeat_;state_.action=float(next);return;}
   repeat_=0;const auto now=sample(beat);source_={now.gain,now.spread,now.answer};
-  state_.from=state_.to;state_.to=float(memory.choose(scene_,int(state_.to),next,beat));state_.action=float(next);changed_=beat;
+  state_.from=state_.to;state_.to=float(memory.choose(scene_,int(state_.to),next,beat,e.preferred));state_.action=float(next);changed_=beat;
   target_=next==PhraseAction::Answer?std::array<float,3>{1,1,turn_%2?.18f:-.18f}:
           next==PhraseAction::Resolve?std::array<float,3>{.80f,.96f,0}:
           std::array<float,3>{peak?1.16f:1.07f,peak?1.04f:1.02f,0};

@@ -1,5 +1,7 @@
 #include "phrase_conductor.h"
 #include "play_poses.h"
+#include "show_sequence.h"
+#include "catalog_model.h"
 #include <iostream>
 #include <fstream>
 #include <limits>
@@ -51,7 +53,7 @@ int main(){
  PhraseFrame invalid;invalid.to=std::numeric_limits<float>::quiet_NaN();check("nonfinite_network_program_rejected",!ValidPhraseFrame(invalid));
  invalid={};invalid.from=2.5f;check("fractional_program_rejected",!ValidPhraseFrame(invalid));
  check("banks_have_native_bridge",NativeBridge(8,10)&&NativeBridge(10,8)&&!NativeBridge(8,18));
- bool expanded=true;for(int scene=24;scene<32;++scene){PhraseMemory m;PhraseConductor c;std::array<bool,MaxPhrasePrograms> seen{};
+ bool expanded=true;for(int scene=24;scene<SceneCount;++scene){PhraseMemory m;PhraseConductor c;std::array<bool,MaxPhrasePrograms> seen{};
   for(int song=0;song<20;++song){float start=song*256.f;c.begin(scene,(song*13)%64,start);for(int bar=0;bar<32;++bar){PhraseEvidence e;e.sectionAge=16;e.section=bar<16?4:bar<24?2:3;e.revision=song*4+bar/8;float beat=start+bar*8;c.update(beat,e,m);auto f=c.sample(beat);expanded&=ValidPhraseFrame(f)&&f.to<ProgramCount(scene);seen[int(f.to)]=true;}}
   expanded&=std::count(seen.begin(),seen.end(),true)==10;
  }
@@ -60,13 +62,13 @@ int main(){
  invalid={};invalid.to=10;check("out_of_catalog_program_rejected",!ValidPhraseFrame(invalid));
  check("fine_to_broad_grids_use_material_transport",!NativeBridge(11,24)&&!NativeBridge(24,11)&&!NativeBridge(11,25)&&!NativeBridge(25,11));
  check("new_geometry_bridges",NativeBridge(24,3)&&NativeBridge(25,24)&&NativeBridge(26,31)&&!NativeBridge(25,26));
- bool poses=true;double maximumSpeed=0;for(int world=26;world<32;++world)for(int mode=0;mode<10;++mode)for(int id=0;id<20;++id)for(int frame=0;frame<1920;++frame){float beat=frame/60.f;auto a=rarestage::play::playPose(float(world),float(mode),float(id),beat),b=rarestage::play::playPose(float(world),float(mode),float(id),beat+1.f/60);
+ bool poses=true;double maximumSpeed=0;for(int world=26;world<rarestage::show::SceneCount;++world)for(int mode=0;mode<10;++mode)for(int id=0;id<20;++id)for(int frame=0;frame<1920;++frame){float beat=frame/60.f;auto a=rarestage::play::playPose(float(world),float(mode),float(id),beat),b=rarestage::play::playPose(float(world),float(mode),float(id),beat+1.f/60);
   poses&=std::isfinite(a.center.x)&&std::isfinite(a.center.y)&&std::isfinite(a.angle)&&std::abs(a.center.x)<1.4f&&std::abs(a.center.y)<1.4f&&a.size.x>0&&a.size.y>0;
   maximumSpeed=std::max(maximumSpeed,double(std::hypot(b.center.x-a.center.x,b.center.y-a.center.y)*60));
  }
  check("all_object_programs_have_finite_bounded_motion",poses&&maximumSpeed<1.5);
  bool everyProgramMoves=true;
- for(int world=26;world<32;++world)for(int mode=0;mode<10;++mode){double travel=0;
+ for(int world=26;world<rarestage::show::SceneCount;++world)for(int mode=0;mode<10;++mode){double travel=0;
   for(int id=0;id<20;++id)for(int frame=0;frame<1920;++frame){float beat=frame/60.f;auto a=rarestage::play::playPose(float(world),float(mode),float(id),beat),b=rarestage::play::playPose(float(world),float(mode),float(id),beat+1.f/60);
    travel+=std::hypot(b.center.x-a.center.x,b.center.y-a.center.y)+std::abs(b.angle-a.angle)*std::hypot(a.size.x,a.size.y)+std::hypot(b.size.x-a.size.x,b.size.y-a.size.y);
   }
@@ -86,7 +88,7 @@ int main(){
  }
  check("shared_fields_remain_bounded_at_motif_joins",fieldBounds&&seamDelta<.01f);
  bool inheritedBounds=true;double inheritedSpeed=0,travelDifference=0;
- for(int world=26;world<32;++world)for(int mode=0;mode<10;++mode)for(int seed:{0,7,10,15})for(int id=0;id<20;++id)for(int frame=0;frame<480;++frame){
+ for(int world=26;world<rarestage::show::SceneCount;++world)for(int mode=0;mode<10;++mode)for(int seed:{0,7,10,15})for(int id=0;id<20;++id)for(int frame=0;frame<480;++frame){
   float beat=frame/30.f;PhraseFrame state{float(mode),float(mode),1,1,1,1,0,0};
   auto a=rarestage::play::program(world,float(seed),state,id,beat),b=rarestage::play::program(world,float(seed),state,id,beat+1.f/30);
   auto base=rarestage::play::playPose(float(world),float(mode),float(id),beat);
@@ -100,5 +102,30 @@ int main(){
  check("domino_row_inherits_one_coordinated_wall_stroke",linkedRows&&std::abs(rowTravel)>.02f);
  auto longRun=rarestage::play::playPose(27,1,19,10000);check("long_sets_do_not_accumulate_blend_spins",std::abs(longRun.angle)<7);
  invalid={9,9,1,1,1,1,0,0};check("program_range_matches_network_scene",ValidPhraseForScene(invalid,24)&&!ValidPhraseForScene(invalid,8));
+ ShowSequence sequence;sequence.visit(3,0,4,0,1,16,0,false);auto sequenceMotif=sequence.gesture();
+ sequence.visit(33,0,1,1,1,16,64,true);check("sequence_carries_motif_across_scene",sequence.gesture()==sequenceMotif&&sequence.role()==1);
+ sequence.visit(32,0,2,2,.1f,1,128,true);check("uncertain_event_cannot_spend_payoff",sequence.role()!=3);
+ sequence.visit(34,0,2,3,1,2,160,true);check("confirmed_drop_reserves_payoff",sequence.role()==3);
+ sequence.visit(33,0,2,3,1,16,176,true);check("same_drop_cannot_repeat_payoff",sequence.role()!=3);
+ sequence.visit(32,0,4,4,1,16,224,true);check("new_chapter_releases_old_motif",sequence.chapter()==1&&sequence.gesture()!=sequenceMotif);
+ sequence.visit(30,2,4,5,1,16,256,false);check("manual_scene_reanchors_sequence",sequence.role()==0&&sequence.gesture()==ProgramGesture(30,2));
+ bool better=true;double saved=0;int matches=0;std::ofstream entries("RareStage-entry-matching.csv");entries<<"from,to,beat,preferred,chosen,original_cost,matched_cost\n";
+ for(int from=26;from<SceneCount;++from)for(int to=26;to<SceneCount;++to)if(from!=to)for(float beat:{5.f,80.f,8192.f}){
+  PhraseFrame source{2,2,1,1,1,1,0,0};int choice=rarestage::play::matchEntry(from,to,7,7,source,beat,0);
+  auto original=rarestage::play::entryCost(from,to,7,7,source,beat,0),chosen=rarestage::play::entryCost(from,to,7,7,source,beat,choice);
+  entries<<from<<','<<to<<','<<beat<<",0,"<<choice<<','<<original<<','<<chosen<<'\n';
+  better&=choice>=0&&choice<ProgramCount(to)&&chosen<=original+.00001f;saved+=original-chosen;++matches;
+ }
+ check("matched_entries_reduce_pose_velocity_cost",better&&saved/matches>.02);
+ bool distinct=true;for(int scene=32;scene<35;++scene)for(int a=0;a<10;++a)for(int b=a+1;b<10;++b){double difference=0;
+  for(float beat:{0.f,5.f,11.f,19.f})for(int id=0;id<20;++id){auto x=rarestage::play::playPose(float(scene),float(a),float(id),beat),y=rarestage::play::playPose(float(scene),float(b),float(id),beat);difference+=std::hypot(x.center.x-y.center.x,x.center.y-y.center.y)+std::abs(x.angle-y.angle)+std::abs(x.size.x-y.size.x);}
+  distinct&=difference/80>.015;
+ }check("thirty_new_programs_have_distinct_motion",distinct);
+ PhraseConductor manual;manual.begin(34,0,0);manual.select(7,16);auto before=manual.sample(16);PhraseMemory manualMemory;PhraseEvidence held;held.held=true;manual.update(32,held,manualMemory);
+ check("manual_pattern_blends_then_holds",before.from==0&&before.to==7&&before.blend==0&&manual.sample(32).to==7&&manual.sample(32).blend==1);
+ std::array<bool,SceneCount> favorites{};favorites[33]=true;
+ check("catalog_searches_program_names",CatalogSearch(L"figure eight sorter",0,false,favorites)==std::vector<int>{33});
+ check("catalog_favorites_keep_stable_ids",CatalogSearch(L"",0,true,favorites)==std::vector<int>{33}&&CatalogSearch(L"",1,true,favorites).empty());
+ check("catalog_counts_real_named_programs",NamedProgramCount()==158&&CatalogSearch(L"",0,false,favorites).size()==35);
  return passed?0:1;
 }

@@ -16,7 +16,7 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 32 || SectionCount != 5 || ProtocolVersion != 18 || AudioProfileCount != 4 ||
+    if (WorldCount != 35 || SectionCount != 5 || ProtocolVersion != 19 || AudioProfileCount != 4 ||
         MasteringProfileCount != 4 || StageLayoutCount != 4 || ProductionDutyCount != 5 || SyncModeCount != 3 ||
         SceneCategoryCount != 5 || TempoAnchorCount != 3) {
         std::cerr << "Protocol constants are stale\n";

@@ -4,10 +4,21 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.23.1**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.24.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
+## What changed in 0.24.0
+
+**Choreography Sequences** connects visual motifs across scene visits and adds Gearworks, Switchyard and Origami Parade, with ten named programs each. The library now has 35 scenes and 158 selectable named programs; sixteen scenes also retain continuous authored choreography.
+
+- The Director carries a movement motif through establish, carry, develop, payoff and release roles. Confirmed musical evidence and a shared cooldown protect major payoffs.
+- Incoming object formations are chosen using sampled position, size and velocity, while shared wall-pattern seeds continue through a chapter.
+- Gear shafts and drive links, closed conveyor circuits and folding paper formations use continuous musical motion. Percussion accents their surfaces.
+- The new Catalog supports scene/program search, category filters, saved favorites, 174 rendered previews and explicit program selection with a hold/resume control.
+- Matching executables use Console v19 and network v7. Existing scene IDs, shortcuts and synchronized local mirrors are preserved.
+
+See [behavior, controls and validation](docs/CHOREOGRAPHY_SEQUENCES.md). Full-song listening review and complete 4K/120 output qualification remain open.
 ## What changed in 0.23.1
 
 **Pattern Materials** carries the Stagewall and Morph Wall pattern vocabulary into six object scenes. The catalog remains at 32 scenes.

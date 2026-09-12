@@ -4,6 +4,8 @@
 #include <shellapi.h>
 
 #include "rarestage_control.h"
+#include "catalog_model.h"
+#include "show_sequence.h"
 
 #include <algorithm>
 #include <array>
@@ -87,7 +89,7 @@ constexpr std::array<const wchar_t*, rarestage::control::TempoAnchorCount> Tempo
     L"AUTO CLUB", L"128 BPM", L"130 BPM"
 };
 
-enum class Page { Show, Mix, Audio, Output, Production, Rehearsal, Screens };
+enum class Page { Show, Mix, Audio, Output, Production, Rehearsal, Screens, Catalog };
 
 enum class Setting {
     Sensitivity,
@@ -157,7 +159,8 @@ enum class Action {
     SceneCategory,
     TempoAnchor,
     DjIdentity,
-    QuitStage
+    QuitStage,
+    CatalogSearch,CatalogClear,CatalogFilter,CatalogFavorites,CatalogSelect,CatalogStar,CatalogPage,CatalogMode,CatalogApply,CatalogResume
 };
 
 struct HitTarget {
@@ -201,6 +204,7 @@ struct ReviewItem {
 class ConsoleApp {
 public:
     ~ConsoleApp() {
+        if(catalogPreview_)DeleteObject(catalogPreview_);
         if (rehearsalActive_) finishRehearsal(false);
         disconnect();
         closeRendererProcessHandle();
@@ -218,7 +222,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.23.1",
+            0, windowClass.lpszClassName, L"RareStage Console 0.24.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -233,6 +237,7 @@ public:
         dpi_ = GetDpiForWindow(window_);
         createFonts();
         SetTimer(window_, 1, 33, nullptr);
+        if(!std::wcsstr(GetCommandLineW(),L"--screen-ui-test"))loadFavorites();
         if(!std::wcsstr(GetCommandLineW(),L"--screen-ui-test"))ShowWindow(window_, SW_SHOW);
         UpdateWindow(window_);
         return true;
@@ -274,6 +279,9 @@ public:
         fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();
         int worldButtons=0;for(const auto&target:targets_)if(target.action==Action::World){++worldButtons;if(target.value<0||target.value>=int(WorldNames.size())||target.rect.bottom>628||target.rect.top<12||target.rect.right>1268||target.rect.bottom<=target.rect.top)ok=false;}
         ok=ok&&worldButtons==int(WorldNames.size());std::ofstream showOutput("RareStage-worlds-ui.bmp",std::ios::binary);showOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));showOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));showOutput.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&showOutput.good();
+        fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintCatalog(dc,RECT{12,12,1268,628});GdiFlush();
+        for(const auto& target:targets_)if(target.rect.left<12||target.rect.right>1268||target.rect.top<12||target.rect.bottom>628||target.rect.bottom<=target.rect.top)ok=false;
+        std::ofstream catalogOutput("RareStage-catalog-ui.bmp",std::ios::binary);catalogOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));catalogOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));catalogOutput.write(static_cast<const char*>(pixels),1280*640*4);ok&=catalogOutput.good();
         SelectObject(dc,old);DeleteObject(bitmap);DeleteDC(dc);connected_=false;destroyFonts();dpi_=oldDpi;createFonts();return ok;
     }
 
@@ -382,7 +390,7 @@ private:
 
     void selectPage(Page next) {
         if (next == page_) return;
-        page_ = next;
+        page_ = next;catalogEditing_=false;
         pageTransition_ = 0.0f;
     }
 
@@ -853,7 +861,7 @@ private:
                 << "- Average GPU frame: " << gpuTotal / rehearsalSamples_.size() << " ms\n"
                 << "- Peak GPU frame: " << gpuPeak << " ms\n\n"
                 << "## Cue timeline\n\n";
-        for (const auto& event : rehearsalEvents_) summary << "- " << narrow(clockText(event.timeMs)) << " — " << narrow(event.kind) << ": " << narrow(event.detail) << "\n";
+        for (const auto& event : rehearsalEvents_) summary << "- " << narrow(clockText(event.timeMs)) << " â€” " << narrow(event.kind) << ": " << narrow(event.detail) << "\n";
         lastSessionSummaryPath_ = summaryPath.wstring();
         return timeline.good() && review.good() && summary.good();
     }
@@ -903,6 +911,7 @@ private:
     }
 
     void handleCharacter(wchar_t character) {
+        if(catalogEditing_){if(character==L'\r'){catalogEditing_=false;return;}if(character==L'\b'){if(!catalogQuery_.empty())catalogQuery_.pop_back();}else if(character>=L' '&&character!=127&&catalogQuery_.size()<64)catalogQuery_.push_back(character);catalogPage_=0;return;}
         if (!editingDjName_) return;
         if (character == L'\r') { applyDjName(); return; }
         if (character == L'\b') { if (!djNameBuffer_.empty()) djNameBuffer_.pop_back(); return; }
@@ -910,6 +919,8 @@ private:
     }
 
     void handleKey(WPARAM key) {
+        if(catalogEditing_){if(key==VK_ESCAPE)catalogEditing_=false;return;}
+        if(key==L'F'&&(GetKeyState(VK_CONTROL)&0x8000)){selectPage(Page::Catalog);catalogEditing_=true;return;}
         if (editingDjName_) {
             if (key == VK_ESCAPE) { editingDjName_ = false; statusText_ = L"DJ name edit cancelled."; }
             else if (key == VK_RETURN) applyDjName();
@@ -935,7 +946,7 @@ private:
             if (GetKeyState(VK_SHIFT) & 0x8000) send(Command::SavePreset, preset, L"Save preset F" + std::to_wstring(preset + 1));
             else send(Command::LoadPreset, preset, PresetNames[preset]);
         } else if (key == VK_TAB) {
-            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 7));
+            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 8));
         }
     }
 
@@ -1064,6 +1075,16 @@ private:
                 case Action::SceneCategory: send(Command::SetSceneCategory, target.value, SceneCategoryNames[target.value] + std::wstring(L" scene category")); break;
                 case Action::TempoAnchor: send(Command::SetTempoAnchor, target.value, TempoAnchorNames[target.value] + std::wstring(L" tempo anchor")); break;
                 case Action::DjIdentity: send(Command::SetDjIdentityVisible, flag(rarestage::control::DjIdentityVisible) ? 0 : 1, L"identity choreography"); break;
+                case Action::CatalogSearch:catalogEditing_=true;SetFocus(window_);break;
+                case Action::CatalogClear:catalogQuery_.clear();catalogCategory_=catalogPage_=0;catalogOnlyFavorites_=false;break;
+                case Action::CatalogFilter:catalogCategory_=target.value;catalogPage_=0;break;
+                case Action::CatalogFavorites:catalogOnlyFavorites_=!catalogOnlyFavorites_;catalogPage_=0;break;
+                case Action::CatalogSelect:catalogScene_=target.value;catalogMode_=0;catalogEditing_=false;break;
+                case Action::CatalogStar:catalogFavorites_[target.value]=!catalogFavorites_[target.value];saveFavorites();break;
+                case Action::CatalogPage:catalogPage_+=target.value;break;
+                case Action::CatalogMode:catalogMode_=target.value;break;
+                case Action::CatalogApply:if(connected_&&state_.world==catalogScene_&&rarestage::show::PhraseFamily(catalogScene_)>=0)send(Command::SelectProgram,catalogMode_,L"Apply and hold pattern");else statusText_=L"Cue this scene first; continuous scenes have no manual program selector.";break;
+                case Action::CatalogResume:send(Command::ReleaseProgram,0,L"Resume automatic pattern direction");break;
                 case Action::QuitStage: send(Command::QuitRenderer, 0, L"Close stage"); break;
                 default: break;
             }
@@ -1244,9 +1265,9 @@ private:
                   connected_ ? L"FOCUS STAGE" : L"LAUNCH STAGE", Action::Launch, 0, false, Green);
 
         const int tabTop = scale(68);
-        const int tabWidth = scale(108);
-        const std::array<const wchar_t*, 7> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"PRODUCTION", L"REHEARSAL", L"SCREENS"};
-        for (int index = 0; index < 7; ++index) {
+        const int tabWidth = scale(95);
+        const std::array<const wchar_t*, 8> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"PRODUCTION", L"REHEARSAL", L"SCREENS", L"CATALOG"};
+        for (int index = 0; index < 8; ++index) {
             addButton(dc, RECT{margin + index * (tabWidth + scale(7)), tabTop,
                                margin + index * (tabWidth + scale(7)) + tabWidth, tabTop + scale(34)},
                       names[index], Action::Page, index, static_cast<int>(page_) == index, Cyan);
@@ -1295,12 +1316,13 @@ private:
                  smallFont_, connected_ ? Muted : Amber);
     }
 
+#include "catalog_console.h"
     void paintShow(HDC dc, RECT body) {
         const int gap = scale(12);
         const int leftWidth = static_cast<int>((body.right - body.left) * 0.63f);
         RECT worlds{body.left, body.top, body.left + leftWidth, body.bottom};
         fillRound(dc, worlds, 11, Panel, Line);
-        sectionLabel(dc, L"WORLD CUES  /  THIRTY-TWO AUTHORED SCENES",
+        sectionLabel(dc, L"WORLD CUES / "+std::to_wstring(WorldNames.size())+L" SCENES",
                      worlds.left + scale(14), worlds.top + scale(9), worlds.right - worlds.left - scale(28));
 
         const int themeY=worlds.top+scale(35);
@@ -1482,7 +1504,7 @@ private:
                      (connected_ ? SectionNames[std::clamp(state_.songSection, 0, 4)] : L"OFFLINE"),
                  RECT{decision.left + scale(14), decision.top + scale(6), decision.right - scale(14), decision.top + scale(31)}, headingFont_, Text);
         auto branchName=[&](int world)->std::wstring{return connected_&&world>=0&&world<int(WorldNames.size())?WorldNames[world]:L"preparing";};
-        drawText(dc,L"CONTINUE  "+branchName(state_.composerContinue),RECT{decision.left+scale(14),decision.top+scale(31),decision.right-scale(14),decision.top+scale(56)},smallFont_,Cyan);
+        drawText(dc,std::wstring(rarestage::show::SequenceRoles[std::clamp(state_.sequenceRole,0,4)])+L" / "+rarestage::show::GestureNames[std::clamp(state_.sequenceGesture,0,5)]+L" > "+branchName(state_.composerContinue),RECT{decision.left+scale(14),decision.top+scale(31),decision.right-scale(14),decision.top+scale(56)},smallFont_,Cyan);
         drawText(dc,L"DROP  "+branchName(state_.composerDrop)+L"  /  BREAK  "+branchName(state_.composerBreak),RECT{decision.left+scale(14),decision.top+scale(56),decision.right-scale(14),decision.top+scale(81)},smallFont_,Purple);
         drawText(dc,connected_&&state_.directorReason[0]?state_.directorReason:L"DIRECTOR TELEMETRY STARTING",RECT{decision.left+scale(14),decision.top+scale(81),decision.right-scale(14),decision.bottom-scale(5)},smallFont_,Muted);
 
@@ -1902,7 +1924,7 @@ private:
         y += scale(49);
         sectionLabel(dc, L"RECORDING CONTRACT", recorder.left + scale(14), y, leftWidth - scale(28));
         y += scale(25);
-        drawText(dc, L"Telemetry stays continuous. Captures wait for GPU headroom after world and act changes, so review evidence does not stall the drop. Density changes light and cue detail—not motion time.",
+        drawText(dc, L"Telemetry stays continuous. Captures wait for GPU headroom after world and act changes, so review evidence does not stall the drop. Density changes light and cue detailâ€”not motion time.",
                  RECT{recorder.left + scale(14), y, recorder.right - scale(14), recorder.bottom - scale(66)}, smallFont_, Muted,
                  DT_LEFT | DT_TOP | DT_WORDBREAK);
         addButton(dc, RECT{recorder.left + scale(14), recorder.bottom - scale(54), recorder.right - scale(14), recorder.bottom - scale(10)},
@@ -1989,6 +2011,7 @@ private:
         else if (page_ == Page::Output) paintOutput(dc, body);
         else if (page_ == Page::Production) paintProduction(dc, body);
         else if(page_==Page::Screens)paintScreens(dc,body);
+        else if(page_==Page::Catalog)paintCatalog(dc,body);
         else paintRehearsal(dc, body);
 
         RECT footer{margin, client.bottom - margin - footerHeight, client.right - margin, client.bottom - margin};
@@ -2037,6 +2060,9 @@ private:
     bool editingDjName_{};
     int exitCode_{};
     UINT dpi_{96};
+    std::array<bool,rarestage::show::SceneCount> catalogFavorites_{};
+    std::wstring catalogQuery_;std::filesystem::path catalogPreviewPath_;HBITMAP catalogPreview_{};
+    int catalogScene_{32},catalogMode_{},catalogCategory_{},catalogPage_{};bool catalogEditing_{},catalogOnlyFavorites_{};
     Page page_{Page::Show};
     POINT cursor_{-10000, -10000};
     float animationTime_{};

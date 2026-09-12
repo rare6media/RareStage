@@ -21,9 +21,17 @@ int runPlayValidation(){
    }
   }return passed?0:28;
  }
- if(stills){if(!prepare(960,540))return 27;for(int world=24;world<32;++world)for(int mode=0;mode<10;++mode){auto c=fixture(world,5.5f,mode);drawScene(c);if(!saveBackBufferPng(output/("scene-"+std::to_string(world)+"-mode-"+std::to_string(mode)+".png")))return 27;}return 0;}
+ if(std::wcsstr(GetCommandLineW(),L"--catalog-capture")){
+  const auto directory=std::filesystem::path("RareStage-sequence-validation")/"catalog";std::filesystem::create_directories(directory);
+  if(!prepare(480,270))return 27;
+  for(int world=0;world<WorldCount;++world){int count=rarestage::show::PhraseFamily(world)>=0?rarestage::show::ProgramCount(world):1;
+   for(int mode=0;mode<count;++mode){auto c=fixture(world,5.5f,mode);c.palette=float((world/3)%8);c.phrase.enabled=rarestage::show::PhraseFamily(world)>=0?1.f:0.f;drawScene(c);
+    if(!saveBackBufferPng(directory/("scene-"+std::to_string(world)+"-mode-"+std::to_string(mode)+".png")))return 27;}
+  }return 0;
+ }
+ if(stills){if(!prepare(960,540))return 27;for(int world=24;world<rarestage::show::SceneCount;++world)for(int mode=0;mode<10;++mode){auto c=fixture(world,5.5f,mode);drawScene(c);if(!saveBackBufferPng(output/("scene-"+std::to_string(world)+"-mode-"+std::to_string(mode)+".png")))return 27;}return 0;}
  if(preview){
-  if(!prepare(960,540))return 27;const int fullWorlds[]{3,24,25,26,30,28,31,27,29,13},materialWorlds[]{0,26,27,28,29,30,31,3};const int*worlds=materials?materialWorlds:fullWorlds;
+  if(!prepare(960,540))return 27;const int fullWorlds[]{3,32,33,34,28,32,34,33,29,13},materialWorlds[]{0,26,27,28,29,30,31,3};const int*worlds=materials?materialWorlds:fullWorlds;
   for(int frame=0;frame<(materials?5760:7200);++frame){int chapter=frame/720,local=frame%720;float beat=frame/30.f;auto c=fixture(worlds[chapter],beat,(chapter*3)%10);if(worlds[chapter]<24)c.phrase.enabled=0;
    c.palette=2+frame/(materials?1371.428571f:1714.285714f);c.snare=std::exp(-std::fmod(beat+1,2.f)*12)*.5f;c.percussion=std::exp(-std::fmod(beat*2,1.f)*12)*.4f;c.bass=.25f;
    if(chapter&&local<240){c.previousScene=float(worlds[chapter-1]);c.transition=local/240.f;c.previousPhrase={float((chapter*3)%10),float((chapter*3)%10),1,worlds[chapter-1]>=24?1.f:0.f,1,1,0,0};}
@@ -38,18 +46,18 @@ int runPlayValidation(){
  bridges<<"from,to,source,target,max_delta,endpoint_error,near_endpoint_error\n";
  for(const auto size:std::array<std::array<UINT,2>,3>{{{320,180},{180,320},{480,180}}}){
   if(!prepare(size[0],size[1]))return 27;
-  for(int world=24;world<32;++world)for(int mode=0;mode<10;++mode){std::vector<float>previous;double maximum=0,movement=0,minimum=1;
+  for(int world=24;world<rarestage::show::SceneCount;++world)for(int mode=0;mode<10;++mode){std::vector<float>previous;double maximum=0,movement=0,minimum=1;
    for(int frame=0;frame<480;++frame){auto c=fixture(world,frame/30.f,mode);drawScene(c);auto now=pixels();if(now.empty())return 27;double sum=0;for(float p:now)sum+=p;minimum=std::min(minimum,sum/now.size());if(!previous.empty()){double d=delta(previous,now);maximum=std::max(maximum,d);movement+=d;}previous=std::move(now);}
    motion<<world<<','<<mode<<','<<size[0]<<','<<size[1]<<",480,"<<maximum<<','<<movement/479<<','<<minimum<<'\n';motion.flush();passed&=maximum<.06&&movement/479>.0001&&minimum>.025;
   }
  }
  if(!prepare(320,180))return 27;
- for(int world=24;world<32;++world)for(int source=0;source<10;++source)for(int target=0;target<10;++target){if(source==target)continue;std::vector<float>previous;double maximum=0;
+ for(int world=24;world<rarestage::show::SceneCount;++world)for(int source=0;source<10;++source)for(int target=0;target<10;++target){if(source==target)continue;std::vector<float>previous;double maximum=0;
   for(int frame=0;frame<=120;++frame){auto c=fixture(world,20+frame/15.f,source);c.phrase.to=float(target);c.phrase.blend=liquidProgress(frame/120.f);drawScene(c);auto now=pixels();if(!previous.empty())maximum=std::max(maximum,delta(previous,now));previous=std::move(now);}
   programs<<world<<','<<source<<','<<target<<','<<maximum<<'\n';programs.flush();passed&=maximum<.06;
  }
  // All newly introduced native edges, including new wall scenes to old favorites.
- for(int from=0;from<32;++from)for(int to=0;to<32;++to){if(from==to||std::max(from,to)<24||!rarestage::show::NativeBridge(from,to))continue;
+ for(int from=0;from<rarestage::show::SceneCount;++from)for(int to=0;to<rarestage::show::SceneCount;++to){if(from==to||std::max(from,to)<24||!rarestage::show::NativeBridge(from,to))continue;
   for(int source:{0,4,9})for(int target:{1,5,8}){std::vector<float>previous;double maximum=0,endpoint=0,nearError=0;
    for(int frame=0;frame<=120;++frame){auto c=fixture(to,20+frame/30.f,target);c.previousScene=float(from);c.previousPhrase={float(source),float(source),1,from>=24?1.f:0.f,1,1,0,0};if(to<24)c.phrase.enabled=0;c.transition=frame/120.f;if(from>=26&&to>=26){c.previousPatternSeed=52;c.patternSeed=12;}
     drawScene(c);auto now=pixels();if(!previous.empty())maximum=std::max(maximum,delta(previous,now));previous=now;

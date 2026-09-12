@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(RareStage VERSION 0.23.1 LANGUAGES CXX)
+project(RareStage VERSION 0.24.0 LANGUAGES CXX)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -62,3 +62,5 @@ install(FILES THIRD_PARTY_NOTICES.md README.md DESTINATION .)
 install(FILES assets/rare-logo.png DESTINATION assets)
 
 install(DIRECTORY "${CMAKE_BINARY_DIR}/Release/assets/shaders/" DESTINATION assets/shaders OPTIONAL)
+
+install(DIRECTORY assets/catalog/ DESTINATION assets/catalog OPTIONAL)

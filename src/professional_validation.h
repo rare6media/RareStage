@@ -37,6 +37,15 @@ int runProfessionalValidation(){
  const int themeBefore=themeMemory_.current();handleControlCommand(Command::NextTheme,PackCommand(0,102));themeMemory_.update(192,true,true);check("next_theme_preserves_hold",themeMemory_.current()!=themeBefore&&themeMemory_.held());
  settings_.syncMode=2;handleControlCommand(Command::NextTheme,PackCommand(0,103));check("follower_theme_control_rejected",lastCommandStatus_==CommandStatus::Rejected);
  settings_.syncMode=0;themeMemory_.hold(false);
+ world_=34;tempoPhase_=64;transitionStarted_=-100;identityStanza_=false;phraseConductor_.begin(34,0,0);
+ handleControlCommand(Command::SelectProgram,PackCommand(8,104));
+ check("catalog_pattern_blends_and_holds",lastCommandStatus_==CommandStatus::Accepted&&programHeld_&&phraseConductor_.sample(64).from==0&&phraseConductor_.sample(64).to==8&&phraseConductor_.sample(64).blend==0&&automatic_==autoBefore);
+ handleControlCommand(Command::SelectProgram,PackCommand(9,105));check("inflight_program_change_rejected",lastCommandStatus_==CommandStatus::Rejected);
+ tempoPhase_=72;handleControlCommand(Command::SelectProgram,PackCommand(10,106));check("out_of_range_program_rejected",lastCommandStatus_==CommandStatus::Rejected);
+ identityStanza_=true;handleControlCommand(Command::SelectProgram,PackCommand(2,107));check("identity_protects_program_cue",lastCommandStatus_==CommandStatus::Rejected);identityStanza_=false;
+ transitionStarted_=elapsed();handleControlCommand(Command::SelectProgram,PackCommand(2,108));check("handoff_protects_program_cue",lastCommandStatus_==CommandStatus::Rejected);transitionStarted_=-100;
+ settings_.syncMode=2;handleControlCommand(Command::SelectProgram,PackCommand(2,109));check("follower_program_selection_rejected",lastCommandStatus_==CommandStatus::Rejected);settings_.syncMode=0;
+ handleControlCommand(Command::ReleaseProgram,PackCommand(0,110));check("pattern_director_resumes",lastCommandStatus_==CommandStatus::Accepted&&!programHeld_);
  // Every ordered pair, at 60 fps over a two-second handoff, with authored geometry flow.
  settings_.quality=2;settings_.spout=0;settings_.vsync=0;settings_.djName=L"RARESIX";if(!rebuildIdentityTexture())return 18;resize(320,180);
  D3D11_TEXTURE2D_DESC desc{};backBuffer_->GetDesc(&desc);desc.Usage=D3D11_USAGE_STAGING;desc.BindFlags=0;desc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;desc.MiscFlags=0;

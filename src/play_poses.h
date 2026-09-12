@@ -17,7 +17,9 @@ inline float lerp(float a,float b,float w){return a+(b-a)*w;}
 inline float2 lerp(float2 a,float2 b,float w){return a+(b-a)*w;}
 inline float2 rotate2(float2 p,float a){return {std::cos(a)*p.x-std::sin(a)*p.y,std::sin(a)*p.x+std::cos(a)*p.y};}
 struct PlayPose {float2 center,size;float angle,roundness,fold;float signal{.5f};};
+#include "machine_poses.h"
 inline PlayPose playPose(float world,float mode,float id,float tempoPhase){
+ if(world>=32)return machinePose(int(world),int(mode),int(id),tempoPhase);
  PlayPose p;float u=(id+.5f)/20,side=id<10?-1:1,l=fmod(id,10),v=(l+.5f)/10;
  float t=tempoPhase*.19634954f,a=u*6.2831853f,w=sin(t),q=.5f-.5f*cos(t),st=sin(t-a);
  p.center=0;p.size=float2(.13f,.13f);p.angle=0;p.roundness=1;p.fold=0;
@@ -102,6 +104,7 @@ inline PlayPose playPose(float world,float mode,float id,float tempoPhase){
 inline PlayPose mixPlayPose(PlayPose a,PlayPose b,float w){PlayPose p;p.center=lerp(a.center,b.center,w);p.size=lerp(a.size,b.size,w);p.angle=lerp(a.angle,b.angle,w);p.roundness=lerp(a.roundness,b.roundness,w);p.fold=lerp(a.fold,b.fold,w);p.signal=lerp(a.signal,b.signal,w);return p;}
 
 inline PlayPose inheritStagePattern(PlayPose p,int world,int id,float seed,float beat){
+ if(world>=32)return p;
  // Stable addresses carry the wall's row/column vocabulary into each topology.
  // They belong to the pieces, so passing through another formation never reindexes them.
  patterns::float2 address{float(id%5-2),float(id/5-2)};
@@ -123,9 +126,23 @@ inline PlayPose program(int world,float seed,const show::PhraseFrame&state,int i
  auto a=playPose(float(world),from,float(id),beat);
  return inheritStagePattern(from==to?a:mixPlayPose(a,playPose(float(world),to,float(id),beat),blend),world,id,seed,beat);
 }
+inline float entryCost(int from,int to,float oldSeed,float seed,const show::PhraseFrame& source,float beat,int mode){
+ const show::PhraseFrame target{float(mode),float(mode),1,1,1,1,0,0};float cost=0;
+ for(int i=0;i<20;++i){const auto a=program(from,oldSeed,source,i,beat),b=program(to,seed,target,i,beat);
+  const auto av=(program(from,oldSeed,source,i,beat+.1f).center-a.center)*10;
+  const auto bv=(program(to,seed,target,i,beat+.1f).center-b.center)*10;
+  cost+=std::hypot(a.center.x-b.center.x,a.center.y-b.center.y)+.8f*std::hypot(av.x-bv.x,av.y-bv.y)+.25f*(std::abs(a.size.x-b.size.x)+std::abs(a.size.y-b.size.y));
+ }return cost/20;
+}
+inline int matchEntry(int from,int to,float oldSeed,float seed,const show::PhraseFrame& source,float beat,int preferred){
+ int choice=preferred;float best=entryCost(from,to,oldSeed,seed,source,beat,preferred);
+ for(int mode=0;mode<show::ProgramCount(to);++mode){float cost=entryCost(from,to,oldSeed,seed,source,beat,mode)+.06f;
+  if(cost<best){choice=mode;best=cost;}}
+ return choice;
+}
 inline void prepare(int world,int previous,float seed,float oldSeed,const show::PhraseFrame&state,const show::PhraseFrame&old,float beat,float transition,float identity,std::array<std::array<float,4>,40>&data,std::array<float,20>&signals){
  for(int id=0;id<20;++id){auto p=program(world,seed,state,id,beat);
-  if(previous>=26&&previous<32&&previous!=world)p=mixPlayPose(program(previous,oldSeed,old,id,beat),p,show::PhraseEase(transition));
+  if(previous>=26&&previous<show::SceneCount&&previous!=world)p=mixPlayPose(program(previous,oldSeed,old,id,beat),p,show::PhraseEase(transition));
   const float settle=show::PhraseEase(identity);float2 grid{(float(id%5)-2)*.39f,(float(id/5)-1.5f)*.49f};
   p.center=lerp(p.center,grid,settle);p.size=lerp(p.size,float2(.197f,.248f),settle);p.angle*=1-settle;p.roundness*=1-settle;
   data[id*2]={p.center.x,p.center.y,p.size.x,p.size.y};data[id*2+1]={std::cos(p.angle),std::sin(p.angle),p.roundness,p.fold};

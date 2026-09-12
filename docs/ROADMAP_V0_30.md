@@ -94,7 +94,7 @@ The 100+ target does not relax the 4K/120 qualification criteria. Catalog size s
 | **0.21** | **Implemented: Show Composer combined update** | Shared wall/ribbon bridges, three new scenes, conditional branches, recurring themes, theme controls and route cost estimates. |
 | **0.22** | **Implemented core: Phrase Conductor** | Distinct non-wall ensembles establish, repeat, answer and resolve; new scenes must add a different visual language. |
 | **0.23** | **Implemented content slice: Kinetic Playgrounds** | Eight new scenes with ten programs each, more native handoffs and frame-bounded material transport. Musical-timeline evaluation and the full catalog foundation remain open. |
-| **0.24** | Conditional show planning | Builds have prepared continuations for a drop, a continued build or a breakdown. |
+| **0.24** | **Implemented: Choreography Sequences and Catalog** | Cross-scene motifs, measured object-entry matching, three machine scenes with 30 programs, searchable catalog, favorites and previews. Musical corpus evaluation remains open. |
 | **0.25** | Internal rehearsal | Candidate routes are checked before appearing live. Ribbon Racetrack exercises continuous spatial journeys. |
 | **0.26** | Composition feedback | The Director rejects or gently corrects unintended flicker, broken formations and overloaded compositions. |
 | **0.27** | Set memory and visual callbacks | A show develops recognizable themes over time. Kinetic Monument and Tension Loom add new interpretations. |
