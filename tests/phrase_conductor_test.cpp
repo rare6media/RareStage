@@ -74,6 +74,30 @@ int main(){
   everyProgramMoves&=travel/20>.10;
  }
  check("every_object_program_moves_geometry_without_audio_or_lighting",everyProgramMoves);
+ bool vocabulary=true;const int motif[]{0,0,1,8,1,9,0,8,2,2,3,10,3,11,2,10};
+ for(int seed=0;seed<64;++seed)for(int step=0;step<256;++step)vocabulary&=rarestage::patterns::authoredMotif(float(step),float(seed))==float((seed+motif[step%16])%16);
+ check("shared_wall_motif_sequence_preserved",vocabulary);
+ bool fieldBounds=true;float seamDelta=0;
+ for(int seed=0;seed<16;++seed)for(int id=0;id<20;++id)for(int step=0;step<128;++step){
+  rarestage::patterns::float2 address{float(id%5-2),float(id/5-2)};float beat=step*8.f;
+  auto a=rarestage::patterns::sample(float(seed),address,beat+.001f),b=rarestage::patterns::sample(float(seed),address,std::max(0.f,beat-.001f));
+  fieldBounds&=std::isfinite(a.row)&&std::abs(a.row)<=2.21f&&std::abs(a.column)<=.86f&&a.signal>=0&&a.signal<=1;
+  seamDelta=std::max(seamDelta,std::max(std::abs(a.row-b.row),std::max(std::abs(a.column-b.column),std::abs(a.signal-b.signal))));
+ }
+ check("shared_fields_remain_bounded_at_motif_joins",fieldBounds&&seamDelta<.01f);
+ bool inheritedBounds=true;double inheritedSpeed=0,travelDifference=0;
+ for(int world=26;world<32;++world)for(int mode=0;mode<10;++mode)for(int seed:{0,7,10,15})for(int id=0;id<20;++id)for(int frame=0;frame<480;++frame){
+  float beat=frame/30.f;PhraseFrame state{float(mode),float(mode),1,1,1,1,0,0};
+  auto a=rarestage::play::program(world,float(seed),state,id,beat),b=rarestage::play::program(world,float(seed),state,id,beat+1.f/30);
+  auto base=rarestage::play::playPose(float(world),float(mode),float(id),beat);
+  inheritedBounds&=std::isfinite(a.center.x)&&std::isfinite(a.center.y)&&std::abs(a.center.x)<1.4f&&std::abs(a.center.y)<1.4f&&a.signal>=0&&a.signal<=1;
+  inheritedSpeed=std::max(inheritedSpeed,double(std::hypot(b.center.x-a.center.x,b.center.y-a.center.y)*30));
+  travelDifference+=std::hypot(a.center.x-base.center.x,a.center.y-base.center.y);
+ }
+ check("wall_patterns_change_geometry_with_bounded_motion",inheritedBounds&&inheritedSpeed<1.8&&travelDifference>100);
+ bool linkedRows=true;float rowTravel=0;
+ for(int id=0;id<10;++id){auto base=rarestage::play::playPose(28,0,float(id),2);auto moved=rarestage::play::inheritStagePattern(base,28,id,0,2);float offset=moved.center.x-base.center.x;if(id==0)rowTravel=offset;linkedRows&=std::abs(offset-rowTravel)<.00001f;}
+ check("domino_row_inherits_one_coordinated_wall_stroke",linkedRows&&std::abs(rowTravel)>.02f);
  auto longRun=rarestage::play::playPose(27,1,19,10000);check("long_sets_do_not_accumulate_blend_spins",std::abs(longRun.angle)<7);
  invalid={9,9,1,1,1,1,0,0};check("program_range_matches_network_scene",ValidPhraseForScene(invalid,24)&&!ValidPhraseForScene(invalid,8));
  return passed?0:1;

@@ -4,9 +4,21 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.23.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.23.1**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.23.1
+
+**Pattern Materials** carries the Stagewall and Morph Wall pattern vocabulary into six object scenes. The catalog remains at 32 scenes.
+
+- The wall shader and object choreography now compile the same sixteen authored patterns: row waves, opposing groups, column travel, ripples, chevrons, radial sweeps and checker exchanges. Their phase and smooth motif changes follow the existing musical clock.
+- Orbit Relay bends these patterns around its discs; Iris Bloom opens and turns its petals; Domino Circuit slides complete rows; Elastic Loom exchanges ribbon banks; Pendulum Choir coordinates swinging groups; Magnetic Assembly shifts and docks its plates.
+- Each scene has a different stylized material response: satin discs, folded iridescent petals, enamel cards, directional metal ribbons, ceramic tokens and brushed plates. Surface properties interpolate with the pieces during native scene handoffs.
+- The six scenes keep their ten base formation programs. Shared pattern motion and lighting add another layer of development. Stagewall, Morph Wall and Panel Cascade retain their existing geometry and shading.
+- Pattern samples are prepared on the CPU with the object poses. The GPU receives twenty extra signal values, keeping the added per-pixel work small. Console v18 and UDP v6 formats remain compatible; use the matching bundle for consistent visuals.
+
+See [pattern reuse, materials and validation](docs/PATTERN_MATERIALS.md). Complete 4K/120 output qualification and full-song listening review remain open.
 
 ## What changed in 0.23.0
 

@@ -49,6 +49,8 @@ The v0.22 choreography milestone should develop these different visual families 
 
 The user's latest direction prioritizes appealing, readable actions and smoother handoffs. **Kinetic Playgrounds** adds eight scenes and 80 programs, scene-specific program counts, CPU preparation of object poses, 56 additional directed native bridges, frame-bounded fallback transport and a Console layout for 32 scenes. See [the scene guide and validation](KINETIC_PLAYGROUNDS.md). This is a content and continuity slice of v0.23. It does not implement a new musical classifier, a searchable 100-scene browser or live image rehearsal; those remain open below.
 
+The v0.23.1 material revision compiles the existing wall vocabulary for six object topologies, with scene-specific surface responses and material interpolation during their native handoffs. The catalog remains at 32 scenes. See [Pattern Materials](PATTERN_MATERIALS.md).
+
 ## Catalog expansion: 100+ scenes, 10+ patterns each
 
 ### What counts
