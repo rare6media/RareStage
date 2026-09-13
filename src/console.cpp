@@ -222,7 +222,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.26.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.27.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -268,7 +268,7 @@ public:
     }
 
     bool captureScreenUiTest(){
-        const UINT oldDpi=dpi_;destroyFonts();dpi_=96;createFonts();connected_=true;state_.monitorCount=8;state_.monitor=0;state_.mirrorMask=6;state_.mirrorCount=2;state_.displayOutputStatus=1;
+        const UINT oldDpi=dpi_;destroyFonts();dpi_=96;createFonts();connected_=true;wcsncpy_s(state_.motionIntention,L"FINISHING THE FORMATION / NEXT IN 8 BEATS",_TRUNCATE);state_.monitorCount=8;state_.monitor=0;state_.mirrorMask=6;state_.mirrorCount=2;state_.displayOutputStatus=1;
         for(int n=0;n<8;++n)swprintf_s(state_.displayNames[n],L"DISPLAY %d  /  %d x %d",n+1,n==1?1080:1920,n==1?1920:1080);
         BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=1280;info.bmiHeader.biHeight=-640;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
         void*pixels=nullptr;HDC dc=CreateCompatibleDC(nullptr);HBITMAP bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,nullptr,0);if(!bitmap||!pixels){if(bitmap)DeleteObject(bitmap);DeleteDC(dc);return false;}
@@ -282,6 +282,8 @@ public:
         fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintCatalog(dc,RECT{12,12,1268,628});GdiFlush();
         for(const auto& target:targets_)if(target.rect.left<12||target.rect.right>1268||target.rect.top<12||target.rect.bottom>628||target.rect.bottom<=target.rect.top)ok=false;
         std::ofstream catalogOutput("RareStage-catalog-ui.bmp",std::ios::binary);catalogOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));catalogOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));catalogOutput.write(static_cast<const char*>(pixels),1280*640*4);ok&=catalogOutput.good();
+        fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintMix(dc,RECT{12,12,1268,628});GdiFlush();
+        std::ofstream mixOutput("RareStage-director-ui.bmp",std::ios::binary);mixOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));mixOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));mixOutput.write(static_cast<const char*>(pixels),1280*640*4);ok&=mixOutput.good();
         SelectObject(dc,old);DeleteObject(bitmap);DeleteDC(dc);connected_=false;destroyFonts();dpi_=oldDpi;createFonts();return ok;
     }
 
@@ -1506,7 +1508,7 @@ private:
         auto branchName=[&](int world)->std::wstring{return connected_&&world>=0&&world<int(WorldNames.size())?WorldNames[world]:L"preparing";};
         drawText(dc,std::wstring(rarestage::show::SequenceRoles[std::clamp(state_.sequenceRole,0,4)])+L" / "+rarestage::show::GestureNames[std::clamp(state_.sequenceGesture,0,5)]+L" > "+branchName(state_.composerContinue),RECT{decision.left+scale(14),decision.top+scale(31),decision.right-scale(14),decision.top+scale(56)},smallFont_,Cyan);
         drawText(dc,L"DROP  "+branchName(state_.composerDrop)+L"  /  BREAK  "+branchName(state_.composerBreak),RECT{decision.left+scale(14),decision.top+scale(56),decision.right-scale(14),decision.top+scale(81)},smallFont_,Purple);
-        drawText(dc,connected_&&state_.directorReason[0]?state_.directorReason:L"DIRECTOR TELEMETRY STARTING",RECT{decision.left+scale(14),decision.top+scale(81),decision.right-scale(14),decision.bottom-scale(5)},smallFont_,Muted);
+        drawText(dc,connected_&&state_.motionIntention[0]?state_.motionIntention:L"DIRECTOR TELEMETRY STARTING",RECT{decision.left+scale(14),decision.top+scale(81),decision.right-scale(14),decision.bottom-scale(5)},smallFont_,Muted);
 
     }
 

@@ -21,7 +21,8 @@ inline int HandoffStyle(int from,int to){
 struct Context {
  int current{}, section{}, category{}, sequence{}, preferred{-1};
  float energy{}, trend{};
- std::array<float,SceneCount> fit{}, routeAdjustment{};
+ std::array<float,SceneCount> fit{}, routeAdjustment{}, imageAdjustment{};
+ std::array<bool,SceneCount> shortlist{};bool boundedNext{};
 };
 struct Plan {int next{-1},then{-1},alternative{-1};float score{-10000},runner{-10000};};
 class Director {
@@ -39,10 +40,10 @@ public:
   const bool contrast=familyRun_>=2;
   // Compare complete next/develop-or-release routes, not only the best immediate scene.
   for(int next=0;next<int(Scenes.size());++next){
-   if(next==c.current||!allowed(next))continue;
+   if(next==c.current||!allowed(next)||(c.boundedNext&&!c.shortlist[next]))continue;
    const auto&n=Scenes[next];
    const bool same=n.motion==Scenes[c.current].motion;
-   float immediate=c.fit[next]+c.routeAdjustment[next]+Compatibility(c.current,next)*.65f-fatigue(next);
+   float immediate=c.fit[next]+c.routeAdjustment[next]+c.imageAdjustment[next]+Compatibility(c.current,next)*.65f-fatigue(next);
    immediate-=std::log1p(float(exposure_[next]))*.38f+std::log1p(float(edges_[c.current][next]))*.48f;
    immediate+=contrast?(same?-.78f:.38f):(same?.22f:0.f);
    if(c.section==1)immediate-=std::max(0.f,n.energy-.62f)*1.8f; // reserve the peak

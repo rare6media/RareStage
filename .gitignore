@@ -57,4 +57,7 @@ RareStage-v21-*.json
 /RareStage-motion-validation/
 /RareStage-director-validation/
 /RareStage-catalog-ui.bmp
+/RareStage-director-ui.bmp
+/RareStage-rehearsal-contract.md
+/tests/audio_trace_contract.analysis.txt
 /assets/catalog/

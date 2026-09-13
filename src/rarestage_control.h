@@ -9,11 +9,11 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v21";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v22";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
 inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
-inline constexpr std::uint32_t ProtocolVersion = 21;
+inline constexpr std::uint32_t ProtocolVersion = 22;
 inline constexpr std::uint32_t WorldCount = rarestage::show::SceneCount;
 inline constexpr std::uint32_t SectionCount = 5;
 inline constexpr std::uint32_t PaletteCount = 8;
@@ -246,6 +246,10 @@ struct alignas(64) SharedState {
     std::int32_t theme{}, themeHeld{}, composerContinue{-1}, composerDrop{-1}, composerBreak{-1};
     float routeEstimatedMs{}, routeContinuity{};
     std::int32_t routeMeasured{};
+    std::int32_t motionAct{},visualRehearsalState{},visualCandidatesReady{};
+    float actionExitBeats{},visualRehearsalMs{};
+    std::uint32_t visualFramesSubmitted{},visualBatchesDiscarded{},visualBudgetSkips{};
+    wchar_t motionIntention[96]{};
     wchar_t themeName[48]{};
     wchar_t worldName[48]{};
     wchar_t directorReason[96]{};

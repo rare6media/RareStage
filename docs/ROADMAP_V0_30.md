@@ -12,6 +12,25 @@ The Director's next implementation should represent actions in progress, recogni
 
 The approved v0.25 implementation now adds Contour Currents, Ribbon Braid and Radial Fans with ten programs each, and excludes all seven rejected scenes from automatic routes while retaining manual access. It replaces the initial prototype order with a complete three-family comparison. See [Graphic Worlds](GRAPHIC_WORLDS.md) for exact behavior and validation. Rich action planning, live image rehearsal and the 100+ scene target remain open.
 
+## Delivered v0.26 and v0.27 slices
+
+**v0.26 Motion Worlds** adds Optical Weave, Iris Assembly, Shape Exchange and
+Orbit Press with ten programs each. Four directed routes have persistent piece
+correspondence. The catalog reaches 42 scenes, 35 auto eligible, 228 named
+programs and sixteen continuous scenes. See [exact visual scope](MOTION_WORLDS.md).
+
+**v0.27 Phrase-Aware Director** brings forward gesture timing contracts and the
+bounded image-preflight portion of the original v0.25/v0.26 milestones below.
+Two candidate handovers receive five small production renders each when GPU
+headroom allows. Image penalties, context invalidation, operator precedence and
+entry-program reuse are implemented. See [behavior and evidence](PHRASE_AWARE_DIRECTOR.md).
+
+These are implementation slices. The original milestone numbering below remains
+for traceability. Held-out musical evaluation, blinded aesthetic comparisons,
+scene-native identity beyond mask reveals, richer callbacks, physical output
+qualification and the 100+ / 10+ catalog minimum are still open. Neither release
+claims the original research and performance exit criteria are complete.
+
 ## The destination
 
 By v0.30.0, Smart Director should compose a coherent live performance: establish a visual theme, develop it across worlds, rehearse several possible musical outcomes, commit on confirmed evidence, and evaluate the resulting composition. Scene changes should preserve the movement and intention of the outgoing scene.

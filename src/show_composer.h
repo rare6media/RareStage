@@ -72,6 +72,7 @@ public:
   source_=context.current;category_=context.category;revision_=revision;builtAt_=beat;
   const int sections[3]={context.section==2||context.section==3?4:context.section,2,3};
   for(int i=0;i<3;++i){branches_[i].section=sections[i];Context branch=context;branch.section=sections[i];
+   if(branch.section!=context.section){branch.boundedNext=false;branch.imageAdjustment.fill(0);}
    float target=sections[i]==2?.75f:sections[i]==3?.28f:context.energy;
    for(int scene=0;scene<SceneCount;++scene)branch.fit[scene]+=std::abs(Scenes[scene].energy-context.energy)*.6f-std::abs(Scenes[scene].energy-target)*.9f;
    branches_[i].route=director.plan(branch);

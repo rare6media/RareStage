@@ -71,6 +71,7 @@ class PhraseConductor {
  float began_{},changed_{-100},duration_{8};PhraseFrame state_{};
  std::array<float,3> source_{{1,1,0}},target_{{1,1,0}};
 public:
+ float settledAt()const{return changed_+duration_;}
  int scene()const{return scene_;}PhraseAction action()const{return PhraseAction(int(state_.action));}
  void begin(int scene,int seed,float beat){
   scene_=scene;boundary_=int(std::floor(beat/8));repeat_=turn_=0;lastSectionRevision_=-1;began_=beat;changed_=beat-8;

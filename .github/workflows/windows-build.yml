@@ -19,14 +19,14 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -A x64
       - name: Build
-        run: cmake --build build --config Release --target RareStage RareStageConsole RareStageProtocolTests RareStagePhraseTests --parallel
+        run: cmake --build build --config Release --target RareStage RareStageConsole RareStageProtocolTests RareStagePhraseTests RareStageMotionTests RareStageActionTests --parallel
       - name: Verify Windows identity metadata
         shell: pwsh
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.26.0") {
-              throw "$binary is missing the expected publisher or v0.26.0 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.27.0") {
+              throw "$binary is missing the expected publisher or v0.27.0 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -59,6 +59,14 @@ jobs:
           }
       - name: Control protocol tests
         run: ctest --test-dir build -C Release --output-on-failure
+      - name: Phrase-aware Director and isolated visual rehearsal
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--director-render-test" -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Director render integration failed: $($process.ExitCode)" }
+          $checks = @(Import-Csv RareStage-director-validation/contracts.csv)
+          if ($checks.Count -lt 80 -or @($checks | Where-Object passed -ne '1').Count -ne 0) { throw "Incomplete or failed Director integration contracts" }
+          if (@(Import-Csv RareStage-director-validation/rehearsals.csv).Count -ne 60) { throw "Expected 60 production rehearsal samples" }
       - name: Phrase conductor render and bank geometry contracts
         shell: pwsh
         run: |
@@ -301,7 +309,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.26.0"
+            version = "0.27.0"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -323,6 +331,8 @@ jobs:
             RareStage-SHA256SUMS.txt
             RareStage-build-provenance.json
             RareStage-motion-reference.csv
+            RareStage-director-validation/*.csv
+            RareStage-director-validation/stills/*.png
             RareStage-world-reference.csv
             RareStage-director2-reference.csv
             RareStage-production-pack-reference.csv
@@ -344,6 +354,7 @@ jobs:
             build/RareStage-phrase-contracts.csv
             build/RareStage-entry-matching.csv
             RareStage-catalog-ui.bmp
+            RareStage-director-ui.bmp
             RareStage-ensemble-validation/*.csv
             RareStage-ensemble-validation/scene-*.png
             RareStage-performance-validation/*.csv
@@ -356,14 +367,14 @@ jobs:
             RareStage-rehearsal-contract.csv
             RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.26.0 release
+      - name: Publish v0.27.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.26.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.26.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.27.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.27.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.26.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.26.0 — Motion Worlds" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.27.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.27.0 — Phrase-Aware Director" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

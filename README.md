@@ -4,9 +4,25 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.26.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.27.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.27.0
+
+**Phrase-Aware Director** lets a program finish its formation before a beat-aligned
+departure. It prepares two candidate handovers through the production renderer
+at low resolution, when measured GPU capacity permits. Completed image checks
+can influence the continuation and supply its entry program. Holds, changed
+context and GPU pressure cancel or skip background work.
+
+The Console shows the current motion intention and departure countdown. Music-fit
+scoring now includes the four Motion Worlds. This is deterministic, local planning
+with bounded composition heuristics; no model inference or runtime token use.
+
+Includes all v0.26 scenes and programs. Use matching Stage and Console protocol 22;
+network protocol 9 remains unchanged. See [behavior, validation and limitations](docs/PHRASE_AWARE_DIRECTOR.md).
+Actual-song comparison and complete multi-screen 4K/120 qualification remain open.
 
 ## What changed in 0.26.0
 
