@@ -1,7 +1,7 @@
 // Filled 2D fields: bounded analytic work, no per-object allocation or texture history.
 R"HLSL(
 struct GraphicInk {float distance;float3 color;};
-bool isGraphicWorld(float world){return world>=35&&world<38;}
+bool isGraphicWorld(float world){return world>=35&&world<42;}
 struct GraphicFold {float2 sourcePoint;float2 destinationPoint;float weight;};
 GraphicFold graphicFold(float2 p){
  GraphicFold fold;float aspect=resolution.x/resolution.y,w=liquidEase(transition),arc=sin(w*3.141592);
@@ -107,7 +107,11 @@ GraphicInk graphicRadial(float2 p,float3 modes){
  }
  return ink;
 }
+)HLSL"
+#include "motion_worlds.h"
+R"HLSL(
 GraphicInk graphicField(float2 p,float world,bool old){
+ if(world>=38)return motionField(p,world);
  float3 modes=graphicModes(old);
  if(world<35.5)return graphicContours(p,modes);
  if(world<36.5)return graphicRibbons(p,modes);
@@ -125,7 +129,8 @@ float3 shadeGraphic(GraphicInk ink){
 }
 float3 graphicWorld(float2 p,float world){
  float3 result;
- if(isGraphicWorld(previousScene)&&previousScene!=world&&transition<1){
+ if(world>=38){result=shadeGraphic(graphicField(p,world,false));}
+ else if(isGraphicWorld(previousScene)&&previousScene<38&&previousScene!=world&&transition<1){
   GraphicFold fold=graphicFold(p);
   // A narrow moving fold preserves connected silhouettes through the handover.
   // Intersecting two unrelated distance fields would fragment both compositions.

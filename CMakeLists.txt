@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(RareStage VERSION 0.25.0 LANGUAGES CXX)
+project(RareStage VERSION 0.26.0 LANGUAGES CXX)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -38,6 +38,11 @@ if(MSVC)
   target_compile_options(RareStagePhraseTests PRIVATE /W4 /permissive- /EHsc /utf-8)
 endif()
 add_test(NAME RareStagePhraseConductor COMMAND RareStagePhraseTests)
+
+add_executable(RareStageMotionTests tests/motion_worlds_test.cpp)
+target_compile_features(RareStageMotionTests PRIVATE cxx_std_20)
+target_include_directories(RareStageMotionTests PRIVATE src)
+add_test(NAME RareStageMotionWorlds COMMAND RareStageMotionTests)
 
 option(RARESTAGE_ENABLE_SPOUT "Build the clean Spout2 stage-output sender" ON)
 if(RARESTAGE_ENABLE_SPOUT)

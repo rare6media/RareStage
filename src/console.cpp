@@ -222,7 +222,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.25.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.26.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);

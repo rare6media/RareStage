@@ -19,6 +19,11 @@ float2 boundedMaterialPoint(float2 p,float2 proposed,float2 aspect){
  float2 margin=max(aspect*.5-abs(p),.00001),movement=proposed-p;
  return p+movement/(1+abs(movement)/margin);
 }
+float4 psGraphic(O i):SV_TARGET{
+ float2 p=(i.uv-.5)*float2(resolution.x/resolution.y,1);
+ p.x+=sin(p.y*4-tempoPhase*.19635)*themeBraid*.018;p=rotate2(p,themeFan*.035*sin(tempoPhase*.098175));p.y+=sin(p.x*3+tempoPhase*.098175)*themeOrbit*.022;
+ return float4(graphicWorld(p,scene),1);
+}
 float4 ps(O i):SV_TARGET{
  float2 p=(i.uv-.5)*float2(resolution.x/resolution.y,1);
  return float4(renderWorld(p,scene,patternSeed,morphPad0),1);

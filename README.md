@@ -4,9 +4,21 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.25.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.26.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.26.0
+
+**Motion Worlds** adds Optical Weave, Iris Assembly, Shape Exchange and Orbit Press,
+with ten geometric programs each. Bands exchange with solid shapes; curved blades
+reform into nested arcs on four authored routes with persistent piece correspondence.
+Graphic-only draws use a dedicated shader and new poses are prepared once per frame.
+
+The catalog now contains 42 scenes (35 auto eligible), 228 named programs and 244
+previews. Use matching Console protocol 21 and network protocol 9. See
+[Motion Worlds](docs/MOTION_WORLDS.md) for behavior, validation commands and limits.
+Full-song listening and complete 4K/120 output qualification remain open.
 
 ## What changed in 0.25.0
 

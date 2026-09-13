@@ -52,5 +52,9 @@ RareStage-v21-*.json
 /integrate_graphics.py
 /RareStage-graphic-validation/
 /build-v25.log
+/build-v26.log
+/build-v27.log
+/RareStage-motion-validation/
+/RareStage-director-validation/
 /RareStage-catalog-ui.bmp
 /assets/catalog/
