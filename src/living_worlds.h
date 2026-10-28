@@ -20,6 +20,49 @@ float3 formationColor(float3 primary,float3 accent,float3 spectral,float lane,fl
  float3 base=lerp(primary,spectral,smoothstep(.28,.76,colorWave));
  return lerp(base,accent,smoothstep(.60,.97,signal)*(.3+.32*colorWave));
 }
+)HLSL"
+R"HLSL(
+// Shared lighting doctrine: unlit surfaces hold near-black silhouettes; light arrives as sharp
+// tempo-travelling bands; kick transients live only on beveled edges and add nothing elsewhere.
+static const float ambientCeiling=.028;
+float3 clampAmbient(float3 ambient){
+ float peak=max(max(ambient.r,ambient.g),ambient.b);
+ return ambient*min(1,ambientCeiling/max(peak,.0001));
+}
+float2 tempoBandPosition(float beats,float2 axis,float beatsPerSweep,float extent){
+ float2 direction=length(axis)>.0001?normalize(axis):float2(0,1);
+ return direction*((frac(beats/max(beatsPerSweep,.25))*2-1)*extent);
+}
+float directionalLightBand(float2 p,float2 axis,float2 position,float width,float gamma){
+ float2 direction=length(axis)>.0001?normalize(axis):float2(0,1);
+ float distanceToBand=abs(dot(p-position,direction));
+ return pow(exp(-distanceToBand/max(width,.002)),max(gamma,8));
+}
+float3 bandLitColor(float3 ambient,float3 hue,float band,float intensity){
+ return clampAmbient(ambient)+hue*(band*intensity);
+}
+float transientSpike(float kickValue,float onsetValue){
+ return smoothstep(.42,.92,max(kickValue,onsetValue*.85));
+}
+float bevelEdge(float2 local,float2 halfSize,float bevelWidth){
+ float2 slope=saturate(1-(halfSize-abs(local))/max(bevelWidth,.0005));
+ return max(slope.x,slope.y);
+}
+float3 bevelNormal(float2 local,float2 halfSize,float bevelWidth){
+ float2 slope=saturate(1-(halfSize-abs(local))/max(bevelWidth,.0005));
+ return normalize(float3(slope*sign(local),1.15-max(slope.x,slope.y)));
+}
+float transientRimSpecular(float2 local,float2 halfSize,float bevelWidth,float spike){
+ float edge=bevelEdge(local,halfSize,bevelWidth);
+ float3 half_vector=normalize(normalize(float3(-.38,.52,.76))+float3(0,0,1));
+ float highlight=pow(saturate(dot(bevelNormal(local,halfSize,bevelWidth),half_vector)),48);
+ return highlight*smoothstep(0,.2,edge)*saturate(spike);
+}
+float3 transientRimEmissive(float2 local,float2 halfSize,float bevelWidth,float spike,float3 tint){
+ return tint*transientRimSpecular(local,halfSize,bevelWidth,spike);
+}
+)HLSL"
+R"HLSL(
 struct WallSurface {float2 center,local,scale,materialPoint,id;float width,height,face,edge,side,signal,pixels,stage,join;};
 WallSurface wallSurface(float2 p,float world,float seed,float opening){
  WallSurface g;
@@ -106,6 +149,7 @@ float3 choreographyWall(float2 p,float world,float3 primary,float3 accent,float3
  c+=g.side*hue*(.05+.08*support)+g.edge*lerp(hue,accent,.25)*(.045+.1*hatHit+.06*snareHit);
  float bevel=glassHighlight(g.local,float2(g.width,g.height))*g.face*(1-settle);
  c+=bevel*lerp(primary,accent,.3)*g.stage*(.04+.05*pressure);
+ c+=g.face*(1-settle)*response*transientRimEmissive(g.local,float2(g.width,g.height),min(g.width,g.height)*.24,transientSpike(kick,onset),lerp(primary,accent,.5)*1.6);
  c+=g.face*g.stage*band*accent*(.065+.1*pressure)*(1-puzzleAmount)*(1-settle);
  float formation=settle*mask;
  c+=g.face*g.pixels*lerp(primary,accent,.3)*(.045*support*(1-settle)*(1-g.stage)+formation*(.82+.26*pressure+.12*snareHit));

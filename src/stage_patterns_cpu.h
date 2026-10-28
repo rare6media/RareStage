@@ -5,7 +5,8 @@
 namespace rarestage::patterns {
 struct float2 { float x,y; };
 namespace {
-using std::sin;using std::cos;using std::floor;using std::abs;using std::atan2;using std::fmod;
+using std::sin;using std::cos;using std::floor;using std::abs;using std::atan2;using std::fmod;using std::pow;
+float saturate(float v){return std::clamp(v,0.f,1.f);}
 float length(float2 v){return std::hypot(v.x,v.y);}
 float max(float a,float b){return std::max(a,b);}
 float frac(float v){return v-std::floor(v);}

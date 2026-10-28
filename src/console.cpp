@@ -55,9 +55,7 @@ constexpr std::array<const wchar_t*, rarestage::control::SectionCount> SectionNa
 constexpr std::array<const wchar_t*, rarestage::control::ProfileCount> ProfileNames{
     L"CALM", L"BALANCED", L"STAGE", L"AGGRESSIVE"
 };
-constexpr std::array<const wchar_t*, rarestage::control::PaletteCount> PaletteNames{
-    L"RARE CYAN", L"NEBULA", L"SAKURA", L"SOLAR", L"LASER LIME", L"CORAL ICE", L"ULTRAVIOLET", L"ELECTRIC GOLD"
-};
+const auto PaletteNames=[](){std::array<const wchar_t*,rarestage::control::PaletteCount> names{};for(size_t i=0;i<names.size();++i)names[i]=rarestage::show::Palettes[i].name;return names;}();
 constexpr std::array<const wchar_t*, rarestage::control::PresetCount> PresetNames{
     L"CLEAN OPEN", L"MELODIC BLOOM", L"RARE DROP", L"GLITCH FINALE"
 };
@@ -160,7 +158,8 @@ enum class Action {
     TempoAnchor,
     DjIdentity,
     QuitStage,
-    CatalogSearch,CatalogClear,CatalogFilter,CatalogFavorites,CatalogSelect,CatalogStar,CatalogPage,CatalogMode,CatalogApply,CatalogResume
+    CatalogSearch,CatalogClear,CatalogFilter,CatalogFavorites,CatalogSelect,CatalogStar,CatalogPage,CatalogMode,CatalogApply,CatalogResume,
+    AutoColor,ShowCategory,ShowPage,ShowFollow
 };
 
 struct HitTarget {
@@ -222,7 +221,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.27.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.29.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -277,7 +276,11 @@ public:
         BITMAPFILEHEADER file{};file.bfType=0x4d42;file.bfOffBits=sizeof(file)+sizeof(BITMAPINFOHEADER);file.bfSize=file.bfOffBits+1280*640*4;
         std::ofstream output("RareStage-screens-ui.bmp",std::ios::binary);output.write(reinterpret_cast<const char*>(&file),sizeof(file));output.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));output.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&output.good();
         fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();
-        int worldButtons=0;for(const auto&target:targets_)if(target.action==Action::World){++worldButtons;if(target.value<0||target.value>=int(WorldNames.size())||target.rect.bottom>628||target.rect.top<12||target.rect.right>1268||target.rect.bottom<=target.rect.top)ok=false;}
+        int worldButtons=0;{const int pagesAll=showPageCount();
+          // Every page must stay inside the frame, and together the pages must reach every scene exactly once.
+          for(int page=0;page<pagesAll;++page){showCategory_=0;showPage_=page;showFollow_=false;fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();
+           for(const auto&target:targets_)if(target.action==Action::World){++worldButtons;if(target.value<0||target.value>=int(WorldNames.size())||target.rect.bottom>628||target.rect.top<12||target.rect.right>1268||target.rect.bottom<=target.rect.top)ok=false;}}
+          showPage_=0;showFollow_=true;fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();}
         ok=ok&&worldButtons==int(WorldNames.size());std::ofstream showOutput("RareStage-worlds-ui.bmp",std::ios::binary);showOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));showOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));showOutput.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&showOutput.good();
         fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintCatalog(dc,RECT{12,12,1268,628});GdiFlush();
         for(const auto& target:targets_)if(target.rect.left<12||target.rect.right>1268||target.rect.top<12||target.rect.bottom>628||target.rect.bottom<=target.rect.top)ok=false;
@@ -1074,6 +1077,10 @@ private:
                 case Action::ProductionDuty: send(Command::ApplyProductionDuty, target.value, ProductionDutyNames[target.value] + std::wstring(L" production duty")); break;
                 case Action::SyncMode: send(Command::SetSyncMode, target.value, SyncModeNames[target.value] + std::wstring(L" sync mode")); break;
                 case Action::EditDjName: editingDjName_ = true; djNameBuffer_ = state_.djName[0] ? state_.djName : L"RARE"; statusText_ = L"Type the DJ name, then press Enter to apply."; SetFocus(window_); break;
+                case Action::AutoColor: send(Command::SetAutoColor, flag(rarestage::control::AutoColor) ? 0 : 1, L"auto colour direction"); break;
+                case Action::ShowCategory: showCategory_ = target.value; showPage_ = 0; showFollow_ = true; break;
+                case Action::ShowPage: {const int pages = showPageCount(); showPage_ = (showPage_ + target.value + pages) % pages; showFollow_ = false; break;}
+                case Action::ShowFollow: showCategory_ = 0; showFollow_ = true; break;
                 case Action::SceneCategory: send(Command::SetSceneCategory, target.value, SceneCategoryNames[target.value] + std::wstring(L" scene category")); break;
                 case Action::TempoAnchor: send(Command::SetTempoAnchor, target.value, TempoAnchorNames[target.value] + std::wstring(L" tempo anchor")); break;
                 case Action::DjIdentity: send(Command::SetDjIdentityVisible, flag(rarestage::control::DjIdentityVisible) ? 0 : 1, L"identity choreography"); break;
@@ -1319,6 +1326,17 @@ private:
     }
 
 #include "catalog_console.h"
+    bool inShowCategory(int scene, int category) const {
+        const int family = rarestage::show::Scenes[scene].category;
+        return category == 0 || (category <= 4 && family == category - 1) || (category == 5 && catalogFavorites_[scene]);
+    }
+    std::vector<int> showScenes() const {
+        std::vector<int> scenes;
+        for (int id = 0; id < int(WorldNames.size()); ++id) if (inShowCategory(id, showCategory_)) scenes.push_back(id);
+        return scenes;
+    }
+    int showPageCount() const { return std::max(1, (int(showScenes().size()) + ShowPerPage - 1) / ShowPerPage); }
+
     void paintShow(HDC dc, RECT body) {
         const int gap = scale(12);
         const int leftWidth = static_cast<int>((body.right - body.left) * 0.63f);
@@ -1331,22 +1349,63 @@ private:
         addButton(dc,RECT{worlds.left+scale(14),themeY,worlds.left+scale(130),themeY+scale(29)},L"HOLD THEME",Action::HoldTheme,0,state_.themeHeld!=0,Amber);
         addButton(dc,RECT{worlds.left+scale(138),themeY,worlds.left+scale(254),themeY+scale(29)},L"NEXT THEME",Action::NextTheme,0,false,Purple);
         drawText(dc,connected_&&state_.themeName[0]?state_.themeName:L"THEMES FOLLOW THE SHOW",RECT{worlds.left+scale(263),themeY,worlds.right-scale(14),themeY+scale(29)},smallFont_,Cyan);
-        const int gridTop = worlds.top + scale(76);
-        const int gridGap = scale(8);
-        const int columns = 4;
-        const int rows = (int(WorldNames.size())+columns-1)/columns;
-        const int gridWidth = (worlds.right - worlds.left - scale(28) - gridGap * (columns - 1)) / columns;
-        const int gridHeight = (worlds.bottom - gridTop - scale(14) - gridGap * (rows - 1)) / rows;
-        for (int index = 0; index < static_cast<int>(WorldNames.size()); ++index) {
-            const int column = index % columns;
-            const int row = index / columns;
-            RECT button{worlds.left + scale(14) + column * (gridWidth + gridGap),
-                        gridTop + row * (gridHeight + gridGap),
-                        worlds.left + scale(14) + column * (gridWidth + gridGap) + gridWidth,
-                        gridTop + row * (gridHeight + gridGap) + gridHeight};
-            const std::wstring label = (WorldKeys[index].empty()?L"":WorldKeys[index]+L" / ") + WorldNames[index];
-            addButton(dc, button, label, Action::World, index, connected_ && state_.world == index, Cyan);
+        // Scene family chips with live counts, then a paged 4 x 3 grid so every cue stays large.
+        const COLORREF familyColors[]{Cyan, Purple, Green, Amber};
+        const wchar_t* chipNames[]{L"ALL", L"PANELS", L"RIBBONS", L"DEPTH", L"ATMOS", L"★"};
+        const int chipTop = worlds.top + scale(74), chipGap = scale(6);
+        const int chipWidth = (worlds.right - worlds.left - scale(28) - chipGap * 5) / 6;
+        for (int chip = 0; chip < 6; ++chip) {
+            int count = 0;
+            for (int id = 0; id < int(WorldNames.size()); ++id) count += inShowCategory(id, chip) ? 1 : 0;
+            const int x = worlds.left + scale(14) + chip * (chipWidth + chipGap);
+            addButton(dc, RECT{x, chipTop, x + chipWidth, chipTop + scale(30)}, std::wstring(chipNames[chip]) + L" " + std::to_wstring(count),
+                      Action::ShowCategory, chip, showCategory_ == chip, chip == 0 ? Cyan : chip < 5 ? familyColors[chip - 1] : Amber);
         }
+        const auto scenes = showScenes();
+        const int live = connected_ ? state_.world : -1;
+        const int pages = showPageCount();
+        if (showFollow_ && live >= 0) {
+            const auto found = std::find(scenes.begin(), scenes.end(), live);
+            if (found != scenes.end()) showPage_ = int(found - scenes.begin()) / ShowPerPage;
+        }
+        showPage_ = std::clamp(showPage_, 0, pages - 1);
+
+        const int footerHeight = scale(44), gridGap = scale(8);
+        const int gridTop = chipTop + scale(40);
+        const int gridWidth = (worlds.right - worlds.left - scale(28) - gridGap * (ShowColumns - 1)) / ShowColumns;
+        const int gridHeight = (worlds.bottom - gridTop - footerHeight - scale(8) - gridGap * (ShowRows - 1)) / ShowRows;
+        for (int slot = 0; slot < ShowPerPage; ++slot) {
+            const int entry = showPage_ * ShowPerPage + slot;
+            if (entry >= int(scenes.size())) break;
+            const int id = scenes[entry];
+            const COLORREF family = familyColors[std::clamp(rarestage::show::Scenes[id].category, 0, 3)];
+            RECT button{worlds.left + scale(14) + (slot % ShowColumns) * (gridWidth + gridGap),
+                        gridTop + (slot / ShowColumns) * (gridHeight + gridGap),
+                        worlds.left + scale(14) + (slot % ShowColumns) * (gridWidth + gridGap) + gridWidth,
+                        gridTop + (slot / ShowColumns) * (gridHeight + gridGap) + gridHeight};
+            addButton(dc, button, WorldNames[id], Action::World, id, live == id, family);
+            fillRect(dc, RECT{button.left + scale(1), button.top + scale(9), button.left + scale(4), button.bottom - scale(9)}, blendColor(PanelRaised, family, .75f));
+            if (!WorldKeys[id].empty())
+                drawText(dc, WorldKeys[id], RECT{button.left + scale(12), button.top + scale(5), button.left + scale(44), button.top + scale(22)}, smallFont_, Muted, DT_LEFT | DT_TOP | DT_SINGLELINE);
+            if (live == id)
+                drawText(dc, L"ON AIR", RECT{button.right - scale(70), button.top + scale(5), button.right - scale(9), button.top + scale(22)}, smallFont_, Green, DT_RIGHT | DT_TOP | DT_SINGLELINE);
+            std::wstring detail = rarestage::show::PhraseFamily(id) >= 0 ? std::to_wstring(rarestage::show::ProgramCount(id)) + L" PROGRAMS" : L"CONTINUOUS";
+            if (!rarestage::show::AutoScene(id)) detail = L"MANUAL  /  " + detail;
+            drawText(dc, detail, RECT{button.left + scale(12), button.bottom - scale(23), button.right - scale(8), button.bottom - scale(6)}, smallFont_, Muted, DT_LEFT | DT_BOTTOM | DT_SINGLELINE);
+        }
+        if (scenes.empty())
+            drawText(dc, showCategory_ == 5 ? L"No favourites yet. Star scenes in the Catalog." : L"No scenes in this family.",
+                     RECT{worlds.left + scale(14), gridTop, worlds.right - scale(14), gridTop + scale(60)}, bodyFont_, Muted);
+
+        const int footerTop = worlds.bottom - footerHeight;
+        const int navWidth = scale(104);
+        addButton(dc, RECT{worlds.left + scale(14), footerTop, worlds.left + scale(14) + navWidth, footerTop + scale(34)}, L"<  PREV", Action::ShowPage, -1, false, Cyan);
+        addButton(dc, RECT{worlds.right - scale(14) - navWidth, footerTop, worlds.right - scale(14), footerTop + scale(34)}, L"NEXT  >", Action::ShowPage, 1, false, Cyan);
+        const int midLeft = worlds.left + scale(14) + navWidth + scale(12), midRight = worlds.right - scale(14) - navWidth - scale(12);
+        drawText(dc, L"PAGE " + std::to_wstring(showPage_ + 1) + L" / " + std::to_wstring(pages), RECT{midLeft, footerTop, midLeft + scale(110), footerTop + scale(34)}, bodyFont_, Text, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+        if (live >= 0)
+            addButton(dc, RECT{midLeft + scale(120), footerTop, midRight, footerTop + scale(34)}, std::wstring(L"ON AIR: ") + WorldNames[live] + L"   (SHOW)",
+                      Action::ShowFollow, 0, showFollow_ && std::find(scenes.begin(), scenes.end(), live) != scenes.end(), Green);
 
         const int rightLeft = worlds.right + gap;
         const int rightWidth = body.right - rightLeft;
@@ -1435,14 +1494,34 @@ private:
             addButton(dc, RECT{x, y, x + optionWidth, y + scale(36)}, ProfileNames[index], Action::Profile, index,
                       connected_ && state_.reactionProfile == index, Purple);
         }
-        sectionLabel(dc, L"PALETTE DIRECTION", left.left + scale(14), y + scale(47), columnWidth - scale(28));
+        sectionLabel(dc, L"COLOR DIRECTION", left.left + scale(14), y + scale(47), columnWidth - scale(28));
+        const bool autoColor = flag(rarestage::control::AutoColor);
+        const int activeStop = connected_ ? std::clamp(autoColor ? int(state_.directorPalette) : int(state_.fallbackPalette), 0, int(PaletteNames.size()) - 1) : -1;
+        if (activeStop >= 0)
+            drawText(dc, std::wstring(autoColor ? L"AUTO  /  " : L"MANUAL  /  ") + PaletteNames[activeStop],
+                     RECT{left.left + scale(150), y + scale(47), left.right - scale(14), y + scale(67)}, headingFont_, Cyan, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
         y += scale(74);
-        for (int index = 0; index < 8; ++index) {
-            const int x = left.left + scale(14) + (index%4) * (optionWidth + optionGap),top=y+(index/4)*scale(41);
-            addButton(dc, RECT{x, top, x + optionWidth, top + scale(36)}, PaletteNames[index], Action::Palette, index,
-                      connected_ && state_.fallbackPalette == index, Cyan);
+        addButton(dc, RECT{left.left + scale(14), y, left.left + scale(14) + optionWidth * 2 + optionGap, y + scale(36)}, L"AUTO COLOR", Action::AutoColor, 0, autoColor, Green);
+        drawText(dc, L"Drifts with the music. Tap to hold.",
+                 RECT{left.left + scale(24) + optionWidth * 2 + optionGap, y, left.right - scale(14), y + scale(36)}, smallFont_, Muted);
+        {
+            // Twenty-four swatches in hue order: the ring the Director travels around.
+            const int count = int(PaletteNames.size()), swatchGap = scale(2);
+            const int swatchWidth = (columnWidth - scale(28) - swatchGap * (count - 1)) / count;
+            for (int index = 0; index < count; ++index) {
+                const int x = left.left + scale(14) + index * (swatchWidth + swatchGap), top = y + scale(41);
+                RECT swatch{x, top, x + swatchWidth, top + scale(36)};
+                auto toColor = [](const std::array<float, 3>& rgb, float gain) {
+                    return RGB(std::clamp(int(rgb[0] * 215 * gain), 0, 255), std::clamp(int(rgb[1] * 215 * gain), 0, 255), std::clamp(int(rgb[2] * 215 * gain), 0, 255));
+                };
+                const bool hovered = connected_ && PtInRect(&swatch, cursor_);
+                const float gain = connected_ ? (hovered ? .95f : .72f) : .30f;
+                fillRound(dc, swatch, 4, toColor(rarestage::show::PaletteColor(index, 0), gain), index == activeStop ? Text : Line, index == activeStop ? 2 : 1);
+                fillRect(dc, RECT{swatch.left + scale(3), swatch.bottom - scale(9), swatch.right - scale(3), swatch.bottom - scale(5)}, toColor(rarestage::show::PaletteColor(index, 1), gain));
+                if (connected_) targets_.push_back({swatch, Action::Palette, index});
+            }
         }
-        y+=scale(41);
+        y += scale(41);
 
         sectionLabel(dc, L"AUDIO RESPONSE", left.left + scale(14), y + scale(48), columnWidth - scale(28));
         y += scale(76);
@@ -2065,6 +2144,9 @@ private:
     std::array<bool,rarestage::show::SceneCount> catalogFavorites_{};
     std::wstring catalogQuery_;std::filesystem::path catalogPreviewPath_;HBITMAP catalogPreview_{};
     int catalogScene_{35},catalogMode_{},catalogCategory_{},catalogPage_{};bool catalogEditing_{},catalogOnlyFavorites_{};
+    // Show page browsing: 0 all, 1-4 scene families, 5 favourites. Follow keeps the on-air scene in view.
+    int showCategory_{},showPage_{};bool showFollow_{true};
+    static constexpr int ShowColumns=4,ShowRows=3,ShowPerPage=ShowColumns*ShowRows;
     Page page_{Page::Show};
     POINT cursor_{-10000, -10000};
     float animationTime_{};

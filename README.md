@@ -4,9 +4,53 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.27.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.28.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.28.0
+
+**Volume Choreography** adds four scenes that lead with choreography in three dimensions, each with
+its own cast and ten named programs (40 in all). Light follows the Stage lighting doctrine:
+near-black surfaces, a tempo-travelling band, kick accents on bevelled edges only.
+
+* **Rare Volume**: the Rare mark is a real extruded, lit slab (the DJ name when a name formation
+  runs) circled by twelve patterned panels. Turntable Ring, Pendulum Halo, Twin Helix, Crown Fan,
+  Diagonal Cascade, Counter Orbits, Spiral Gather, Wave Wall, Figure Eight, Halo Settle.
+* **Card Match**: eighteen cards flip, deal, swap and match like a memory game, and their faces turn
+  into Rare marks. Pair Reveal, Row Wave, Checker Swap, Spiral Flip, Cascade Deal, Mirror Match,
+  Shuffle Swap, Fan Deal, Tower Turn, Logo Chorus.
+* **Rarebot**: a floating robot on exhaust rings, with the mark on its chest and an LED dot-matrix face. It twitches and stutters on heavy music. DJ Scratch,
+  Robot Wave, Arms Up Drop, Turntable Spin, Clap Build, Point and Answer, Mirror Sway, Head Groove,
+  Windmill, Bow and Settle.
+* **Rarebot Squad**: clones of Rarebot pop in and out on the kick, snare and mids. Lineup Pop, Kick Clones,
+  Snare Answer, Mirror Pair, Canon, Teleport, Crowd Surge, Totem, Orbit Crew, Finale Collapse.
+* **Pillar Choir**: forty-nine pillars rise in patterns and can raise themselves into a pixel Rare
+  mark. Ripple Out, Sweep Lanes, Spiral Rise, Checker Breath, Mirror Fold, Diagonal Steps, Pulse
+  Rings, Wave Roll, Logo Formation, Level Settle.
+
+Flat 2D graphics sit on the cards and panels and behind each stage at different depths, so camera
+motion gives them parallax. A program change now staggers the pieces and routes each one out and
+back, so nothing cuts through the mark or another piece, and kick-driven light is softer so the
+stage no longer flashes on every hit. Each scene costs 1 to 3.5 ms per 4K frame on an RTX 4070 SUPER.
+
+**Auto Color** gives the Director its own colour voice. The 8 fixed palettes became a 24-stop ring ordered
+by hue. Colour is chosen on acts and 32-beat phrases, never on scene changes, and glides along the ring
+with a critically damped spring, so it neither steps nor reverses. Hops are sized to the act (a drop
+jumps furthest, a breakdown stays cool), recent colours are avoided and use is balanced, so a long set
+visits the whole wheel. Press **G** or use AUTO COLOR in the Console; choosing a swatch (or **P**) holds
+a colour.
+
+**Console** Show page now has scene family chips with live counts and a paged 4 x 3 grid with hotkeys,
+program counts and an ON AIR marker. The grid follows the live scene, and one click returns to it.
+The Mix page has the AUTO COLOR toggle and a 24-swatch strip.
+
+Fixes: the Rare Volume handover and flashing described above; scenes 38-41 had no entry in the cue-density and cue-family tables and used zero or family 0.
+Settings saved with the old 8-palette numbers are migrated to the nearest stop.
+
+The catalog contains 46 scenes (39 auto eligible) and 268 named programs. Use matching Stage and
+Console protocol 23 and network protocol 10. See [Volume Worlds and Auto Color](docs/VOLUME_WORLDS.md).
+Actual-song comparison and complete multi-screen 4K/120 qualification remain open.
 
 ## What changed in 0.27.0
 

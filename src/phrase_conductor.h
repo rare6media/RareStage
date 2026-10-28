@@ -7,10 +7,11 @@ namespace rarestage::show {
 enum class PhraseAction { Establish, Repeat, Answer, Develop, Resolve };
 inline constexpr const wchar_t* PhraseActions[]{L"ESTABLISH",L"HOLD THE GROOVE",L"ANSWER",L"DEVELOP",L"RESOLVE"};
 inline int PhraseFamily(int scene) {
- if(PlayScene(scene)||GraphicScene(scene))return 6+scene-24;
+ if(PlayScene(scene)||GraphicScene(scene)||VolumeScene(scene))return 6+scene-24;
  switch(scene){case 6:return 0;case 8:return 1;case 10:return 2;case 12:return 3;case 19:return 4;case 18:case 22:case 23:return 5;default:return -1;}
 }
 inline const wchar_t* PhraseName(int scene,int mode) {
+ if(VolumeScene(scene))return VolumeProgramNames[scene-42][std::clamp(mode,0,9)];
  if(GraphicScene(scene))return GraphicProgramNames[scene-35][std::clamp(mode,0,9)];
  if(PlayScene(scene))return PlayProgramNames[scene-24][std::clamp(mode,0,9)];
  static constexpr const wchar_t* names[6][6]={

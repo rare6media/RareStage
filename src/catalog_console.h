@@ -12,7 +12,7 @@ void paintCatalog(HDC dc,RECT body){
  addButton(dc,RECT{left.left+pad,y,left.right-pad-scale(112),y+scale(32)},(catalogEditing_?L"TYPE: ":L"SEARCH: ")+(catalogQuery_.empty()?L"scene or pattern":catalogQuery_),Action::CatalogSearch,0,catalogEditing_,Cyan);
  addButton(dc,RECT{left.right-pad-scale(104),y,left.right-pad,y+scale(32)},L"CLEAR",Action::CatalogClear,0);
  y+=scale(40);const int filterWidth=(leftWidth-2*pad-4*gap)/5;
- const wchar_t* filters[]{L"ALL",L"PANELS",L"RIBBONS",L"DEPTH",L"ORBIT"};
+ const wchar_t* filters[]{L"ALL",L"PANELS",L"RIBBONS",L"DEPTH",L"ATMOS"};
  for(int i=0;i<5;++i)addButton(dc,RECT{left.left+pad+i*(filterWidth+gap),y,left.left+pad+i*(filterWidth+gap)+filterWidth,y+scale(27)},filters[i],Action::CatalogFilter,i,catalogCategory_==i,Cyan);
  y+=scale(35);addButton(dc,RECT{left.left+pad,y,left.left+pad+scale(150),y+scale(27)},catalogOnlyFavorites_?L"FAVORITES ONLY":L"ALL / FAVORITES",Action::CatalogFavorites,0,catalogOnlyFavorites_,Amber);
  auto results=CatalogSearch(catalogQuery_,catalogCategory_,catalogOnlyFavorites_,catalogFavorites_);

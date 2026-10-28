@@ -1,5 +1,6 @@
 #pragma once
 #include "scene_catalog.h"
+#include "palette_ring.h"
 
 #include <windows.h>
 
@@ -9,14 +10,14 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v22";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v23";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
 inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
-inline constexpr std::uint32_t ProtocolVersion = 22;
+inline constexpr std::uint32_t ProtocolVersion = 23;
 inline constexpr std::uint32_t WorldCount = rarestage::show::SceneCount;
 inline constexpr std::uint32_t SectionCount = 5;
-inline constexpr std::uint32_t PaletteCount = 8;
+inline constexpr std::uint32_t PaletteCount = rarestage::show::PaletteCount;
 inline constexpr std::uint32_t ProfileCount = 4;
 inline constexpr std::uint32_t PresetCount = 4;
 inline constexpr std::uint32_t TransitionStyleCount = 4;
@@ -81,7 +82,8 @@ enum class Command : std::uint32_t {
     HoldTheme,
     NextTheme,
     SelectProgram,
-    ReleaseProgram
+    ReleaseProgram,
+    SetAutoColor
 };
 
 enum StateFlag : std::uint32_t {
@@ -105,7 +107,8 @@ enum StateFlag : std::uint32_t {
     SyncLeader = 1u << 17,
     SyncFollower = 1u << 18,
     LedSafeMaster = 1u << 19,
-    DjIdentityVisible = 1u << 20
+    DjIdentityVisible = 1u << 20,
+    AutoColor = 1u << 21
 };
 
 enum class CommandStatus : std::int32_t {

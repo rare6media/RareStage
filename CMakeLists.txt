@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(RareStage VERSION 0.27.0 LANGUAGES CXX)
+project(RareStage VERSION 0.29.0 LANGUAGES CXX)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -48,6 +48,14 @@ add_executable(RareStageActionTests tests/action_director_test.cpp)
 target_compile_features(RareStageActionTests PRIVATE cxx_std_20)
 target_include_directories(RareStageActionTests PRIVATE src)
 add_test(NAME RareStageActionDirector COMMAND RareStageActionTests)
+
+add_executable(RareStageColorTests tests/color_director_test.cpp)
+target_compile_features(RareStageColorTests PRIVATE cxx_std_20)
+target_include_directories(RareStageColorTests PRIVATE src)
+if(MSVC)
+  target_compile_options(RareStageColorTests PRIVATE /W4 /permissive- /EHsc /utf-8)
+endif()
+add_test(NAME RareStageColorDirector COMMAND RareStageColorTests)
 
 option(RARESTAGE_ENABLE_SPOUT "Build the clean Spout2 stage-output sender" ON)
 if(RARESTAGE_ENABLE_SPOUT)

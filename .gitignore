@@ -61,3 +61,6 @@ RareStage-v21-*.json
 /RareStage-rehearsal-contract.md
 /tests/audio_trace_contract.analysis.txt
 /assets/catalog/
+
+/RareStage-volume-validation/
+/build-v28.log

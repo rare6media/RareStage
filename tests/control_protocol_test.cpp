@@ -21,14 +21,14 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 42 || SectionCount != 5 || ProtocolVersion != 22 || AudioProfileCount != 4 ||
+    if (WorldCount != 46 || SectionCount != 5 || ProtocolVersion != 23 || AudioProfileCount != 4 ||
         MasteringProfileCount != 4 || StageLayoutCount != 4 || ProductionDutyCount != 5 || SyncModeCount != 3 ||
         SceneCategoryCount != 5 || TempoAnchorCount != 3) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
 
-    if(PaletteCount!=8||!IsFullscreenShortcut(WM_SYSKEYDOWN,VK_RETURN,LPARAM(1)<<29)||
+    if(PaletteCount!=24||!IsFullscreenShortcut(WM_SYSKEYDOWN,VK_RETURN,LPARAM(1)<<29)||
        IsFullscreenShortcut(WM_SYSKEYDOWN,VK_RETURN,(LPARAM(1)<<29)|(LPARAM(1)<<30))||
        IsFullscreenShortcut(WM_KEYDOWN,VK_RETURN,0)||!IsFullscreenShortcut(WM_KEYDOWN,VK_F11,0))return 9;
     SharedState source{};

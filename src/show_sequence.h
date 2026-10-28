@@ -6,6 +6,7 @@ inline constexpr const wchar_t* GestureNames[]{L"TRAVELLING",L"COUNTERFLOW",L"TU
 inline constexpr const wchar_t* SequenceRoles[]{L"ESTABLISH",L"CARRY",L"DEVELOP",L"PAYOFF",L"RELEASE"};
 inline Gesture ProgramGesture(int scene,int mode){
  static constexpr int graphic[7][10]={{0,4,1,0,5,3,1,2,4,4},{0,3,1,0,1,5,1,4,3,4},{2,4,1,2,0,3,2,2,4,4},{0,1,5,0,3,0,1,5,4,4},{2,3,0,3,1,3,1,1,3,4},{2,1,2,0,4,0,1,5,4,4},{1,4,2,0,2,5,0,1,4,4}};
+ if(VolumeScene(scene)){static constexpr int volume[5][10]={{2,1,0,3,0,1,4,5,2,4},{5,0,1,2,0,1,1,3,2,4},{1,0,3,2,1,1,2,0,2,4},{0,0,2,1,1,0,3,0,4,4},{0,1,1,0,1,3,1,2,3,4}};return Gesture(volume[scene-42][std::clamp(mode,0,9)]);}
  if(GraphicScene(scene))return Gesture(graphic[scene-35][std::clamp(mode,0,9)]);
  static constexpr int play[11][10]={
   {0,1,1,1,4,4,0,1,2,4},{0,0,1,1,0,3,1,1,0,4},

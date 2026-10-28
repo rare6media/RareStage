@@ -52,4 +52,9 @@ float columnGesture(float bank,float column,float phase){
  float amount=bank>=8?1:0;
  return amount*sin(column*.65-phase*.785398)*(bank<9?.85:bank<11?.35:bank<13?.75:.45);
 }
+float QuantizedStep(float musical_time,float sub_div,float sharpness){
+ float scaled=musical_time*max(sub_div,1);
+ float travel=saturate(frac(scaled)/.15);
+ return floor(scaled)-1+(1-pow(1-travel,max(sharpness,1)));
+}
 )

@@ -19,14 +19,14 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -A x64
       - name: Build
-        run: cmake --build build --config Release --target RareStage RareStageConsole RareStageProtocolTests RareStagePhraseTests RareStageMotionTests RareStageActionTests --parallel
+        run: cmake --build build --config Release --target RareStage RareStageConsole RareStageProtocolTests RareStagePhraseTests RareStageMotionTests RareStageActionTests RareStageColorTests --parallel
       - name: Verify Windows identity metadata
         shell: pwsh
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.27.0") {
-              throw "$binary is missing the expected publisher or v0.27.0 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.29.0") {
+              throw "$binary is missing the expected publisher or v0.29.0 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -87,6 +87,12 @@ jobs:
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--graphic-test" -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Graphic composition capture failed: $($process.ExitCode)" }
           if (@(Import-Csv RareStage-graphic-validation/visual-checks.csv).Count -ne 444) { throw "Incomplete graphic visual fixtures" }
+      - name: Rare Volume choreography, continuity and cost
+        shell: pwsh
+        run: |
+          $process = Start-Process build/Release/RareStage.exe -ArgumentList "--volume-test" -WindowStyle Hidden -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Rare Volume validation failed: $($process.ExitCode)" }
+          if (@(Import-Csv RareStage-volume-validation/volume-checks.csv | Where-Object kind -eq 'pattern').Count -ne 160) { throw "Expected four volume scenes, ten programs each, at four phrase points" }
       - name: Motion Worlds native visual captures
         shell: pwsh
         run: |
@@ -186,7 +192,7 @@ jobs:
           $process = Start-Process build/Release/RareStage.exe -ArgumentList "--professional-test" -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Scene route/continuity validation failed: $($process.ExitCode)" }
           $pairs = @(Import-Csv RareStage-professional-validation/all-pairs.csv)
-          if ($pairs.Count -ne 1722) { throw "All 1722 ordered scene pairs must be covered" }
+          if ($pairs.Count -ne 2070) { throw "All 2070 ordered scene pairs must be covered" }
       - name: Shader self-test
         shell: pwsh
         run: |
@@ -309,7 +315,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.27.0"
+            version = "0.29.0"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -367,14 +373,14 @@ jobs:
             RareStage-rehearsal-contract.csv
             RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.27.0 release
+      - name: Publish v0.29.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.27.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.27.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.29.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.29.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.27.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.27.0 — Phrase-Aware Director" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.29.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.29.0 — Rarebot" --generate-notes --repo $env:GITHUB_REPOSITORY
           }
