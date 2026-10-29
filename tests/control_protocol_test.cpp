@@ -4,9 +4,14 @@
 #include <cstring>
 #include <cwchar>
 #include <iostream>
+#include <string>
 
 int main() {
     using namespace rarestage::control;
+    if(!std::wstring(MappingName).ends_with(L".v"+std::to_wstring(ProtocolVersion))){
+        std::cerr << "Control mapping must isolate incompatible protocol versions\n";
+        return 2;
+    }
 
     constexpr std::uint32_t serial = 0xfedcba98u;
     constexpr std::int32_t value = -42;
@@ -16,14 +21,18 @@ int main() {
         return 1;
     }
 
-    if (WorldCount != 18 || SectionCount != 5 || ProtocolVersion != 13 || AudioProfileCount != 4 ||
+    if (WorldCount != 47 || SectionCount != 5 || ProtocolVersion != 30 || AudioProfileCount != 4 ||
         MasteringProfileCount != 4 || StageLayoutCount != 4 || ProductionDutyCount != 5 || SyncModeCount != 3 ||
         SceneCategoryCount != 5 || TempoAnchorCount != 3) {
         std::cerr << "Protocol constants are stale\n";
         return 2;
     }
 
+    if(PaletteCount!=24||!IsFullscreenShortcut(WM_SYSKEYDOWN,VK_RETURN,LPARAM(1)<<29)||
+       IsFullscreenShortcut(WM_SYSKEYDOWN,VK_RETURN,(LPARAM(1)<<29)|(LPARAM(1)<<30))||
+       IsFullscreenShortcut(WM_KEYDOWN,VK_RETURN,0)||!IsFullscreenShortcut(WM_KEYDOWN,VK_F11,0))return 9;
     SharedState source{};
+    source.theme=5;source.themeHeld=1;source.composerContinue=21;source.composerDrop=22;source.composerBreak=23;source.routeEstimatedMs=6.5f;source.routeContinuity=.9f;source.routeMeasured=1;wcscpy_s(source.themeName,L"TIDAL");
     source.protocolVersion = ProtocolVersion;
     source.structSize = sizeof(SharedState);
     source.worldCount = WorldCount;
@@ -32,6 +41,7 @@ int main() {
     source.heartbeatTickMs = 123456;
     source.stateRevision = 9;
     source.world = 13;
+    source.mirrorMask=6;source.mirrorCount=2;wcscpy_s(source.displayNames[1],L"DISPLAY 2 / 1920 x 1080");
     source.songSection = 2;
     source.flags = RendererReady | Automatic | AudioAvailable | VsyncEnabled | RehearsalActive | PredictiveCueArmed |
                    SyncConnected | SyncFollower | LedSafeMaster | DjIdentityVisible;
@@ -140,6 +150,7 @@ int main() {
         std::cerr << "Consistent shared-state read failed\n";
         return 3;
     }
+    if(copy.theme!=5||copy.themeHeld!=1||copy.composerContinue!=21||copy.composerDrop!=22||copy.composerBreak!=23||copy.routeEstimatedMs!=6.5f||copy.routeContinuity!=.9f||copy.routeMeasured!=1||std::wcscmp(copy.themeName,L"TIDAL")!=0)return 6;
     if (copy.protocolVersion != ProtocolVersion || copy.structSize != sizeof(SharedState) ||
         copy.worldCount != WorldCount || copy.sectionCount != SectionCount ||
         copy.world != 13 || copy.songSection != 2 || copy.stateRevision != 9 ||
@@ -224,7 +235,7 @@ int main() {
     UnmapViewOfFile(writable);
     CloseHandle(mapping);
     if (!readonlyRead || readonlyCopy.world != source.world ||
-        readonlyCopy.stateRevision != source.stateRevision) {
+        readonlyCopy.stateRevision != source.stateRevision||readonlyCopy.mirrorMask!=6||readonlyCopy.mirrorCount!=2||std::wcscmp(readonlyCopy.displayNames[1],source.displayNames[1])!=0) {
         std::cerr << "Read-only shared-state regression test failed\n";
         return 8;
     }

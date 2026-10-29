@@ -4,47 +4,195 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current version: **0.15.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.31.1**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
 
-## What changed in 0.15.0
+## What changed in 0.31.1
 
-Version 0.15.0 is **Choreography Showbrain**: an offline, deterministic visual-performance agent that develops each world through authored musical stanzas without AI services, cloud calls or token usage.
+* **Console updater**: the console checks GitHub for a newer release on start and offers it in a banner; installing is the
+  operator's choice, the download is verified against a SHA-256, versions are unpacked side by side, and older ones are kept
+  for **Go back to...** (Output > Updates). The renderer is never touched while it runs. See [docs/UPDATER.md](docs/UPDATER.md)
+  and [docs/RELEASE_0_31_1.md](docs/RELEASE_0_31_1.md). Versions before 0.31.1 need one manual install first.
 
-- Removed the DirectWrite identity overlay from clean output
-- Custom DJ names are rasterized into a GPU mask and become native scene geometry
-- The actual alpha Rare mark remains the brand source; no generated `RARE` text substitutes it
-- A four-stage stanza pipeline moves every selected identity through Establish, Roll, Resolve and Release
-- Stagewall, Morph Wall, Kinetic Array, Pixel Loom, Kinetic Facade and Panel Cascade roll their physical panels directly into Rare-mark or DJ-name formations
-- Lumen Canyon, Orbital Garden and Rare Archipelago reveal identity through spores, stars and atmospheric light rather than foreground captions
-- Sixteen-beat choreography remains continuously animated; kick, bass, snare and hats control pressure and surface light without owning object time
-- Console protocol v13 reports choreography stage, identity target, formation strength, stanza position and continuous showbrain phase
+## What changed in 0.31.0
 
-The v0.13 Adaptive Show Grammar remains the foundation:
+* **Launch sequence**: the renderer opens on a six-second launch scene and settles into a standby scene that doubles as a
+  test pattern (the mark, a level ring and seven live audio-lane meters). Picking a scene starts it with the Director on
+  auto; AUTO starts the Director. The console has its own launch animation. `--no-intro` and `--no-splash` skip them.
+* **New console** (`RareStageConsole.exe`, Dear ImGui) with Live, Mix, Audio Lab, Director, Output and Production tabs.
+  The old console is kept as `RareStageConsoleClassic.exe` until its remaining pages are ported.
+* **Seven independent audio lanes** with a Reactivity control and per-lane gains.
+* **Modulation matrix and procedural colour harmony** (Mix tab, off by default).
+* **Generated worlds**: Cosmic Space, Circuit Board, Virus Spread and Error Horizon are built from reproducible specs,
+  compiled in the background, GPU-qualified, and brought on by the Director at drops and phrase boundaries (Director tab,
+  off by default). Architecture and limits: [docs/GENERATIVE_DIRECTOR.md](docs/GENERATIVE_DIRECTOR.md).
+* **Eleven scenes retired** from rotation (hidden, not deleted). Notes below about those scenes describe 0.28 and earlier.
 
-- Raw calibrated audio now drives song structure; visual gain controls cannot change the detected act
-- Contextual build tension and impact contrast prevent ordinary first kicks from becoming false drops
-- Independent kick, snare and hi-hat lanes can illuminate together instead of winner-take-all muting
-- Sample-clock BPM estimation is stable across capture batching and CPU stalls
-- Stale audio decays safely after endpoint loss instead of leaving the show permanently “hot”
-- Every world receives a seeded 16-beat movement and pattern lifecycle, so repeat visits stay recognizable but vary
-- Prepared drop cues expire and cannot commit after the predicted musical section has changed
-- Monotonic choreography timing removes the former 1024-beat reset and absolute-time confidence jumps
-- Console protocol v11 exposes movement, pattern, build tension, drop readiness, novelty and transition fit
+Full notes: [docs/RELEASE_0_31.md](docs/RELEASE_0_31.md). The console and renderer must come from the same build
+(control protocol 30).
 
-- Four post-bloom mastering profiles: Studio, LED Safe, Arena and Broadcast
-- Adjustable 65–100% master brightness with LED-safe highlight roll-off and broadcast-range restraint
-- Four mapped compositions: Full Frame, 2.39:1 Ultrawide, Triptych and LED Facade
-- Five one-touch production duties for Open, Support, Peak, Breakdown and Closing portions of a set
-- Local-network Leader/Follower sync broadcasts world, act, palette, tempo phase, cue density and output treatment on UDP 47712, with Console-selectable groups to isolate adjacent shows
-- Followers preserve their last state and continuous motion if the leader disappears; Local mode opens no network socket and remains the default
-- A sixth glassmorphic Console page controls every production-pack function and reports packet age, phase error and sync state
-- Protocol v11 adds musical-narrative and world-progression telemetry to the existing production evidence
-- The clean-output boundary remains isolated from Console/HUD and is ready for a future NDI transport adapter; this release does not claim a bundled NDI sender
-- A deterministic 80-case production contract validates all duty, mastering and layout combinations plus the fixed-size sync packet
+## What changed in 0.28.0
 
-The research and design synthesis behind this release is documented in [Stage visual research, 2023–2026](docs/STAGE_VISUAL_RESEARCH_2023_2026.md).
+**Volume Choreography** adds four scenes that lead with choreography in three dimensions, each with
+its own cast and ten named programs (40 in all). Light follows the Stage lighting doctrine:
+near-black surfaces, a tempo-travelling band, kick accents on bevelled edges only.
+
+* **Rare Volume**: the Rare mark is a real extruded, lit slab (the DJ name when a name formation
+  runs) circled by twelve patterned panels. Turntable Ring, Pendulum Halo, Twin Helix, Crown Fan,
+  Diagonal Cascade, Counter Orbits, Spiral Gather, Wave Wall, Figure Eight, Halo Settle.
+* **Card Match**: eighteen cards flip, deal, swap and match like a memory game, and their faces turn
+  into Rare marks. Pair Reveal, Row Wave, Checker Swap, Spiral Flip, Cascade Deal, Mirror Match,
+  Shuffle Swap, Fan Deal, Tower Turn, Logo Chorus.
+* **Rarebot**: a floating robot on exhaust rings, with the mark on its chest and an LED dot-matrix face. It twitches and stutters on heavy music. DJ Scratch,
+  Robot Wave, Arms Up Drop, Turntable Spin, Clap Build, Point and Answer, Mirror Sway, Head Groove,
+  Windmill, Bow and Settle.
+* **Rarebot Squad**: clones of Rarebot pop in and out on the kick, snare and mids. Lineup Pop, Kick Clones,
+  Snare Answer, Mirror Pair, Canon, Teleport, Crowd Surge, Totem, Orbit Crew, Finale Collapse.
+* **Pillar Choir**: forty-nine pillars rise in patterns and can raise themselves into a pixel Rare
+  mark. Ripple Out, Sweep Lanes, Spiral Rise, Checker Breath, Mirror Fold, Diagonal Steps, Pulse
+  Rings, Wave Roll, Logo Formation, Level Settle.
+
+Flat 2D graphics sit on the cards and panels and behind each stage at different depths, so camera
+motion gives them parallax. A program change now staggers the pieces and routes each one out and
+back, so nothing cuts through the mark or another piece, and kick-driven light is softer so the
+stage no longer flashes on every hit. Each scene costs 1 to 3.5 ms per 4K frame on an RTX 4070 SUPER.
+
+**Auto Color** gives the Director its own colour voice. The 8 fixed palettes became a 24-stop ring ordered
+by hue. Colour is chosen on acts and 32-beat phrases, never on scene changes, and glides along the ring
+with a critically damped spring, so it neither steps nor reverses. Hops are sized to the act (a drop
+jumps furthest, a breakdown stays cool), recent colours are avoided and use is balanced, so a long set
+visits the whole wheel. Press **G** or use AUTO COLOR in the Console; choosing a swatch (or **P**) holds
+a colour.
+
+**Console** Show page now has scene family chips with live counts and a paged 4 x 3 grid with hotkeys,
+program counts and an ON AIR marker. The grid follows the live scene, and one click returns to it.
+The Mix page has the AUTO COLOR toggle and a 24-swatch strip.
+
+Fixes: the Rare Volume handover and flashing described above; scenes 38-41 had no entry in the cue-density and cue-family tables and used zero or family 0.
+Settings saved with the old 8-palette numbers are migrated to the nearest stop.
+
+The catalog contains 46 scenes (39 auto eligible) and 268 named programs. Use matching Stage and
+Console protocol 23 and network protocol 10. See [Volume Worlds and Auto Color](docs/VOLUME_WORLDS.md).
+Actual-song comparison and complete multi-screen 4K/120 qualification remain open.
+
+## What changed in 0.27.0
+
+**Phrase-Aware Director** lets a program finish its formation before a beat-aligned
+departure. It prepares two candidate handovers through the production renderer
+at low resolution, when measured GPU capacity permits. Completed image checks
+can influence the continuation and supply its entry program. Holds, changed
+context and GPU pressure cancel or skip background work.
+
+The Console shows the current motion intention and departure countdown. Music-fit
+scoring now includes the four Motion Worlds. This is deterministic, local planning
+with bounded composition heuristics; no model inference or runtime token use.
+
+Includes all v0.26 scenes and programs. Use matching Stage and Console protocol 22;
+network protocol 9 remains unchanged. See [behavior, validation and limitations](docs/PHRASE_AWARE_DIRECTOR.md).
+Actual-song comparison and complete multi-screen 4K/120 qualification remain open.
+
+## What changed in 0.26.0
+
+**Motion Worlds** adds Optical Weave, Iris Assembly, Shape Exchange and Orbit Press,
+with ten geometric programs each. Bands exchange with solid shapes; curved blades
+reform into nested arcs on four authored routes with persistent piece correspondence.
+Graphic-only draws use a dedicated shader and new poses are prepared once per frame.
+
+The catalog now contains 42 scenes (35 auto eligible), 228 named programs and 244
+previews. Use matching Console protocol 21 and network protocol 9. See
+[Motion Worlds](docs/MOTION_WORLDS.md) for behavior, validation commands and limits.
+Full-song listening and complete 4K/120 output qualification remain open.
+
+## What changed in 0.25.0
+
+**Graphic Worlds** adds Contour Currents, Ribbon Braid and Radial Fans: three filled 2D visual languages with ten named programs each. Contours compress and redirect, ribbons weave and exchange, and broad fans counter-rotate and open on the musical clock.
+
+- Thirty new geometry programs, coordinated palette colors and continuous within-scene development.
+- Travelling folds preserve readable compositions during graphic scene handovers. Rare/name reveals inherit moving band colors while the surrounding world continues.
+- The seven rejected scenes (IDs 28–34) remain manually selectable and are excluded from automatic routes and timelines.
+- The catalog contains 38 scenes, 188 named programs and 204 rendered previews; 31 scenes are eligible for automatic selection. The 100+ scene goal remains open.
+- Matching Console protocol 20 and UDP protocol 8. Existing shortcuts, fullscreen and synchronized local mirrors are preserved.
+
+See [programs, handoff behavior and validation](docs/GRAPHIC_WORLDS.md). Full-song listening review and complete 4K/120 output qualification remain open.
+
+## What changed in 0.24.0
+
+**Choreography Sequences** connects visual motifs across scene visits and adds Gearworks, Switchyard and Origami Parade, with ten named programs each. The library now has 35 scenes and 158 selectable named programs; sixteen scenes also retain continuous authored choreography.
+
+- The Director carries a movement motif through establish, carry, develop, payoff and release roles. Confirmed musical evidence and a shared cooldown protect major payoffs.
+- Incoming object formations are chosen using sampled position, size and velocity, while shared wall-pattern seeds continue through a chapter.
+- Gear shafts and drive links, closed conveyor circuits and folding paper formations use continuous musical motion. Percussion accents their surfaces.
+- The new Catalog supports scene/program search, category filters, saved favorites, 174 rendered previews and explicit program selection with a hold/resume control.
+- Matching executables use Console v19 and network v7. Existing scene IDs, shortcuts and synchronized local mirrors are preserved.
+
+See [behavior, controls and validation](docs/CHOREOGRAPHY_SEQUENCES.md). Full-song listening review and complete 4K/120 output qualification remain open.
+## What changed in 0.23.1
+
+**Pattern Materials** carries the Stagewall and Morph Wall pattern vocabulary into six object scenes. The catalog remains at 32 scenes.
+
+- The wall shader and object choreography now compile the same sixteen authored patterns: row waves, opposing groups, column travel, ripples, chevrons, radial sweeps and checker exchanges. Their phase and smooth motif changes follow the existing musical clock.
+- Orbit Relay bends these patterns around its discs; Iris Bloom opens and turns its petals; Domino Circuit slides complete rows; Elastic Loom exchanges ribbon banks; Pendulum Choir coordinates swinging groups; Magnetic Assembly shifts and docks its plates.
+- Each scene has a different stylized material response: satin discs, folded iridescent petals, enamel cards, directional metal ribbons, ceramic tokens and brushed plates. Surface properties interpolate with the pieces during native scene handoffs.
+- The six scenes keep their ten base formation programs. Shared pattern motion and lighting add another layer of development. Stagewall, Morph Wall and Panel Cascade retain their existing geometry and shading.
+- Pattern samples are prepared on the CPU with the object poses. The GPU receives twenty extra signal values, keeping the added per-pixel work small. Console v18 and UDP v6 formats remain compatible; use the matching bundle for consistent visuals.
+
+See [pattern reuse, materials and validation](docs/PATTERN_MATERIALS.md). Complete 4K/120 output qualification and full-song listening review remain open.
+
+## What changed in 0.23.0
+
+**Kinetic Playgrounds** adds eight scenes with ten named movement programs each, bringing the catalog to 32 scenes. The focus is readable actions, coordinated motion and smoother scene handoffs.
+
+- **Axis Puzzle and Sliding Shutters:** alternating row/column strokes, opposing banks, zipper moves, lane locks, stairs and cross shuttles. Color groups remain visible while the pieces move. Both join the shared wall geometry rig; Stagewall and Panel Cascade retain their established movement.
+- **Orbit Relay, Iris Bloom, Domino Circuit, Elastic Loom, Pendulum Choir and Magnetic Assembly:** twenty persistent pieces become circulating tokens, opening petals, tipping cards, woven surfaces, swinging groups and docking formations. Their ten programs are named in [the scene guide](docs/KINETIC_PLAYGROUNDS.md).
+- The six object scenes transform their pieces directly into each other. Together with the new wall bridges, the catalog now has **106 directed native geometry handoffs**. The other **886 ordered pairs** use category-aware material transport with deformation bounded to the frame edges.
+- Automatic handoffs involving a new scene take eight beats. Other cross-family handoffs receive six beats during active sections; existing quiet-section and Blades/Canopy eight-beat behavior remains. Manual duration still follows the operator's setting.
+- Object poses are calculated once per scene pass on the CPU and uploaded as a small pose array. The GPU shades the current pieces; it does not evaluate every movement program for every screen pixel.
+- The Console fits all 32 scenes. New scenes are selected there or with Previous/Next; existing keyboard shortcuts remain. Matching Console protocol is **v18**, network protocol **v6**.
+
+This update adds 80 authored programs to the eight new scenes; it does not claim ten programs in every older scene. The 100+ scene / 10+ pattern catalog target, stronger musical-evidence evaluation, live image rehearsal and 4K/120 qualification remain roadmap work. The runtime stays deterministic and offline.
+
+## What changed in 0.22.0
+
+**Phrase Conductor** gives eight non-wall ensembles musical programs that establish, hold, answer, develop and resolve.
+
+- Prism Cascade, Chroma Blades, Kinetic Canopy, Matrix Vault, Halo Engine and the three ribbon worlds now receive deliberate movement choices from Smart Director. Each keeps six named programs with its own shapes and movement.
+- A stable groove holds a recognizable formation before a related answer. Sustained builds and confirmed drops can develop it; breakdowns and approaching departures can resolve it. Decisions use eight-beat boundaries, and pose changes unfold over eight beats without restarting the musical clock.
+- Program memory spaces recent formations and action combinations. Stronger drop articulation has a 96-beat cooldown shared across scene visits. Identity alternates Rare mark/name, waits for a settled scene, and is spaced by at least 64 beats across the set.
+- Blades and Canopy share eighteen pieces that continuously change pose, taper and bevel. These two new directed bridges bring the total to **50 native handoffs**; the remaining 502 ordered pairs use category-aware material transport.
+- Console shows the current named formation and musical intention. Local mirrors receive the same completed frame. Network v5 includes current/outgoing conductor samples and pattern seeds; peers must use the same version.
+
+The scene count stays at 24. Stagewall retains its existing movement programs. Musical-corpus accuracy, live image evaluation and 4K/120 qualification are not claimed by this update. See [Phrase Conductor implementation and validation](docs/PHRASE_CONDUCTOR.md).
+
+## What changed in 0.21.1
+
+This visual revision develops eight non-wall scenes into fuller ensembles with different silhouettes.
+
+- **Prism Cascade (7):** staggered streams of faceted prisms descend and rise through coordinated waves and rotations.
+- **Chroma Blades (9):** broad opposing blade banks interlock, scissor, fan and sweep through six phrase programs.
+- **Matrix Vault (R):** varied-size square frames form a linked rotating mechanism, including an independently turning inner square.
+- **Kinetic Canopy (W):** two opposing banks of tapered, folded fins form arches, fans, braids and sweeping waves. Six continuous 16-beat pose programs replace the suspended bars.
+- **Halo Engine (X):** three coordinated, segmented rotors replace thin nested rings. Broad faceted blades move in counter-rotation; narrow displays stack the supporting rotors vertically.
+- **Ribbon Foundry (Z), Ribbon Racetrack (V), Kinetic Monument (N):** wider folded surfaces, interleaved travelling waves, stronger color separation and surrounding motion. Monument spreads its formation to fit wide screens. The shared rig continues to gather, turn and release during native handoffs.
+- The new ensembles keep structural motion on the musical clock. Percussion lights their edges without moving the geometry.
+- A dedicated composition check samples the eight scenes over 96 beats, four arrangements and landscape, portrait and wide displays. It measures foreground occupation above the dim background in every quadrant.
+
+See [the non-wall visual revision](docs/ENSEMBLE_WORLDS.md). These changes develop existing worlds; the broader musical-judgment and Director roadmap remains in progress.
+
+## What changed in 0.21.0
+
+Version 0.21.0 is **Show Composer**, combining shared movement rules with conditional planning, visual themes and route cost estimates.
+
+- **Three new scenes.** Folding Cathedral stretches the wall into folded architectural ribs. Ribbon Racetrack carries broad, sweeping lanes across the stage. Kinetic Monument raises and folds a bank of sculptural columns. All have four arrangements, sixteen motif seeds and the existing varied identity choreography.
+- **Geometry carries across scenes.** The seven wall scenes share a continuous lattice bridge. Ribbon Foundry, Ribbon Racetrack and Kinetic Monument share a continuous ribbon rig. Those 48 directed pairings interpolate geometry in one scene pass. Other pairings retain the tested category-aware material handoff.
+- **Three prepared continuations.** The Composer prepares continued movement, a drop and a breakdown together. Confirmed sections select the relevant branch. Plans expire after 32 beats and reject changed scene, category or stale section context. Manual cues and automation holds take precedence.
+- **Six visual themes.** River, Crown, Orbit, Pulse, Ascent and Tidal carry a common deformation and accent bias across scenes. A theme develops over at least three scene visits. Theme memory spaces callbacks; changes start on a safe 16-beat boundary and unfold over eight beats. **Hold Theme** preserves it across automatic scene changes; **Next Theme** queues a new one.
+- **Route rehearsal and GPU cost.** The Director compares nominal anchor and velocity envelopes and samples scene GPU cost asynchronously. Under budget pressure, measured expensive handoffs lose priority. This is an analytic estimate, not a live image-quality evaluator or a frame-rate guarantee.
+- Stagewall, continuous musical motion, varied Rare/DJ identity entrances, smooth Pixel Bank departures, Alt+Enter/F11 fullscreen and synchronized local mirrors remain available.
+
+Use the matching Stage and Console: Console protocol **v18**, network packet **v6**. Network packets carry the leader's theme and phrase state; network peers must match. Local mirrors still receive the same completed frame.
+
+See [Show Composer implementation and validation](docs/SHOW_COMPOSER.md), [v0.20 scene improvements](docs/PERFORMANCE_WORLDS.md) and the [roadmap to v0.30](docs/ROADMAP_V0_30.md). Musical-corpus evaluation, runtime composition feedback and full 4K/120 qualification remain future work.
 
 ## Engine at a glance
 
@@ -54,46 +202,61 @@ The research and design synthesis behind this release is documented in [Stage vi
 | Audio | WASAPI loopback from the selected active Windows playback device |
 | Analysis | Sample-rate-aware 2048-point FFT with 50% overlap, adaptive band-limited spectral flux, sustained bass, kick, snare, hats, mids, highs, RMS, robust recent-interval BPM and tempo confidence |
 | Song structure | Hysteresis-based Open, Build, Drop, Breakdown and Drive detection plus a sustained musical-ending confidence state |
-| Visual system | Eighteen authored Rare worlds organized into four VDJ categories, with 64/96-beat loop grammar, act-specific 2D animation, layered parallax and selective 2.5D depth |
-| Director | Musical-stage prediction, prepared-world pre-roll, internal-loop progression, category filtering, 128/130 club anchors, ending holds, set-wide memory, adaptive cue density, palette morphing and beat-aligned chapter changes |
+| Visual system | Thirty-two authored Rare worlds organized into four VDJ categories, with 64/96-beat loop grammar, act-specific 2D animation, layered parallax and selective 2.5D depth |
+| Director | Conditional continued/drop/breakdown branches, six shared themes, analytic route rehearsal and measured GPU cost; musical-stage prediction, prepared-world pre-roll, internal-loop progression, category filtering, 128/130 club anchors, ending holds, set-wide memory, adaptive cue density, palette morphing and beat-aligned chapter changes |
 | Renderer | Half-float HDR scene pass, half-resolution bloom, sharpened filmic composite |
-| Show control | Six-page RareStage Console with editable DJ identity, category and tempo controls, plus a Direct2D/DirectWrite in-renderer overlay |
+| Show control | Seven-page RareStage Console with editable DJ identity, category and tempo controls, plus a Direct2D/DirectWrite in-renderer overlay |
 | Rehearsal | Telemetry recorder, GPU-aware smart captures, review decisions, reason tags and portable CSV/Markdown session evidence |
 | Output | Borderless stage display, multi-monitor selection, clean Spout2 sender, four output masters and four mapped compositions |
+| Screens | One main Stage window plus clean mirrors on up to seven other displays; aspect-preserving output and direct display selection |
 | Synchronization | Optional UDP leader/follower show clock with bounded fixed-layout packets and motion-preserving follower hold |
-| Performance | 62%, 78%, 100% and 125% HDR render scales; VSync or unlocked output; asynchronous GPU timing and profile budgets |
+| Performance | 62%, 78%, 100% and up to 125% HDR render scales (Ultra capped at 4K); VSync or unlocked output; asynchronous GPU timing and profile budgets |
 | Persistence | Settings and four show presets under `%LOCALAPPDATA%\RareStage` |
 
 ## Rare worlds
 
 | Key | World | Visual direction | Rare-mark role |
 |---|---|---|---|
-| `1` | Morph Wall | Glass panels carry circle, square and diamond motifs through columns, diagonals, radial pushes, split gates, checkers and wings | The mark appears only as a negative-space wall formation |
-| `2` | Lumen Canyon | Bio-organic canyon walls, flowing membranes, luminous rivers, filaments and autonomous spores create a continuous environment | The DJ identity can appear as restrained horizon light carried through the environment |
+| `1` | Morph Wall | Broad glass panels carry flowing diagonals, waves and counterflow | Fine panel surfaces resolve into the detailed Rare mark or DJ name |
+| `2` | Prism Atrium | Travelling architectural ribs reshape through prism sections and sixteen light formations | Identity assembles as light within the atrium |
 | `3` | Orbital Garden | A breathing celestial landscape layers a central planet, eight orbiting bodies, atmospheric bands and sparse stars | Identity enters as distant architectural light rather than a foreground watermark |
-| `4` | Stagewall | A full data-lit cube facade with panel turning, extrusion, disappearance and sixteen cue families | The mark is distributed across lit panel faces as a mosaic instruction, never pasted over the wall |
-| `5` | Wavewall | Articulated vertical slats perform columns, diagonals, gates, tiers, fans and pressure fronts over a restrained stage floor | No foreground watermark; the complete slat stage carries the Rare movement language |
-| `6` | Pixel Bank | Stable grouped pixels slowly rotate in and out as an abstract support loop | One polished DVD-style mark conducts wall impacts, corner bursts and reactive edge light |
-| `7` | Prism Cascade | Two continuously moving prism banks perform columns, counters, gates and diagonals with signal-separated lighting | One stable mark sits behind the shutter architecture without slicing or glitch displacement |
-| `8` | Kinetic Weave | Atmosphere, bass pressure, mid-led woven ribbons, counter-threads and hat detail evolve as separate story layers | A restrained mark is carried behind the weave and naturally occluded by it |
-| `9` | Chroma Blades | Elongated articulated glass blades perform columns, diagonals, radial pushes, gates, fans, blocks, cascades and crosses | No logo; motion, color and stage framing define the world |
-| `Q` | Kinetic Array | Articulated tile banks rotate, drift, vanish and reform through fourteen authored formations and coordinated sub-pixel motion | The mark appears only as a temporary negative-space formation |
-| `W` | Kinetic Canopy | Suspended ceiling panels perform rows, columns, diagonals, split gates, checks, fans and lifts above a perspective runway | No logo; canopy architecture and converging floor light define the identity |
-| `E` | Pixel Loom | A 22×14 grouped pixel instrument performs columns, diagonals, radial waves, gates, blocks, helixes, cascades and a Rare field | The mark becomes temporary negative space inside the pixel system |
-| `R` | Matrix Vault | Receding architectural frames move steadily in one direction behind grouped data panels, etched glyph light and corridor pressure | The mark appears as temporary negative space inside the vault, never as a foreground watermark |
-| `Y` | Panel Cascade | Multi-panel banks fold, descend, disappear and reform through row waves, diagonals, curtains, blocks and a Rare formation | The mark becomes one synchronized formation during selected high-energy cues |
-| `U` | Signal Rail | Nine perspective rails carry synchronized light packets from a distant horizon through six phrase formations | No logo; transport motion, lane color and architectural convergence make the world distinct |
-| `I` | Kinetic Facade | A wide articulated-panel elevation performs columns, diagonals, radial pushes, split banks, blocks, fans and cascades | The mark appears only as a distributed negative-space facade formation |
-| `O` | Rare Archipelago | Nine floating islands drift at independent depths with luminous rims, waterfalls, clouds and distant filaments | Identity appears sparingly as a world-scale horizon element |
-| `K` | Void Gates | Seven slow receding gates frame side-panel cues and a deliberately large central negative space | A restrained Rare-shaped void appears only during selected acts |
+| `4` | Stagewall | Gliding cube rows join into clean ribbons, chevrons, radial waves and thirteen further motifs | Fine surface pixels align into readable identity while the full wall stays present |
+| `5` | Resonance Range | Ten opaque contour terraces move through interlocking wave and relief patterns | Material fragments assemble into a readable mark or DJ name within the terrain |
+| `6` | Pixel Bank | A circuit field and musical waves surround a continuously travelling mark | Smooth corner arrivals precede local scene departures; hits illuminate the background |
+| `7` | Prism Cascade | Three staggered streams of faceted prisms travel in coordinated waves | Material fragments enter, resolve and disperse using independent choreography |
+| `8` | Aurora Range | Five luminous curtains, a reflective basin, foreground ridges and stars | Identity is carried by the atmospheric light field |
+| `9` | Chroma Blades | Broad opposing blade banks form scissors, zippers, fans and travelling sweeps | Choreographed material fragments form the mark or DJ name |
+| `Q` | Kinetic Array | Turning tile banks develop waves, diagonals, blocks and counterflow | Tiles align their illuminated surfaces for a detailed identity resolve |
+| `W` | Kinetic Canopy | Interlocking tapered fins form arches, braids, fans and opposing waves | Segmented identity enters and releases between the fin formations |
+| `E` | Pixel Loom | A dense 22×15 pixel instrument with sixteen continuously blended patterns | Fine luminous cells resolve the mark or DJ name |
+| `R` | Matrix Vault | Varied-size square frames and an inner square form a linked rotating mechanism | Segmented identity assembles and releases within the vault |
+| `Y` | Panel Cascade | Panel banks fold and descend through row waves, diagonals and counterflow | Micro-surfaces roll into a readable identity and back to the cascade |
+| `U` | Signal Rail | Nine solid perspective lanes carry repeating note sequences toward a moving cross-bank | Material identity appears as a planned formation within the lane composition |
+| `I` | Kinetic Facade | A wide articulated elevation with sixteen flowing pattern families | Distributed surface light forms the identity while retaining the facade |
+| `O` | Pulse Causeway | Perspective cube tiers, mirrored ceiling banks and light rails move through sixteen motifs | Identity assembles within the architectural space |
+| `K` | Void Gates | A solid radial iris opens through six, eight, ten or twelve petal arrangements | Independent fragment entrances and releases form the identity at the iris |
+| `Z` | Ribbon Foundry | Broad folded surfaces weave and overlap through travelling wave programs | The ribbon membrane carries the identity |
+| `X` | Halo Engine | Three segmented rotors counter-rotate through coordinated fan formations | Radial material illuminates the identity surface |
+| `J` | Vector Speedway | A travelling track and arch rig develop lane chases and perspective rhythms | Identity is revealed within the track composition |
+| `C` | Folding Cathedral | Folded architectural wall ribs | Ribs assemble the identity into a readable surface |
+| `V` | Ribbon Racetrack | Wide folded lanes curve, braid and sweep across the frame | Lane material carries the fragmented identity |
+| `N` | Kinetic Monument | Aspect-aware sculptural folds spread across the stage | Columns unfold into the identity membrane |
+| Console | Axis Puzzle | Colored cube groups trade horizontal rows and vertical columns | Moving faces settle into the mark/name |
+| Console | Sliding Shutters | Wide slats interlock, exchange lanes and open in opposing banks | Slat surfaces carry the identity |
+| Console | Orbit Relay | Circulating tokens trace relays, figure eights and rendezvous | Tokens gather into identity surfaces |
+| Console | Iris Bloom | Petals open, spiral, fan and return | Petals flatten into an identity formation |
+| Console | Domino Circuit | Cards tip through chains, racks, grids and fans | Cards align to carry the mark/name |
+| Console | Elastic Loom | Broad strips weave, pleat and unfold | Strips settle into readable identity surfaces |
+| Console | Pendulum Choir | Coordinated swinging groups trade waves and answers | Tokens assemble into an identity formation |
+| Console | Magnetic Assembly | Pieces dock into grids, rings, arches and corner banks | Docked pieces carry the identity |
 
 Every world contains five acts. An Open establishes form; Build assembles and adds directional movement; Drop sharpens hierarchy and adds controlled impact; Breakdown opens negative space and atmosphere; Drive sustains kinetic motion without repeatedly shaking or spinning a model.
 
 ## Smart Director
 
-Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. Its prediction layer can arm an approaching Build, Drop, Breakdown or Drive, prepare the next world and palette, then commit only when the musical evidence confirms the boundary. A section change still transforms the **current world first**. If dwell expires outside a genuine chapter boundary, the current world receives another internal movement and pattern phrase rather than an arbitrary scene cut.
+Smart Director maintains short- and long-window energy models and confirms musical stages with hysteresis. Its prediction layer can arm an approaching Build, Drop, Breakdown or Drive, rehearse a scene route, then commit only when the musical evidence confirms the boundary. A section change transforms the **current world first**. The dwell timer independently schedules the next scene on an eight-beat motif boundary, so the show progresses even without a newly detected section. The existing continuous scene-surface animation carries each change.
 
-World selection scores current energy, band balance and the predicted musical act, penalizes the active and recently used worlds, then also accounts for how often each world has already served that act during the set. An optional category filter narrows automatic choices without disabling manual access. Palettes begin morphing during a qualified pre-roll rather than cutting at the drop. If tempo confidence disappears, `AUTO CLUB` returns gradually to its 128 BPM anchor; confident measurements near 128 or 130 receive a stable club-grid bias while clearly different tempos remain respected. Deterministic Show Timeline mode remains available for rehearsed playback.
+World selection scores current energy, band balance and the predicted musical act, penalizes the active and recently used worlds, then also accounts for how often each world has already served that act during the set. An optional category filter narrows automatic choices without disabling manual access. Palette targets change with confirmed sections and scheduled scene cues, and interpolate continuously. If tempo confidence disappears, `AUTO CLUB` returns gradually to its 128 BPM anchor; confident measurements near 128 or 130 receive a stable club-grid bias while clearly different tempos remain respected. Deterministic Show Timeline mode remains available for rehearsed playback.
 
 ```text
 Windows playback device
@@ -120,7 +283,7 @@ The `RareStage Clean` Spout sender is published before Show Control is composite
 
 | Signal | Primary visual purpose |
 |---|---|
-| Bass | Sustained structural weight, membrane/floor emphasis, water displacement and broad light pressure |
+| Bass | Sustained structural weight, membrane/floor emphasis, cube lift and broad light pressure |
 | Kick | Near-real-time panel depth, controlled composition pump, radial pressure and short lighting hits |
 | Snare | Coordinated row and face-light accents that read as one deliberate structural hit without snapping object rotation |
 | Mids | Flow speed, parallax, ribbons, currents and environment travel |
@@ -139,14 +302,15 @@ Run RareStageConsole.exe from the same folder as RareStage.exe. Console can laun
 
 | Page | Controls |
 |---|---|
-| Show | All eighteen worlds, five act cues, previous/next, Smart Director, automation hold, Clean Open, stage HUD, load/save presets, blackout, and safe fallback |
+| Show | All twenty-four worlds, five act cues, previous/next, Smart Director, automation hold, Clean Open, stage HUD, load/save presets, blackout, and safe fallback |
 | Mix + Director | Reaction profile, palette direction, sensitivity, bass, mids, highs, beat, logo scale, act override, automatic act resume, Smart Director, and timeline mode |
 | Audio Lab | Auto/EDM/Bass Music/Melodic detector profile, instrument evidence, accepted/rejected diagnostics, adaptive calibration, sample labeling, replay-ready CSV export, and latency |
-| Output | World dwell, transition language, render profile, live GPU budget, clean PNG capture, VSync/high-refresh output, Spout, fullscreen, HUD, device, monitor, timeline mode, and renderer shutdown |
+| Output | World dwell, scene motion, render profile, live GPU budget, clean PNG capture, VSync/high-refresh output, Spout, fullscreen, HUD, device, monitor, timeline mode, and renderer shutdown |
 | Production | Production-duty presets, output mastering, master brightness, mapped stage layouts, sync group and Local/Leader/Follower synchronization |
+| Screens | Main display selection and synchronized clean-frame mirrors on up to eight displays |
 | Rehearsal | Start/stop set recording, GPU-aware smart captures, cue-density master, capture review, approve/rework tags, event timeline, and session export |
 
-Protocol v13 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, Showbrain choreography, identity target, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
+Protocol v17 uses a local shared-memory telemetry snapshot, acknowledged numeric commands and one bounded `WM_COPYDATA` message for the DJ name. The renderer remains authoritative, publishes a heartbeat at up to 40 Hz, rejects malformed input, and reports complete signal, detector evidence, musical narrative, world movement/pattern/loop, Showbrain choreography, identity target, category, tempo anchor, Director decisions, GPU timing, output mastering, synchronization, rehearsal, capture and renderer state back to Console. Engine and Console must come from the same release package.
 
 Press `G` while Console has focus to start or stop a rehearsal. Smart captures are delayed until the important cue has visually settled and GPU utilization is below the preferred threshold, with a bounded deadline so evidence is never lost. Recording never stalls or controls the renderer's animation clock.
 
@@ -159,14 +323,14 @@ Press `Tab` to show or hide the in-compositor control panel.
 | Overlay row | Values or range |
 |---|---|
 | Reaction | Calm, Balanced, Stage, Aggressive |
-| Palette | Rare Cyan, Nebula, Sakura, Solar; automatically morphed by Smart Director |
+| Palette | Rare Cyan, Nebula, Sakura, Solar, Laser Lime, Coral Ice, Ultraviolet, Electric Gold |
 | Sensitivity | 50–150% |
 | Bass / Mids / Highs / Beat | 50–150% each |
 | Logo | 75–125% |
 | Cue density | 65–125% operator master over authored world/act density |
 | World dwell | 40–120 seconds |
 | Transition | 0.2–3.0 seconds |
-| Transition FX | Morph Match, Horizon Rise, Signal Veil, Gate Open |
+| Transition FX | Row Flow, Ribbon Flow, Orbit Flow, Depth Fold |
 | Render profile | Performance, Balanced, Native HD, Ultra 4K |
 | Frame output | Display/VSync or unlocked high refresh |
 | Show mode | Smart Director or Show Timeline |
@@ -178,10 +342,12 @@ The in-renderer panel and Console manipulate the same settings. Both report the 
 
 | Input | Action |
 |---|---|
-| `1`–`9` | Select worlds 1–9 and enter manual world mode |
+| `1`–`9` | Select worlds 1–9; preserve automatic mode |
 | `Q` / `W` / `E` | Select Kinetic Array, Kinetic Canopy or Pixel Loom |
 | `R` / `Y` / `U` | Select Matrix Vault, Panel Cascade or Signal Rail |
-| `I` / `O` / `K` | Select Kinetic Facade, Rare Archipelago or Void Gates |
+| `I` / `O` / `K` | Select Kinetic Facade, Pulse Causeway or Void Gates |
+| `Z` / `X` / `J` | Select Ribbon Foundry, Halo Engine or Vector Speedway |
+| `C` / `V` / `N` | Select Folding Cathedral, Ribbon Racetrack or Kinetic Monument |
 | `[` / `]` | Previous or next world |
 | `0` or `A` | Toggle Smart Director |
 | `D` | Cycle active Windows playback devices |
@@ -202,16 +368,11 @@ The in-renderer panel and Console manipulate the same settings. Both report the 
 | `F11` or `Alt+Enter` | Toggle borderless fullscreen |
 | `Esc` | Leave fullscreen, or quit when windowed |
 
-When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, `U`, `I`, `O`, and `K` select all eighteen worlds. `A`, `Space`, `B`, `Ctrl+O`, `F`, `H`, `D`, `M`, `T`, `F1`–`F4`, and `Shift+F1`–`Shift+F4` mirror the primary show cues. `G` starts or stops a rehearsal recording.
+When Console has focus, `1`–`9`, `Q`, `W`, `E`, `R`, `Y`, `U`, `I`, `O`, `K`, `Z`, `X`, and `J` select all twenty-one worlds. `A`, `Space`, `B`, `Ctrl+O`, `F`, `H`, `D`, `M`, `T`, `F1`–`F4`, and `Shift+F1`–`Shift+F4` mirror the primary show cues. `G` starts or stops a rehearsal recording.
 
 ## Factory show presets
 
-| Slot | Direction | Starting world | Default dwell / transition |
-|---|---|---|---|
-| `F1` Clean Open | Calm, Rare Cyan | Orbital Garden | 88 sec / 1.8 sec Horizon Rise |
-| `F2` Melodic Bloom | Balanced, Sakura | Morph Wall | 72 sec / 1.4 sec Signal Veil |
-| `F3` Rare Drop | Stage, Rare Cyan | Lumen Canyon | 56 sec / 1.2 sec Gate Open |
-| `F4` Glitch Finale | Aggressive, Nebula, timeline | Stagewall | 48 sec / 0.9 sec Signal Veil |
+Factory slots provide a calm opening, balanced club show, stage peak and aggressive timeline. Each stores its reaction tuning, starting world, palette and motion settings. Smart Director uses bar-length scene animation; manual changes use the saved motion duration.
 
 Saved presets include the current world, reaction tuning, fallback palette, dwell, transition, render profile, output mode, automation, timeline, Spout, monitor, production duty, mastering, mapped layout, master brightness, sync mode and sync group.
 
@@ -239,9 +400,9 @@ Keep `assets/rare-logo.png` beside the executable in the packaged `assets` folde
 | Performance | 62% | Lower-power GPUs or high-refresh output |
 | Balanced | 78% | Reduced GPU load with native-resolution final composite |
 | Native HD | 100% | Full native scene rendering |
-| Ultra 4K | 125% | Supersampled output on high-end GPUs |
+| Ultra 4K | Up to 125%, capped at 3840×2160 | Native 4K scene pass on a 4K display; 8 ms GPU target |
 
-VSync is enabled by default. The 0.15.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
+VSync is enabled by default. The 0.16.0 renderer uses bounded loops, branch-local world logic and procedural 2D/2.5D layers. Only the selected world executes. Output mastering and mapped-panel masks run in the final composite pass. Direct3D timestamp queries measure the GPU work asynchronously; they do not stall the stage waiting for timing results.
 
 ## Build from source
 
@@ -270,7 +431,7 @@ Every push and pull request runs the Windows workflow:
 10. Render all 72 world/profile reference PNGs and validate their GPU-budget manifest.
 11. Verify publisher/version metadata, optionally sign, then package binaries, checksums and provenance.
 
-Successful pushes to `main` publish or refresh the **v0.15.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
+Successful pushes to `main` publish or refresh the **v0.16.0** GitHub release automatically. See [SECURITY.md](SECURITY.md) for verification and antivirus-report guidance.
 
 ## Roadmap
 
@@ -340,7 +501,7 @@ Successful pushes to `main` publish or refresh the **v0.15.0** GitHub release au
 - Lumen Canyon, Orbital Garden and Rare Archipelago world-scale scenes
 - Current-frame identity accents with continuous autonomous motion underneath
 
-### v0.15.0 — Choreography Showbrain (current)
+### v0.15.0 — Choreography Showbrain
 
 - GPU-native Rare-mark and custom DJ-name formation masks
 - Establish, Roll, Resolve and Release stanza grammar
@@ -348,7 +509,7 @@ Successful pushes to `main` publish or refresh the **v0.15.0** GitHub release au
 - World-integrated particle, star and atmospheric identity reveals
 - Protocol v13 live choreography telemetry in Console
 
-### v0.16 — Show authoring
+### Future — Show authoring
 
 - Project-level show files and venue profiles
 - Editable world affinities, act states and transition grammar
@@ -381,3 +542,23 @@ THIRD_PARTY_NOTICES.md          Third-party licensing
 ```
 
 RareStage includes [Spout2](https://github.com/leadedge/Spout2) under the BSD 2-Clause License. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### v0.17.0 — Continuous Choreography
+
+Moving Stagewall rows, clean connected cube formations, shared animated scene surfaces, bar-length Director motion, Prism Atrium and Pulse Causeway. Includes the v0.16 detailed logo/name surfaces and full-wall coverage fixes. See the current validation notes; a local build does not imply a published GitHub release.
+
+### v0.18.0 — Stage Lighting + Multi-Screen
+
+Sixteen wall/architectural motifs, eight palettes, timed bar-aligned Director cycles, forecast DVD corner arrivals, repaired fullscreen shortcuts and clean multi-screen mirrors. Current validation covers the renderer, choreography, timed cues, window behavior, mirror readback and Screens controls.
+
+### v0.21.0 — Show Composer
+
+Three new scenes, native wall/ribbon bridges, conditional branches, analytic route rehearsal with measured GPU-cost feedback, recurring themes and theme hold controls. [Details and evidence](docs/SHOW_COMPOSER.md).
+
+### v0.20.0 — Performance Worlds
+
+Nine rebuilt scenes, eight identity entrances/exits, four arrangements, long-set session memory and smooth Pixel Bank corner departures. See [release notes](docs/PERFORMANCE_WORLDS.md).
+
+### v0.19.0 — Sculptures + Show Direction
+
+Three additional worlds, sorted continuous Causeway motion, scene-aware material handoffs, rehearsed next/follow-up routes and remembered motif programs. See [validation and design notes](docs/SCULPTURES_SHOW_DIRECTION.md).

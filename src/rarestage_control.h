@@ -1,4 +1,6 @@
 #pragma once
+#include "scene_catalog.h"
+#include "palette_ring.h"
 
 #include <windows.h>
 
@@ -8,14 +10,14 @@
 
 namespace rarestage::control {
 
-inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v13";
+inline constexpr wchar_t MappingName[] = L"Local\\RareStage.Control.v30";
 inline constexpr wchar_t RendererWindowClass[] = L"RareStageWindow";
 inline constexpr UINT CommandMessage = WM_APP + 0x452;
 inline constexpr ULONG_PTR DjNameCopyDataId = 0x52415245444A4E41ull; // "RAREDJNA"
-inline constexpr std::uint32_t ProtocolVersion = 13;
-inline constexpr std::uint32_t WorldCount = 18;
+inline constexpr std::uint32_t ProtocolVersion = 30;
+inline constexpr std::uint32_t WorldCount = rarestage::show::SceneCount;
 inline constexpr std::uint32_t SectionCount = 5;
-inline constexpr std::uint32_t PaletteCount = 4;
+inline constexpr std::uint32_t PaletteCount = rarestage::show::PaletteCount;
 inline constexpr std::uint32_t ProfileCount = 4;
 inline constexpr std::uint32_t PresetCount = 4;
 inline constexpr std::uint32_t TransitionStyleCount = 4;
@@ -74,7 +76,23 @@ enum class Command : std::uint32_t {
     SetSyncGroup,
     SetSceneCategory,
     SetTempoAnchor,
-    SetDjIdentityVisible
+    SetDjIdentityVisible,
+    SelectMonitor,
+    SetMirrorMask,
+    HoldTheme,
+    NextTheme,
+    SelectProgram,
+    ReleaseProgram,
+    SetAutoColor,
+    SetReactivityPercent,
+    SetBandGainPercent,
+    SetModulation,
+    SetProceduralPalette,
+    SetGenerative,
+    SetPreview,
+    GenerativeTake,
+    GenerativeRelease,
+    EnterStandby
 };
 
 enum StateFlag : std::uint32_t {
@@ -98,7 +116,8 @@ enum StateFlag : std::uint32_t {
     SyncLeader = 1u << 17,
     SyncFollower = 1u << 18,
     LedSafeMaster = 1u << 19,
-    DjIdentityVisible = 1u << 20
+    DjIdentityVisible = 1u << 20,
+    AutoColor = 1u << 21
 };
 
 enum class CommandStatus : std::int32_t {
@@ -236,6 +255,14 @@ struct alignas(64) SharedState {
     std::uint32_t syncSequence{};
     std::int32_t captureStatus{};
     wchar_t playbackDevice[96]{};
+    std::int32_t theme{}, themeHeld{}, composerContinue{-1}, composerDrop{-1}, composerBreak{-1};
+    float routeEstimatedMs{}, routeContinuity{};
+    std::int32_t routeMeasured{};
+    std::int32_t motionAct{},visualRehearsalState{},visualCandidatesReady{};
+    float actionExitBeats{},visualRehearsalMs{};
+    std::uint32_t visualFramesSubmitted{},visualBatchesDiscarded{},visualBudgetSkips{};
+    wchar_t motionIntention[96]{};
+    wchar_t themeName[48]{};
     wchar_t worldName[48]{};
     wchar_t directorReason[96]{};
     wchar_t lastCapturePath[160]{};
@@ -248,11 +275,39 @@ struct alignas(64) SharedState {
     wchar_t categoryName[32]{};
     wchar_t choreographyName[32]{};
     wchar_t identityTarget[32]{};
+    std::uint32_t mirrorMask{};
+    std::int32_t mirrorCount{};
+    std::int32_t displayOutputStatus{};
+    wchar_t displayNames[8][64]{};
+    std::int32_t programHeld{},sequenceRole{},sequenceGesture{},sequenceChapter{};
+    // Per-lane levels (sub, kick body, bass, low-mid, mid, presence, air), their onsets and the operator gains.
+    float bands[7]{},bandOnsets[7]{},bandGains[7]{1,1,1,1,1,1,1};
+    float reactivity{0.5f};
+    std::int32_t modulationOn{},proceduralPaletteOn{};
+    // Generative world pipeline: compile queue state and the last compiled candidate.
+    std::int32_t generativeOn{};
+    std::uint32_t genPending{},genReady{},genSubmitted{},genCompiled{},genFailed{},genRejected{},genCacheHits{},genCacheMisses{},genStale{},genDropped{};
+    float genLastCompileMs{};std::int32_t genLastFamily{-1};std::uint32_t genLastSeed{};std::uint64_t genLastHash{};
+    char genLastError[96]{};
+    // Operator preview of one generated world: 0 off, 1 compiling, 2 live, 3 stepped back (too slow or failed).
+    std::int32_t previewState{},previewFamily{-1};std::uint32_t previewSeed{};float previewCompileMs{};
+    // Qualification of compiled candidates: offscreen GPU timing against the budget for the display's refresh rate.
+    float genBudgetMs{},genLastGpuMs{},previewGpuMs{};std::int32_t genLastVerdict{-1};
+    std::uint32_t genQualified{},genAccepted{},genRejectedCost{},genBlacklisted{};
+    // A generated world on the stage as a guest of the Director: 0 none, 1 arriving, 2 live, 3 leaving.
+    std::int32_t genLiveState{},genLiveFamily{-1};std::uint32_t genLiveSeed{},genActivations{};float genLiveMix{};
+    char genLiveReason[48]{};
+    // Launch sequence: 0 normal show, 1 intro playing, 2 standby (waiting for the operator), 3 leaving standby.
+    std::int32_t standbyState{};
 };
 
 static_assert(sizeof(LPARAM) >= sizeof(std::uint64_t), "RareStage Console requires Windows x64");
 static_assert(std::is_trivially_copyable_v<SharedState>);
-static_assert(sizeof(SharedState) <= 2304);
+static_assert(sizeof(SharedState) <= 4096);
+
+inline bool IsFullscreenShortcut(UINT message,WPARAM key,LPARAM flags) noexcept {
+    return !(flags&(LPARAM(1)<<30))&&((message==WM_SYSKEYDOWN&&key==VK_RETURN&&(flags&(LPARAM(1)<<29)))||(message==WM_KEYDOWN&&key==VK_F11));
+}
 
 inline LPARAM PackCommand(std::int32_t value, std::uint32_t serial) noexcept {
     const auto packed = (static_cast<std::uint64_t>(serial) << 32u) |

@@ -4,6 +4,8 @@
 #include <shellapi.h>
 
 #include "rarestage_control.h"
+#include "catalog_model.h"
+#include "show_sequence.h"
 
 #include <algorithm>
 #include <array>
@@ -45,32 +47,20 @@ COLORREF blendColor(COLORREF from, COLORREF to, float amount) {
                channel(GetBValue(from), GetBValue(to)));
 }
 
-constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldNames{
-    L"MORPH WALL", L"LUMEN CANYON", L"ORBITAL GARDEN",
-    L"STAGEWALL", L"WAVEWALL", L"PIXEL BANK",
-    L"PRISM CASCADE", L"KINETIC WEAVE", L"CHROMA BLADES",
-    L"KINETIC ARRAY", L"KINETIC CANOPY", L"PIXEL LOOM",
-    L"MATRIX VAULT", L"PANEL CASCADE", L"SIGNAL RAIL",
-    L"KINETIC FACADE", L"RARE ARCHIPELAGO", L"VOID GATES"
-};
-constexpr std::array<const wchar_t*, rarestage::control::WorldCount> WorldKeys{
-    L"1", L"2", L"3", L"4", L"5", L"6", L"7", L"8", L"9",
-    L"Q", L"W", L"E", L"R", L"Y", L"U", L"I", L"O", L"K"
-};
+const auto WorldNames=[](){std::array<const wchar_t*,rarestage::control::WorldCount> names{};for(size_t i=0;i<names.size();++i)names[i]=rarestage::show::Scenes[i].wideName;return names;}();
+const auto WorldKeys=[](){std::array<std::wstring,rarestage::control::WorldCount> keys{};for(size_t i=0;i<keys.size();++i)keys[i]=rarestage::show::Scenes[i].key?std::wstring(1,wchar_t(rarestage::show::Scenes[i].key)):L"";return keys;}();
 constexpr std::array<const wchar_t*, rarestage::control::SectionCount> SectionNames{
     L"OPEN", L"BUILD", L"DROP", L"BREAKDOWN", L"DRIVE"
 };
 constexpr std::array<const wchar_t*, rarestage::control::ProfileCount> ProfileNames{
     L"CALM", L"BALANCED", L"STAGE", L"AGGRESSIVE"
 };
-constexpr std::array<const wchar_t*, rarestage::control::PaletteCount> PaletteNames{
-    L"RARE CYAN", L"NEBULA", L"SAKURA", L"SOLAR"
-};
+const auto PaletteNames=[](){std::array<const wchar_t*,rarestage::control::PaletteCount> names{};for(size_t i=0;i<names.size();++i)names[i]=rarestage::show::Palettes[i].name;return names;}();
 constexpr std::array<const wchar_t*, rarestage::control::PresetCount> PresetNames{
     L"CLEAN OPEN", L"MELODIC BLOOM", L"RARE DROP", L"GLITCH FINALE"
 };
 constexpr std::array<const wchar_t*, rarestage::control::TransitionStyleCount> TransitionNames{
-    L"MORPH MATCH", L"HORIZON RISE", L"SIGNAL VEIL", L"GATE OPEN"
+    L"ROW FLOW", L"RIBBON FLOW", L"ORBIT FLOW", L"DEPTH FOLD"
 };
 constexpr std::array<const wchar_t*, rarestage::control::QualityCount> QualityNames{
     L"PERFORMANCE", L"BALANCED", L"NATIVE HD", L"ULTRA 4K"
@@ -97,7 +87,7 @@ constexpr std::array<const wchar_t*, rarestage::control::TempoAnchorCount> Tempo
     L"AUTO CLUB", L"128 BPM", L"130 BPM"
 };
 
-enum class Page { Show, Mix, Audio, Output, Production, Rehearsal };
+enum class Page { Show, Mix, Audio, Output, Production, Rehearsal, Screens, Catalog };
 
 enum class Setting {
     Sensitivity,
@@ -124,6 +114,8 @@ enum class Action {
     Next,
     Automatic,
     Freeze,
+    HoldTheme,
+    NextTheme,
     Blackout,
     CleanOpen,
     Fallback,
@@ -152,6 +144,10 @@ enum class Action {
     ExportSession,
     AudioDevice,
     Monitor,
+    SelectDisplay,
+    ToggleMirror,
+    MirrorAll,
+    MirrorOff,
     Fullscreen,
     MasteringProfile,
     StageLayout,
@@ -161,7 +157,9 @@ enum class Action {
     SceneCategory,
     TempoAnchor,
     DjIdentity,
-    QuitStage
+    QuitStage,
+    CatalogSearch,CatalogClear,CatalogFilter,CatalogFavorites,CatalogSelect,CatalogStar,CatalogPage,CatalogMode,CatalogApply,CatalogResume,
+    AutoColor,ShowCategory,ShowPage,ShowFollow
 };
 
 struct HitTarget {
@@ -205,6 +203,7 @@ struct ReviewItem {
 class ConsoleApp {
 public:
     ~ConsoleApp() {
+        if(catalogPreview_)DeleteObject(catalogPreview_);
         if (rehearsalActive_) finishRehearsal(false);
         disconnect();
         closeRendererProcessHandle();
@@ -222,7 +221,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.15.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.31.1",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -237,7 +236,8 @@ public:
         dpi_ = GetDpiForWindow(window_);
         createFonts();
         SetTimer(window_, 1, 33, nullptr);
-        ShowWindow(window_, SW_SHOW);
+        if(!std::wcsstr(GetCommandLineW(),L"--screen-ui-test"))loadFavorites();
+        if(!std::wcsstr(GetCommandLineW(),L"--screen-ui-test"))ShowWindow(window_, SW_SHOW);
         UpdateWindow(window_);
         return true;
     }
@@ -264,6 +264,30 @@ public:
         beginConnectedSoakTest();
         closeStageAfterSoak_ = true;
         launchRenderer();
+    }
+
+    bool captureScreenUiTest(){
+        const UINT oldDpi=dpi_;destroyFonts();dpi_=96;createFonts();connected_=true;wcsncpy_s(state_.motionIntention,L"FINISHING THE FORMATION / NEXT IN 8 BEATS",_TRUNCATE);state_.monitorCount=8;state_.monitor=0;state_.mirrorMask=6;state_.mirrorCount=2;state_.displayOutputStatus=1;
+        for(int n=0;n<8;++n)swprintf_s(state_.displayNames[n],L"DISPLAY %d  /  %d x %d",n+1,n==1?1080:1920,n==1?1920:1080);
+        BITMAPINFO info{};info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);info.bmiHeader.biWidth=1280;info.bmiHeader.biHeight=-640;info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+        void*pixels=nullptr;HDC dc=CreateCompatibleDC(nullptr);HBITMAP bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,nullptr,0);if(!bitmap||!pixels){if(bitmap)DeleteObject(bitmap);DeleteDC(dc);return false;}
+        const auto old=SelectObject(dc,bitmap);fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintScreens(dc,RECT{12,12,1268,628});GdiFlush();
+        bool ok=true;for(const auto&target:targets_)if(target.rect.left<12||target.rect.right>1268||target.rect.top<12||target.rect.bottom>628||target.rect.right<=target.rect.left||target.rect.bottom<=target.rect.top)ok=false;
+        BITMAPFILEHEADER file{};file.bfType=0x4d42;file.bfOffBits=sizeof(file)+sizeof(BITMAPINFOHEADER);file.bfSize=file.bfOffBits+1280*640*4;
+        std::ofstream output("RareStage-screens-ui.bmp",std::ios::binary);output.write(reinterpret_cast<const char*>(&file),sizeof(file));output.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));output.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&output.good();
+        fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();
+        int worldButtons=0;{const int pagesAll=showPageCount();
+          // Every page must stay inside the frame, and together the pages must reach every scene exactly once.
+          for(int page=0;page<pagesAll;++page){showCategory_=0;showPage_=page;showFollow_=false;fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();
+           for(const auto&target:targets_)if(target.action==Action::World){++worldButtons;if(target.value<0||target.value>=int(WorldNames.size())||target.rect.bottom>628||target.rect.top<12||target.rect.right>1268||target.rect.bottom<=target.rect.top)ok=false;}}
+          showPage_=0;showFollow_=true;fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();}
+        ok=ok&&worldButtons==rarestage::show::ActiveSceneCount();std::ofstream showOutput("RareStage-worlds-ui.bmp",std::ios::binary);showOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));showOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));showOutput.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&showOutput.good();
+        fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintCatalog(dc,RECT{12,12,1268,628});GdiFlush();
+        for(const auto& target:targets_)if(target.rect.left<12||target.rect.right>1268||target.rect.top<12||target.rect.bottom>628||target.rect.bottom<=target.rect.top)ok=false;
+        std::ofstream catalogOutput("RareStage-catalog-ui.bmp",std::ios::binary);catalogOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));catalogOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));catalogOutput.write(static_cast<const char*>(pixels),1280*640*4);ok&=catalogOutput.good();
+        fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintMix(dc,RECT{12,12,1268,628});GdiFlush();
+        std::ofstream mixOutput("RareStage-director-ui.bmp",std::ios::binary);mixOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));mixOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));mixOutput.write(static_cast<const char*>(pixels),1280*640*4);ok&=mixOutput.good();
+        SelectObject(dc,old);DeleteObject(bitmap);DeleteDC(dc);connected_=false;destroyFonts();dpi_=oldDpi;createFonts();return ok;
     }
 
 private:
@@ -306,7 +330,12 @@ private:
                 cursor_ = POINT{-10000, -10000};
                 trackingMouse_ = false;
                 return 0;
+            case WM_SYSKEYDOWN:
+                if(rarestage::control::IsFullscreenShortcut(message,wParam,lParam)){send(Command::SetFullscreen,flag(rarestage::control::Fullscreen)?0:1,L"Stage fullscreen");return 0;}
+                break;
+            case WM_SYSCHAR:if(wParam==VK_RETURN)return 0;break;
             case WM_KEYDOWN:
+                if(rarestage::control::IsFullscreenShortcut(message,wParam,lParam)){send(Command::SetFullscreen,flag(rarestage::control::Fullscreen)?0:1,L"Stage fullscreen");return 0;}
                 handleKey(wParam);
                 return 0;
             case WM_CHAR:
@@ -366,7 +395,7 @@ private:
 
     void selectPage(Page next) {
         if (next == page_) return;
-        page_ = next;
+        page_ = next;catalogEditing_=false;
         pageTransition_ = 0.0f;
     }
 
@@ -426,9 +455,8 @@ private:
     void updateConnection() {
         pollRendererProcess();
         if (rendererWindow_ && !IsWindow(rendererWindow_)) disconnect();
-        if (!rendererWindow_) rendererWindow_ = FindWindowW(rarestage::control::RendererWindowClass, nullptr);
 
-        if (rendererWindow_ && !mapping_) {
+        if (!mapping_) {
             mapping_ = OpenFileMappingW(FILE_MAP_READ, FALSE, rarestage::control::MappingName);
             if (mapping_) {
                 mappedState_ = static_cast<const SharedState*>(
@@ -441,15 +469,18 @@ private:
         }
 
         SharedState next{};
-        if (!rendererWindow_ || !mappedState_ ||
-            !rarestage::control::ReadConsistent(mappedState_, next)) {
+        if (!mappedState_ || !rarestage::control::ReadConsistent(mappedState_, next)) {
             connected_ = false;
             if (rendererWindow_ && !mapping_) {
-                statusText_ = L"RareStage is running without the v0.14 Console endpoint.";
+                statusText_ = L"Launch the matching v0.18 Stage and Console pair.";
             }
             return;
         }
 
+        // Bind commands to the process owning this telemetry, even when an older Stage is open.
+        struct Search {DWORD process;HWND window;};Search search{next.rendererProcessId,nullptr};
+        EnumWindows([](HWND window,LPARAM data)->BOOL{auto*search=reinterpret_cast<Search*>(data);DWORD process=0;GetWindowThreadProcessId(window,&process);wchar_t name[64]{};GetClassNameW(window,name,64);if(process==search->process&&std::wcscmp(name,rarestage::control::RendererWindowClass)==0){search->window=window;return FALSE;}return TRUE;},reinterpret_cast<LPARAM>(&search));
+        rendererWindow_=search.window;if(!rendererWindow_){connected_=false;return;}
         const std::uint64_t now = GetTickCount64();
         const auto age = now >= next.heartbeatTickMs ? now - next.heartbeatTickMs : 0;
         if (age > 1800) {
@@ -740,7 +771,7 @@ private:
         if (rehearsalSamples_.size() > MaxSessionSamples) rehearsalSamples_.erase(rehearsalSamples_.begin(), rehearsalSamples_.begin() + 1200);
 
         if (next.world != lastRehearsalWorld_) {
-            addRehearsalEvent(L"WORLD", std::wstring(WorldNames[std::clamp(next.world, 0, 17)]) + L" entered");
+            addRehearsalEvent(L"WORLD", std::wstring(WorldNames[std::clamp(next.world, 0, int(rarestage::control::WorldCount)-1)]) + L" entered");
             scheduleSmartCapture(L"world change", now, 1100);
             lastRehearsalWorld_ = next.world;
         }
@@ -806,7 +837,7 @@ private:
         double gpuTotal = 0.0;
         float gpuPeak = 0.0f;
         for (const auto& sample : rehearsalSamples_) {
-            worlds[std::clamp(sample.world, 0, 17)] = true;
+            worlds[std::clamp(sample.world, 0, int(rarestage::control::WorldCount)-1)] = true;
             gpuTotal += sample.gpuMs;
             gpuPeak = std::max(gpuPeak, sample.gpuMs);
             timeline << sample.timeMs << ',' << sample.world << ',' << sample.section << ',' << sample.predictedSection << ',' << sample.preparedWorld << ',' << sample.masteringProfile << ',' << sample.stageLayout << ',' << sample.productionDuty << ',' << sample.syncMode << ',' << sample.syncGroup << ',' << sample.palette << ',' << sample.quality << ','
@@ -835,7 +866,7 @@ private:
                 << "- Average GPU frame: " << gpuTotal / rehearsalSamples_.size() << " ms\n"
                 << "- Peak GPU frame: " << gpuPeak << " ms\n\n"
                 << "## Cue timeline\n\n";
-        for (const auto& event : rehearsalEvents_) summary << "- " << narrow(clockText(event.timeMs)) << " — " << narrow(event.kind) << ": " << narrow(event.detail) << "\n";
+        for (const auto& event : rehearsalEvents_) summary << "- " << narrow(clockText(event.timeMs)) << " â€” " << narrow(event.kind) << ": " << narrow(event.detail) << "\n";
         lastSessionSummaryPath_ = summaryPath.wstring();
         return timeline.good() && review.good() && summary.good();
     }
@@ -885,6 +916,7 @@ private:
     }
 
     void handleCharacter(wchar_t character) {
+        if(catalogEditing_){if(character==L'\r'){catalogEditing_=false;return;}if(character==L'\b'){if(!catalogQuery_.empty())catalogQuery_.pop_back();}else if(character>=L' '&&character!=127&&catalogQuery_.size()<64)catalogQuery_.push_back(character);catalogPage_=0;return;}
         if (!editingDjName_) return;
         if (character == L'\r') { applyDjName(); return; }
         if (character == L'\b') { if (!djNameBuffer_.empty()) djNameBuffer_.pop_back(); return; }
@@ -892,23 +924,15 @@ private:
     }
 
     void handleKey(WPARAM key) {
+        if(catalogEditing_){if(key==VK_ESCAPE)catalogEditing_=false;return;}
+        if(key==L'F'&&(GetKeyState(VK_CONTROL)&0x8000)){selectPage(Page::Catalog);catalogEditing_=true;return;}
         if (editingDjName_) {
             if (key == VK_ESCAPE) { editingDjName_ = false; statusText_ = L"DJ name edit cancelled."; }
             else if (key == VK_RETURN) applyDjName();
             return;
         }
-        if (key >= L'1' && key <= L'9') {
-            const int world = static_cast<int>(key - L'1');
-            send(Command::SelectWorld, world, WorldNames[world]);
-        } else if (key == L'Q') send(Command::SelectWorld, 9, WorldNames[9]);
-        else if (key == L'W') send(Command::SelectWorld, 10, WorldNames[10]);
-        else if (key == L'E') send(Command::SelectWorld, 11, WorldNames[11]);
-        else if (key == L'R') send(Command::SelectWorld, 12, WorldNames[12]);
-        else if (key == L'Y') send(Command::SelectWorld, 13, WorldNames[13]);
-        else if (key == L'U') send(Command::SelectWorld, 14, WorldNames[14]);
-        else if (key == L'I') send(Command::SelectWorld, 15, WorldNames[15]);
-        else if (key == L'O' && !(GetKeyState(VK_CONTROL) & 0x8000)) send(Command::SelectWorld, 16, WorldNames[16]);
-        else if (key == L'K') send(Command::SelectWorld, 17, WorldNames[17]);
+        const int cue=rarestage::show::SceneForKey(int(key));
+        if(cue>=0&&!(key==L'O'&&(GetKeyState(VK_CONTROL)&0x8000)))send(Command::SelectWorld,cue,WorldNames[cue]);
         else if (key == VK_OEM_4) send(Command::PreviousWorld, 0, L"Previous world");
         else if (key == VK_OEM_6) send(Command::NextWorld, 0, L"Next world");
         else if (key == L'A') send(Command::SetAutomatic, flag(rarestage::control::Automatic) ? 0 : 1, L"Smart Director");
@@ -927,7 +951,7 @@ private:
             if (GetKeyState(VK_SHIFT) & 0x8000) send(Command::SavePreset, preset, L"Save preset F" + std::to_wstring(preset + 1));
             else send(Command::LoadPreset, preset, PresetNames[preset]);
         } else if (key == VK_TAB) {
-            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 6));
+            selectPage(static_cast<Page>((static_cast<int>(page_) + 1) % 8));
         }
     }
 
@@ -1008,6 +1032,8 @@ private:
                 case Action::Previous: send(Command::PreviousWorld, 0, L"Previous world"); break;
                 case Action::Next: send(Command::NextWorld, 0, L"Next world"); break;
                 case Action::Automatic: send(Command::SetAutomatic, flag(rarestage::control::Automatic) ? 0 : 1, L"Smart Director"); break;
+                case Action::HoldTheme:send(Command::HoldTheme,state_.themeHeld?0:1,L"Hold theme");break;
+                case Action::NextTheme:send(Command::NextTheme,0,L"Next theme on a musical boundary");break;
                 case Action::Freeze: send(Command::SetFrozen, flag(rarestage::control::Frozen) ? 0 : 1, L"Automation hold"); break;
                 case Action::Blackout: send(Command::SetBlackout, flag(rarestage::control::Blackout) ? 0 : 1, L"Blackout"); break;
                 case Action::CleanOpen: send(Command::CleanOpen, 0, L"Clean Open"); break;
@@ -1041,15 +1067,33 @@ private:
                 case Action::ExportSession: if (saveRehearsalSession()) statusText_ = L"Rehearsal package updated at " + lastSessionSummaryPath_; else statusText_ = L"No rehearsal data is available to export."; break;
                 case Action::AudioDevice: send(Command::CycleAudioDevice, 0, L"Audio device"); break;
                 case Action::Monitor: send(Command::CycleMonitor, 0, L"Output monitor"); break;
+                case Action::SelectDisplay:send(Command::SelectMonitor,target.value,L"Stage display");break;
+                case Action::ToggleMirror:send(Command::SetMirrorMask,int(state_.mirrorMask^(1u<<target.value)),L"Mirror display");break;
+                case Action::MirrorAll:send(Command::SetMirrorMask,int(((1u<<std::clamp(state_.monitorCount,0,8))-1u)&~(1u<<state_.monitor)),L"Mirror all other displays");break;
+                case Action::MirrorOff:send(Command::SetMirrorMask,0,L"Mirrors off");break;
                 case Action::Fullscreen: send(Command::SetFullscreen, flag(rarestage::control::Fullscreen) ? 0 : 1, L"Fullscreen"); break;
                 case Action::MasteringProfile: send(Command::SetMasteringProfile, target.value, MasteringNames[target.value]); break;
                 case Action::StageLayout: send(Command::SetStageLayout, target.value, StageLayoutNames[target.value]); break;
                 case Action::ProductionDuty: send(Command::ApplyProductionDuty, target.value, ProductionDutyNames[target.value] + std::wstring(L" production duty")); break;
                 case Action::SyncMode: send(Command::SetSyncMode, target.value, SyncModeNames[target.value] + std::wstring(L" sync mode")); break;
                 case Action::EditDjName: editingDjName_ = true; djNameBuffer_ = state_.djName[0] ? state_.djName : L"RARE"; statusText_ = L"Type the DJ name, then press Enter to apply."; SetFocus(window_); break;
+                case Action::AutoColor: send(Command::SetAutoColor, flag(rarestage::control::AutoColor) ? 0 : 1, L"auto colour direction"); break;
+                case Action::ShowCategory: showCategory_ = target.value; showPage_ = 0; showFollow_ = true; break;
+                case Action::ShowPage: {const int pages = showPageCount(); showPage_ = (showPage_ + target.value + pages) % pages; showFollow_ = false; break;}
+                case Action::ShowFollow: showCategory_ = 0; showFollow_ = true; break;
                 case Action::SceneCategory: send(Command::SetSceneCategory, target.value, SceneCategoryNames[target.value] + std::wstring(L" scene category")); break;
                 case Action::TempoAnchor: send(Command::SetTempoAnchor, target.value, TempoAnchorNames[target.value] + std::wstring(L" tempo anchor")); break;
                 case Action::DjIdentity: send(Command::SetDjIdentityVisible, flag(rarestage::control::DjIdentityVisible) ? 0 : 1, L"identity choreography"); break;
+                case Action::CatalogSearch:catalogEditing_=true;SetFocus(window_);break;
+                case Action::CatalogClear:catalogQuery_.clear();catalogCategory_=catalogPage_=0;catalogOnlyFavorites_=false;break;
+                case Action::CatalogFilter:catalogCategory_=target.value;catalogPage_=0;break;
+                case Action::CatalogFavorites:catalogOnlyFavorites_=!catalogOnlyFavorites_;catalogPage_=0;break;
+                case Action::CatalogSelect:catalogScene_=target.value;catalogMode_=0;catalogEditing_=false;break;
+                case Action::CatalogStar:catalogFavorites_[target.value]=!catalogFavorites_[target.value];saveFavorites();break;
+                case Action::CatalogPage:catalogPage_+=target.value;break;
+                case Action::CatalogMode:catalogMode_=target.value;break;
+                case Action::CatalogApply:if(connected_&&state_.world==catalogScene_&&rarestage::show::PhraseFamily(catalogScene_)>=0)send(Command::SelectProgram,catalogMode_,L"Apply and hold pattern");else statusText_=L"Cue this scene first; continuous scenes have no manual program selector.";break;
+                case Action::CatalogResume:send(Command::ReleaseProgram,0,L"Resume automatic pattern direction");break;
                 case Action::QuitStage: send(Command::QuitRenderer, 0, L"Close stage"); break;
                 default: break;
             }
@@ -1230,15 +1274,15 @@ private:
                   connected_ ? L"FOCUS STAGE" : L"LAUNCH STAGE", Action::Launch, 0, false, Green);
 
         const int tabTop = scale(68);
-        const int tabWidth = scale(108);
-        const std::array<const wchar_t*, 6> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"PRODUCTION", L"REHEARSAL"};
-        for (int index = 0; index < 6; ++index) {
+        const int tabWidth = scale(95);
+        const std::array<const wchar_t*, 8> names{L"SHOW", L"MIX + DIRECTOR", L"AUDIO LAB", L"OUTPUT", L"PRODUCTION", L"REHEARSAL", L"SCREENS", L"CATALOG"};
+        for (int index = 0; index < 8; ++index) {
             addButton(dc, RECT{margin + index * (tabWidth + scale(7)), tabTop,
                                margin + index * (tabWidth + scale(7)) + tabWidth, tabTop + scale(34)},
                       names[index], Action::Page, index, static_cast<int>(page_) == index, Cyan);
         }
-        drawText(dc, L"TAB pages  |  G rehearsal  |  F1-F4 presets",
-                 RECT{margin + scale(705), tabTop, client.right - margin, tabTop + scale(34)},
+        drawText(dc, L"ALT+ENTER stage fullscreen",
+                 RECT{margin + scale(810), tabTop, client.right - margin, tabTop + scale(34)},
                  smallFont_, Muted, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
     }
 
@@ -1281,30 +1325,88 @@ private:
                  smallFont_, connected_ ? Muted : Amber);
     }
 
+#include "catalog_console.h"
+    bool inShowCategory(int scene, int category) const {
+        if (rarestage::show::Retired(scene)) return false;
+        const int family = rarestage::show::Scenes[scene].category;
+        return category == 0 || (category <= 4 && family == category - 1) || (category == 5 && catalogFavorites_[scene]);
+    }
+    std::vector<int> showScenes() const {
+        std::vector<int> scenes;
+        for (int id = 0; id < int(WorldNames.size()); ++id) if (inShowCategory(id, showCategory_)) scenes.push_back(id);
+        return scenes;
+    }
+    int showPageCount() const { return std::max(1, (int(showScenes().size()) + ShowPerPage - 1) / ShowPerPage); }
+
     void paintShow(HDC dc, RECT body) {
         const int gap = scale(12);
         const int leftWidth = static_cast<int>((body.right - body.left) * 0.63f);
         RECT worlds{body.left, body.top, body.left + leftWidth, body.bottom};
         fillRound(dc, worlds, 11, Panel, Line);
-        sectionLabel(dc, L"WORLD CUES  /  EIGHTEEN AUTHORED ENVIRONMENTS",
+        sectionLabel(dc, L"WORLD CUES / "+std::to_wstring(rarestage::show::ActiveSceneCount())+L" SCENES",
                      worlds.left + scale(14), worlds.top + scale(9), worlds.right - worlds.left - scale(28));
 
-        const int gridTop = worlds.top + scale(38);
-        const int gridGap = scale(8);
-        const int columns = 3;
-        const int rows = 6;
-        const int gridWidth = (worlds.right - worlds.left - scale(28) - gridGap * (columns - 1)) / columns;
-        const int gridHeight = (worlds.bottom - gridTop - scale(14) - gridGap * (rows - 1)) / rows;
-        for (int index = 0; index < static_cast<int>(WorldNames.size()); ++index) {
-            const int column = index % columns;
-            const int row = index / columns;
-            RECT button{worlds.left + scale(14) + column * (gridWidth + gridGap),
-                        gridTop + row * (gridHeight + gridGap),
-                        worlds.left + scale(14) + column * (gridWidth + gridGap) + gridWidth,
-                        gridTop + row * (gridHeight + gridGap) + gridHeight};
-            const std::wstring label = std::wstring(WorldKeys[index]) + L"  /  " + WorldNames[index];
-            addButton(dc, button, label, Action::World, index, connected_ && state_.world == index, Cyan);
+        const int themeY=worlds.top+scale(35);
+        addButton(dc,RECT{worlds.left+scale(14),themeY,worlds.left+scale(130),themeY+scale(29)},L"HOLD THEME",Action::HoldTheme,0,state_.themeHeld!=0,Amber);
+        addButton(dc,RECT{worlds.left+scale(138),themeY,worlds.left+scale(254),themeY+scale(29)},L"NEXT THEME",Action::NextTheme,0,false,Purple);
+        drawText(dc,connected_&&state_.themeName[0]?state_.themeName:L"THEMES FOLLOW THE SHOW",RECT{worlds.left+scale(263),themeY,worlds.right-scale(14),themeY+scale(29)},smallFont_,Cyan);
+        // Scene family chips with live counts, then a paged 4 x 3 grid so every cue stays large.
+        const COLORREF familyColors[]{Cyan, Purple, Green, Amber};
+        const wchar_t* chipNames[]{L"ALL", L"PANELS", L"RIBBONS", L"DEPTH", L"ATMOS", L"★"};
+        const int chipTop = worlds.top + scale(74), chipGap = scale(6);
+        const int chipWidth = (worlds.right - worlds.left - scale(28) - chipGap * 5) / 6;
+        for (int chip = 0; chip < 6; ++chip) {
+            int count = 0;
+            for (int id = 0; id < int(WorldNames.size()); ++id) count += inShowCategory(id, chip) ? 1 : 0;
+            const int x = worlds.left + scale(14) + chip * (chipWidth + chipGap);
+            addButton(dc, RECT{x, chipTop, x + chipWidth, chipTop + scale(30)}, std::wstring(chipNames[chip]) + L" " + std::to_wstring(count),
+                      Action::ShowCategory, chip, showCategory_ == chip, chip == 0 ? Cyan : chip < 5 ? familyColors[chip - 1] : Amber);
         }
+        const auto scenes = showScenes();
+        const int live = connected_ ? state_.world : -1;
+        const int pages = showPageCount();
+        if (showFollow_ && live >= 0) {
+            const auto found = std::find(scenes.begin(), scenes.end(), live);
+            if (found != scenes.end()) showPage_ = int(found - scenes.begin()) / ShowPerPage;
+        }
+        showPage_ = std::clamp(showPage_, 0, pages - 1);
+
+        const int footerHeight = scale(44), gridGap = scale(8);
+        const int gridTop = chipTop + scale(40);
+        const int gridWidth = (worlds.right - worlds.left - scale(28) - gridGap * (ShowColumns - 1)) / ShowColumns;
+        const int gridHeight = (worlds.bottom - gridTop - footerHeight - scale(8) - gridGap * (ShowRows - 1)) / ShowRows;
+        for (int slot = 0; slot < ShowPerPage; ++slot) {
+            const int entry = showPage_ * ShowPerPage + slot;
+            if (entry >= int(scenes.size())) break;
+            const int id = scenes[entry];
+            const COLORREF family = familyColors[std::clamp(rarestage::show::Scenes[id].category, 0, 3)];
+            RECT button{worlds.left + scale(14) + (slot % ShowColumns) * (gridWidth + gridGap),
+                        gridTop + (slot / ShowColumns) * (gridHeight + gridGap),
+                        worlds.left + scale(14) + (slot % ShowColumns) * (gridWidth + gridGap) + gridWidth,
+                        gridTop + (slot / ShowColumns) * (gridHeight + gridGap) + gridHeight};
+            addButton(dc, button, WorldNames[id], Action::World, id, live == id, family);
+            fillRect(dc, RECT{button.left + scale(1), button.top + scale(9), button.left + scale(4), button.bottom - scale(9)}, blendColor(PanelRaised, family, .75f));
+            if (!WorldKeys[id].empty())
+                drawText(dc, WorldKeys[id], RECT{button.left + scale(12), button.top + scale(5), button.left + scale(44), button.top + scale(22)}, smallFont_, Muted, DT_LEFT | DT_TOP | DT_SINGLELINE);
+            if (live == id)
+                drawText(dc, L"ON AIR", RECT{button.right - scale(70), button.top + scale(5), button.right - scale(9), button.top + scale(22)}, smallFont_, Green, DT_RIGHT | DT_TOP | DT_SINGLELINE);
+            std::wstring detail = rarestage::show::PhraseFamily(id) >= 0 ? std::to_wstring(rarestage::show::ProgramCount(id)) + L" PROGRAMS" : L"CONTINUOUS";
+            if (!rarestage::show::AutoScene(id)) detail = L"MANUAL  /  " + detail;
+            drawText(dc, detail, RECT{button.left + scale(12), button.bottom - scale(23), button.right - scale(8), button.bottom - scale(6)}, smallFont_, Muted, DT_LEFT | DT_BOTTOM | DT_SINGLELINE);
+        }
+        if (scenes.empty())
+            drawText(dc, showCategory_ == 5 ? L"No favourites yet. Star scenes in the Catalog." : L"No scenes in this family.",
+                     RECT{worlds.left + scale(14), gridTop, worlds.right - scale(14), gridTop + scale(60)}, bodyFont_, Muted);
+
+        const int footerTop = worlds.bottom - footerHeight;
+        const int navWidth = scale(104);
+        addButton(dc, RECT{worlds.left + scale(14), footerTop, worlds.left + scale(14) + navWidth, footerTop + scale(34)}, L"<  PREV", Action::ShowPage, -1, false, Cyan);
+        addButton(dc, RECT{worlds.right - scale(14) - navWidth, footerTop, worlds.right - scale(14), footerTop + scale(34)}, L"NEXT  >", Action::ShowPage, 1, false, Cyan);
+        const int midLeft = worlds.left + scale(14) + navWidth + scale(12), midRight = worlds.right - scale(14) - navWidth - scale(12);
+        drawText(dc, L"PAGE " + std::to_wstring(showPage_ + 1) + L" / " + std::to_wstring(pages), RECT{midLeft, footerTop, midLeft + scale(110), footerTop + scale(34)}, bodyFont_, Text, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+        if (live >= 0)
+            addButton(dc, RECT{midLeft + scale(120), footerTop, midRight, footerTop + scale(34)}, std::wstring(L"ON AIR: ") + WorldNames[live] + L"   (SHOW)",
+                      Action::ShowFollow, 0, showFollow_ && std::find(scenes.begin(), scenes.end(), live) != scenes.end(), Green);
 
         const int rightLeft = worlds.right + gap;
         const int rightWidth = body.right - rightLeft;
@@ -1393,13 +1495,34 @@ private:
             addButton(dc, RECT{x, y, x + optionWidth, y + scale(36)}, ProfileNames[index], Action::Profile, index,
                       connected_ && state_.reactionProfile == index, Purple);
         }
-        sectionLabel(dc, L"PALETTE DIRECTION", left.left + scale(14), y + scale(47), columnWidth - scale(28));
+        sectionLabel(dc, L"COLOR DIRECTION", left.left + scale(14), y + scale(47), columnWidth - scale(28));
+        const bool autoColor = flag(rarestage::control::AutoColor);
+        const int activeStop = connected_ ? std::clamp(autoColor ? int(state_.directorPalette) : int(state_.fallbackPalette), 0, int(PaletteNames.size()) - 1) : -1;
+        if (activeStop >= 0)
+            drawText(dc, std::wstring(autoColor ? L"AUTO  /  " : L"MANUAL  /  ") + PaletteNames[activeStop],
+                     RECT{left.left + scale(150), y + scale(47), left.right - scale(14), y + scale(67)}, headingFont_, Cyan, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
         y += scale(74);
-        for (int index = 0; index < 4; ++index) {
-            const int x = left.left + scale(14) + index * (optionWidth + optionGap);
-            addButton(dc, RECT{x, y, x + optionWidth, y + scale(36)}, PaletteNames[index], Action::Palette, index,
-                      connected_ && state_.fallbackPalette == index, Cyan);
+        addButton(dc, RECT{left.left + scale(14), y, left.left + scale(14) + optionWidth * 2 + optionGap, y + scale(36)}, L"AUTO COLOR", Action::AutoColor, 0, autoColor, Green);
+        drawText(dc, L"Drifts with the music. Tap to hold.",
+                 RECT{left.left + scale(24) + optionWidth * 2 + optionGap, y, left.right - scale(14), y + scale(36)}, smallFont_, Muted);
+        {
+            // Twenty-four swatches in hue order: the ring the Director travels around.
+            const int count = int(PaletteNames.size()), swatchGap = scale(2);
+            const int swatchWidth = (columnWidth - scale(28) - swatchGap * (count - 1)) / count;
+            for (int index = 0; index < count; ++index) {
+                const int x = left.left + scale(14) + index * (swatchWidth + swatchGap), top = y + scale(41);
+                RECT swatch{x, top, x + swatchWidth, top + scale(36)};
+                auto toColor = [](const std::array<float, 3>& rgb, float gain) {
+                    return RGB(std::clamp(int(rgb[0] * 215 * gain), 0, 255), std::clamp(int(rgb[1] * 215 * gain), 0, 255), std::clamp(int(rgb[2] * 215 * gain), 0, 255));
+                };
+                const bool hovered = connected_ && PtInRect(&swatch, cursor_);
+                const float gain = connected_ ? (hovered ? .95f : .72f) : .30f;
+                fillRound(dc, swatch, 4, toColor(rarestage::show::PaletteColor(index, 0), gain), index == activeStop ? Text : Line, index == activeStop ? 2 : 1);
+                fillRect(dc, RECT{swatch.left + scale(3), swatch.bottom - scale(9), swatch.right - scale(3), swatch.bottom - scale(5)}, toColor(rarestage::show::PaletteColor(index, 1), gain));
+                if (connected_) targets_.push_back({swatch, Action::Palette, index});
+            }
         }
+        y += scale(41);
 
         sectionLabel(dc, L"AUDIO RESPONSE", left.left + scale(14), y + scale(48), columnWidth - scale(28));
         y += scale(76);
@@ -1459,28 +1582,14 @@ private:
         const std::wstring activeWorld = connected_
             ? WorldNames[std::clamp(state_.world, 0, static_cast<int>(WorldNames.size()) - 1)]
             : L"NO ACTIVE WORLD";
-        const std::wstring candidate = connected_
-            ? WorldNames[std::clamp(state_.directorCandidateWorld, 0, static_cast<int>(WorldNames.size()) - 1)]
-            : L"---";
-        const std::wstring runner = connected_
-            ? WorldNames[std::clamp(state_.directorRunnerUpWorld, 0, static_cast<int>(WorldNames.size()) - 1)]
-            : L"---";
         drawText(dc, L"ACTIVE  " + activeWorld + L"  /  " +
                      (connected_ ? SectionNames[std::clamp(state_.songSection, 0, 4)] : L"OFFLINE"),
                  RECT{decision.left + scale(14), decision.top + scale(6), decision.right - scale(14), decision.top + scale(31)}, headingFont_, Text);
-        drawText(dc, L"NEXT  " + candidate + L"  " +
-                     std::to_wstring(static_cast<int>(std::lround(std::clamp(state_.directorCandidateScore - state_.directorRunnerUpScore, 0.0f, 1.0f) * 100))) +
-                     L"% MARGIN   /   ALT  " + runner,
-                 RECT{decision.left + scale(14), decision.top + scale(31), decision.right - scale(14), decision.top + scale(56)}, smallFont_, Cyan);
-        drawText(dc, connected_ && state_.directorReason[0] ? state_.directorReason : L"DIRECTOR TELEMETRY STARTING",
-                 RECT{decision.left + scale(14), decision.top + scale(56), decision.right - scale(14), decision.top + scale(81)}, smallFont_,
-                 flag(rarestage::control::MusicalEnding) ? Amber : Muted);
-        drawText(dc, L"SECTION  " + std::to_wstring(static_cast<int>(std::lround(state_.sectionEvidence * 100))) + L"%   /   " +
-                     std::wstring(state_.movementName[0] ? state_.movementName : L"ESTABLISH") + L"   /   " +
-                     std::wstring(state_.patternName[0] ? state_.patternName : L"PATTERN --") + L"   /   TENSION " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.buildTension * 100))) + L"%   /   DROP " +
-                     std::to_wstring(static_cast<int>(std::lround(state_.dropReadiness * 100))) + L"%",
-                 RECT{decision.left + scale(14), decision.top + scale(81), decision.right - scale(14), decision.bottom - scale(5)}, smallFont_, Muted);
+        auto branchName=[&](int world)->std::wstring{return connected_&&world>=0&&world<int(WorldNames.size())?WorldNames[world]:L"preparing";};
+        drawText(dc,std::wstring(rarestage::show::SequenceRoles[std::clamp(state_.sequenceRole,0,4)])+L" / "+rarestage::show::GestureNames[std::clamp(state_.sequenceGesture,0,5)]+L" > "+branchName(state_.composerContinue),RECT{decision.left+scale(14),decision.top+scale(31),decision.right-scale(14),decision.top+scale(56)},smallFont_,Cyan);
+        drawText(dc,L"DROP  "+branchName(state_.composerDrop)+L"  /  BREAK  "+branchName(state_.composerBreak),RECT{decision.left+scale(14),decision.top+scale(56),decision.right-scale(14),decision.top+scale(81)},smallFont_,Purple);
+        drawText(dc,connected_&&state_.motionIntention[0]?state_.motionIntention:L"DIRECTOR TELEMETRY STARTING",RECT{decision.left+scale(14),decision.top+scale(81),decision.right-scale(14),decision.bottom-scale(5)},smallFont_,Muted);
+
     }
 
     void traceLine(HDC dc, RECT plot, float TraceSample::* field, COLORREF color) const {
@@ -1603,6 +1712,27 @@ private:
                   L"EXPORT CALIBRATION TRACE CSV", Action::ExportTrace, 0, false, Green);
     }
 
+    void paintScreens(HDC dc,RECT body){
+        fillRound(dc,body,11,Panel,Line);
+        sectionLabel(dc,L"SYNCHRONIZED SCREEN OUTPUT",body.left+scale(18),body.top+scale(10),body.right-body.left-scale(36));
+        drawText(dc,L"One visual across your displays. Mirror outputs stay clean; mismatched shapes use letterboxing.",RECT{body.left+scale(18),body.top+scale(38),body.right-scale(18),body.top+scale(65)},bodyFont_,Muted);
+        const int top=body.top+scale(78),gap=scale(12),buttonWidth=(body.right-body.left-scale(48))/3;
+        addButton(dc,RECT{body.left+scale(18),top,body.left+scale(18)+buttonWidth,top+scale(38)},L"MIRROR ALL OTHER DISPLAYS",Action::MirrorAll,0,state_.mirrorCount>0,Green);
+        addButton(dc,RECT{body.left+scale(24)+buttonWidth,top,body.left+scale(24)+buttonWidth*2,top+scale(38)},L"MIRRORS OFF",Action::MirrorOff,0,state_.mirrorCount==0,Amber);
+        addButton(dc,RECT{body.left+scale(30)+buttonWidth*2,top,body.right-scale(18),top+scale(38)},flag(rarestage::control::Fullscreen)?L"LEAVE STAGE FULLSCREEN":L"STAGE FULLSCREEN",Action::Fullscreen,0,flag(rarestage::control::Fullscreen),Purple);
+        const int cardWidth=(body.right-body.left-scale(36)-gap)/2;
+        const int cardHeight=std::min(scale(94),int(body.bottom-top-scale(174))/4);
+        for(int index=0;index<std::clamp(state_.monitorCount,0,8);++index){
+            const int x=body.left+scale(18)+(index%2)*(cardWidth+gap),y=top+scale(53)+(index/2)*(cardHeight+gap);
+            RECT card{x,y,x+cardWidth,y+cardHeight};fillRound(dc,card,8,PanelRaised,Line);
+            drawText(dc,state_.displayNames[index],RECT{x+scale(12),y+scale(4),card.right-scale(12),y+scale(30)},bodyFont_,Text);
+            const int half=(cardWidth-scale(30))/2;
+            addButton(dc,RECT{x+scale(10),y+scale(35),x+scale(10)+half,card.bottom-scale(8)},index==state_.monitor?L"MAIN STAGE DISPLAY":L"MOVE STAGE HERE",Action::SelectDisplay,index,index==state_.monitor,Cyan);
+            if(index!=state_.monitor)addButton(dc,RECT{x+scale(20)+half,y+scale(35),card.right-scale(10),card.bottom-scale(8)},state_.mirrorMask&(1u<<index)?L"MIRROR ON":L"MIRROR OFF",Action::ToggleMirror,index,(state_.mirrorMask&(1u<<index))!=0,Green);
+        }
+        drawText(dc,state_.displayOutputStatus<0?L"Output could not open. Reconnect the display and retry.":L"ALT+ENTER or F11 toggles Stage fullscreen. ESC on a mirror closes mirror outputs.",RECT{body.left+scale(18),body.bottom-scale(48),body.right-scale(18),body.bottom-scale(15)},smallFont_,state_.displayOutputStatus<0?Red:Muted);
+    }
+
     void paintOutput(HDC dc, RECT body) {
         const int gap = scale(12);
         const int columnWidth = (body.right - body.left - gap) / 2;
@@ -1610,15 +1740,15 @@ private:
         RECT right{left.right + gap, body.top, body.right, body.bottom};
 
         fillRound(dc, left, 11, Panel, Line);
-        sectionLabel(dc, L"TIMING + TRANSITIONS", left.left + scale(14), left.top + scale(9), columnWidth - scale(28));
+        sectionLabel(dc, L"TIMING + SCENE MOTION", left.left + scale(14), left.top + scale(9), columnWidth - scale(28));
         int y = left.top + scale(39);
         parameterRow(dc, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(45)},
                      L"WORLD DWELL", std::to_wstring(static_cast<int>(std::lround(state_.worldDwellSeconds))) + L" SEC", Setting::Dwell);
         y += scale(53);
         parameterRow(dc, RECT{left.left + scale(14), y, left.right - scale(14), y + scale(45)},
-                     L"TRANSITION", std::to_wstring(static_cast<int>(std::lround(state_.transitionSeconds * 10))) + L"/10 SEC", Setting::Transition);
+                     L"MOTION TIME", std::to_wstring(static_cast<int>(std::lround(state_.transitionSeconds * 10))) + L"/10 SEC", Setting::Transition);
 
-        sectionLabel(dc, L"TRANSITION LANGUAGE", left.left + scale(14), y + scale(58), columnWidth - scale(28));
+        sectionLabel(dc, L"MOTION PATH", left.left + scale(14), y + scale(58), columnWidth - scale(28));
         y += scale(87);
         const int optionGap = scale(7);
         const int optionWidth = (columnWidth - scale(28) - optionGap * 3) / 4;
@@ -1847,7 +1977,7 @@ private:
         RECT stats{recorder.left + scale(14), y, recorder.right - scale(14), y + scale(83)};
         fillRound(dc, stats, 8, PanelRaised, Line);
         std::array<bool, rarestage::control::WorldCount> exercised{};
-        for (const auto& sample : rehearsalSamples_) exercised[std::clamp(sample.world, 0, 17)] = true;
+        for (const auto& sample : rehearsalSamples_) exercised[std::clamp(sample.world, 0, int(rarestage::control::WorldCount)-1)] = true;
         const auto duration = rehearsalActive_ ? GetTickCount64() - rehearsalStartedAt_ :
             (rehearsalSamples_.empty() ? 0 : rehearsalSamples_.back().timeMs);
         drawText(dc, rehearsalActive_ ? L"RECORDING  " + clockText(duration) : L"SESSION  " + clockText(duration),
@@ -1876,7 +2006,7 @@ private:
         y += scale(49);
         sectionLabel(dc, L"RECORDING CONTRACT", recorder.left + scale(14), y, leftWidth - scale(28));
         y += scale(25);
-        drawText(dc, L"Telemetry stays continuous. Captures wait for GPU headroom after world and act changes, so review evidence does not stall the drop. Density changes light and cue detail—not motion time.",
+        drawText(dc, L"Telemetry stays continuous. Captures wait for GPU headroom after world and act changes, so review evidence does not stall the drop. Density changes light and cue detailâ€”not motion time.",
                  RECT{recorder.left + scale(14), y, recorder.right - scale(14), recorder.bottom - scale(66)}, smallFont_, Muted,
                  DT_LEFT | DT_TOP | DT_WORDBREAK);
         addButton(dc, RECT{recorder.left + scale(14), recorder.bottom - scale(54), recorder.right - scale(14), recorder.bottom - scale(10)},
@@ -1894,7 +2024,7 @@ private:
             const COLORREF statusColor = item.status == 1 ? Green : item.status == 2 ? Red : Amber;
             drawText(dc, L"FRAME " + std::to_wstring(reviewIndex_ + 1) + L" / " + std::to_wstring(reviewItems_.size()) + L"   " + status,
                      RECT{review.left + scale(14), review.top + scale(38), review.right - scale(14), review.top + scale(65)}, headingFont_, statusColor);
-            drawText(dc, std::wstring(WorldNames[std::clamp(item.world, 0, 17)]) + L"  /  " + SectionNames[std::clamp(item.section, 0, 4)] +
+            drawText(dc, std::wstring(WorldNames[std::clamp(item.world, 0, int(rarestage::control::WorldCount)-1)]) + L"  /  " + SectionNames[std::clamp(item.section, 0, 4)] +
                          L"  /  " + clockText(item.timeMs) + L"  /  " + item.reason,
                      RECT{review.left + scale(14), review.top + scale(65), review.right - scale(14), review.top + scale(91)}, smallFont_, Cyan);
             drawText(dc, item.path, RECT{review.left + scale(14), review.top + scale(91), review.right - scale(14), review.top + scale(120)}, smallFont_, Muted);
@@ -1962,6 +2092,8 @@ private:
         else if (page_ == Page::Audio) paintAudio(dc, body);
         else if (page_ == Page::Output) paintOutput(dc, body);
         else if (page_ == Page::Production) paintProduction(dc, body);
+        else if(page_==Page::Screens)paintScreens(dc,body);
+        else if(page_==Page::Catalog)paintCatalog(dc,body);
         else paintRehearsal(dc, body);
 
         RECT footer{margin, client.bottom - margin - footerHeight, client.right - margin, client.bottom - margin};
@@ -2010,6 +2142,12 @@ private:
     bool editingDjName_{};
     int exitCode_{};
     UINT dpi_{96};
+    std::array<bool,rarestage::show::SceneCount> catalogFavorites_{};
+    std::wstring catalogQuery_;std::filesystem::path catalogPreviewPath_;HBITMAP catalogPreview_{};
+    int catalogScene_{35},catalogMode_{},catalogCategory_{},catalogPage_{};bool catalogEditing_{},catalogOnlyFavorites_{};
+    // Show page browsing: 0 all, 1-4 scene families, 5 favourites. Follow keeps the on-air scene in view.
+    int showCategory_{},showPage_{};bool showFollow_{true};
+    static constexpr int ShowColumns=4,ShowRows=3,ShowPerPage=ShowColumns*ShowRows;
     Page page_{Page::Show};
     POINT cursor_{-10000, -10000};
     float animationTime_{};
@@ -2162,6 +2300,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
         MessageBoxW(nullptr, L"RareStage Console could not start.", L"RareStage Console", MB_OK | MB_ICONERROR);
         return 1;
     }
+    if(std::wcsstr(GetCommandLineW(),L"--screen-ui-test")){const bool passed=app.captureScreenUiTest();app.requestClose();app.run();return passed?0:5;}
     if (std::wcsstr(GetCommandLineW(), L"--startup-test")) app.requestClose();
     else if (std::wcsstr(GetCommandLineW(), L"--connected-soak-test")) app.beginConnectedSoakTest();
     else if (std::wcsstr(GetCommandLineW(), L"--launch-stage-soak-test")) app.beginLaunchStageSoakTest();
