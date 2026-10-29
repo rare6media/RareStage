@@ -4,9 +4,26 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.28.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.31.0**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.31.0
+
+* **Launch sequence**: the renderer opens on a six-second launch scene and settles into a standby scene that doubles as a
+  test pattern (the mark, a level ring and seven live audio-lane meters). Picking a scene starts it with the Director on
+  auto; AUTO starts the Director. The console has its own launch animation. `--no-intro` and `--no-splash` skip them.
+* **New console** (`RareStageConsole.exe`, Dear ImGui) with Live, Mix, Audio Lab, Director, Output and Production tabs.
+  The old console is kept as `RareStageConsoleClassic.exe` until its remaining pages are ported.
+* **Seven independent audio lanes** with a Reactivity control and per-lane gains.
+* **Modulation matrix and procedural colour harmony** (Mix tab, off by default).
+* **Generated worlds**: Cosmic Space, Circuit Board, Virus Spread and Error Horizon are built from reproducible specs,
+  compiled in the background, GPU-qualified, and brought on by the Director at drops and phrase boundaries (Director tab,
+  off by default). Architecture and limits: [docs/GENERATIVE_DIRECTOR.md](docs/GENERATIVE_DIRECTOR.md).
+* **Eleven scenes retired** from rotation (hidden, not deleted). Notes below about those scenes describe 0.28 and earlier.
+
+Full notes: [docs/RELEASE_0_31.md](docs/RELEASE_0_31.md). The console and renderer must come from the same build
+(control protocol 30).
 
 ## What changed in 0.28.0
 

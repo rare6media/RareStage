@@ -127,12 +127,12 @@ int main(){
  std::array<bool,SceneCount> favorites{};favorites[33]=true;
  check("catalog_searches_program_names",CatalogSearch(L"figure eight sorter",0,false,favorites)==std::vector<int>{33});
  check("catalog_favorites_keep_stable_ids",CatalogSearch(L"",0,true,favorites)==std::vector<int>{33}&&CatalogSearch(L"",1,true,favorites).empty());
- check("catalog_counts_real_named_programs",NamedProgramCount()==268&&CatalogSearch(L"",0,false,favorites).size()==46);
- {bool volume=true;for(int s=42;s<46;++s){volume&=VolumeScene(s)&&!GraphicScene(s)&&!PlayScene(s)&&ProgramCount(s)==10&&PhraseFamily(s)>=0&&AutoScene(s);
+ check("catalog_counts_real_named_programs",NamedProgramCount()==202&&CatalogSearch(L"",0,false,favorites).size()==size_t(ActiveSceneCount()));
+ {bool volume=true;for(int s=42;s<46;++s){if(Retired(s))continue;volume&=VolumeScene(s)&&!GraphicScene(s)&&!PlayScene(s)&&ProgramCount(s)==10&&PhraseFamily(s)>=0&&AutoScene(s);
   for(int p=0;p<10;++p)volume&=std::wstring(PhraseName(s,p)).size()>3&&std::wstring(PhraseName(s,p))!=L"AUTHORED PATTERN";
   for(int p=1;p<10;++p)for(int q=0;q<p;++q)volume&=std::wstring(PhraseName(s,p))!=PhraseName(s,q);}
   check("volume_scenes_have_ten_distinct_named_programs",volume);}
- bool graphics=true;for(int s=35;s<42;++s){graphics&=GraphicScene(s)&&!PlayScene(s)&&ProgramCount(s)==10&&PhraseFamily(s)>=0&&AutoScene(s);for(int p=0;p<10;++p)graphics&=std::wstring(PhraseName(s,p)).size()>4&&int(ProgramGesture(s,p))>=0&&int(ProgramGesture(s,p))<6;}
+ bool graphics=true;for(int s=35;s<42;++s){if(Retired(s))continue;graphics&=GraphicScene(s)&&!PlayScene(s)&&ProgramCount(s)==10&&PhraseFamily(s)>=0&&AutoScene(s);for(int p=0;p<10;++p)graphics&=std::wstring(PhraseName(s,p)).size()>4&&int(ProgramGesture(s,p))>=0&&int(ProgramGesture(s,p))<6;}
  check("graphic_catalog_has_independent_named_programs",graphics&&NativeBridge(35,36)&&NativeBridge(36,37)&&NativeBridge(37,35)&&!NativeBridge(3,35));
  Director automatic;Context selection;selection.fit.fill(0);bool curated=true;
  for(int category=0;category<5;++category)for(int current=0;current<SceneCount;++current){selection.current=current;selection.category=category;

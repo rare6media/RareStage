@@ -19,14 +19,14 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -A x64
       - name: Build
-        run: cmake --build build --config Release --target RareStage RareStageConsole RareStageProtocolTests RareStagePhraseTests RareStageMotionTests RareStageActionTests RareStageColorTests --parallel
+        run: cmake --build build --config Release --target RareStage RareStageConsole RareStageConsoleClassic RareStageProtocolTests RareStagePhraseTests RareStageMotionTests RareStageActionTests RareStageColorTests --parallel
       - name: Verify Windows identity metadata
         shell: pwsh
         run: |
           foreach ($binary in @("build/Release/RareStage.exe", "build/Release/RareStageConsole.exe")) {
             $version = (Get-Item $binary).VersionInfo
-            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.29.0") {
-              throw "$binary is missing the expected publisher or v0.29.0 product metadata"
+            if ($version.CompanyName -ne "AntNetwork, L.L.C." -or $version.ProductVersion -ne "0.31.0") {
+              throw "$binary is missing the expected publisher or v0.31.0 product metadata"
             }
           }
           $consoleImage = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes("build/Release/RareStageConsole.exe"))
@@ -221,21 +221,21 @@ jobs:
       - name: Console startup smoke test
         shell: pwsh
         run: |
-          $process = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--startup-test" -Wait -PassThru
+          $process = Start-Process build/Release/RareStageConsoleClassic.exe -ArgumentList "--startup-test" -Wait -PassThru
           if ($process.ExitCode -ne 0) {
             throw "Console startup smoke test failed with exit code $($process.ExitCode)"
           }
       - name: Calibration trace replay contract
         shell: pwsh
         run: |
-          $process = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--trace-replay-self-test" -Wait -PassThru
+          $process = Start-Process build/Release/RareStageConsoleClassic.exe -ArgumentList "--trace-replay-self-test" -Wait -PassThru
           if ($process.ExitCode -ne 0 -or -not (Test-Path tests/audio_trace_contract.analysis.txt)) {
             throw "Calibration trace replay contract failed with exit code $($process.ExitCode)"
           }
       - name: Rehearsal recorder contract
         shell: pwsh
         run: |
-          $process = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--rehearsal-self-test" -Wait -PassThru
+          $process = Start-Process build/Release/RareStageConsoleClassic.exe -ArgumentList "--rehearsal-self-test" -Wait -PassThru
           if ($process.ExitCode -ne 0 -or -not (Test-Path RareStage-rehearsal-contract.csv) -or -not (Test-Path RareStage-rehearsal-contract.md)) {
             throw "Rehearsal recorder contract failed with exit code $($process.ExitCode)"
           }
@@ -247,7 +247,7 @@ jobs:
         shell: pwsh
         run: |
           try {
-            $console = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--launch-stage-soak-test" -Wait -PassThru
+            $console = Start-Process build/Release/RareStageConsoleClassic.exe -ArgumentList "--launch-stage-soak-test" -Wait -PassThru
             if ($console.ExitCode -ne 0) {
               throw "Console-owned Stage launch soak test failed with exit code $($console.ExitCode)"
             }
@@ -292,7 +292,7 @@ jobs:
         run: |
           $stage = Start-Process build/Release/RareStage.exe -ArgumentList "--stage-lighting-test" -WindowStyle Hidden -Wait -PassThru
           if ($stage.ExitCode -ne 0) { throw "Stage lighting/display validation failed: $($stage.ExitCode)" }
-          $console = Start-Process build/Release/RareStageConsole.exe -ArgumentList "--screen-ui-test" -WindowStyle Hidden -Wait -PassThru
+          $console = Start-Process build/Release/RareStageConsoleClassic.exe -ArgumentList "--screen-ui-test" -WindowStyle Hidden -Wait -PassThru
           if ($console.ExitCode -ne 0) { throw "Screen controls validation failed: $($console.ExitCode)" }
       - name: Render catalog previews
         shell: pwsh
@@ -303,6 +303,7 @@ jobs:
           New-Item -ItemType Directory -Force dist/RareStage/assets | Out-Null
           Copy-Item build/Release/RareStage.exe dist/RareStage/RareStage.exe
           Copy-Item build/Release/RareStageConsole.exe dist/RareStage/RareStageConsole.exe
+          Copy-Item build/Release/RareStageConsoleClassic.exe dist/RareStage/RareStageConsoleClassic.exe
           Copy-Item assets/rare-logo.png dist/RareStage/assets/rare-logo.png
           Copy-Item assets/catalog dist/RareStage/assets/catalog -Recurse
           Copy-Item build/Release/assets/shaders dist/RareStage/assets/shaders -Recurse
@@ -315,7 +316,7 @@ jobs:
           $binarySums | Set-Content dist/RareStage/RareStage-BINARY-SHA256SUMS.txt
           $provenance = [ordered]@{
             product = "RareStage"
-            version = "0.29.0"
+            version = "0.31.0"
             commit = $env:GITHUB_SHA
             workflow_run = $env:GITHUB_RUN_ID
             spout2_commit = "c2bcc12147711d12ace7d5f08e869d774d840f8a"
@@ -373,14 +374,14 @@ jobs:
             RareStage-rehearsal-contract.csv
             RareStage-rehearsal-contract.md
             tests/audio_trace_contract.analysis.txt
-      - name: Publish v0.29.0 release
+      - name: Publish v0.31.0 release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if (gh release view v0.29.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
-            gh release upload v0.29.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
+          if (gh release view v0.31.0 --repo $env:GITHUB_REPOSITORY 2>$null) {
+            gh release upload v0.31.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --clobber --repo $env:GITHUB_REPOSITORY
           } else {
-            gh release create v0.29.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.29.0 — Rarebot" --generate-notes --repo $env:GITHUB_REPOSITORY
+            gh release create v0.31.0 RareStage-windows-x64.zip RareStage-SHA256SUMS.txt RareStage-build-provenance.json --title "RareStage 0.31.0 — Rarebot" --generate-notes --repo $env:GITHUB_REPOSITORY
           }

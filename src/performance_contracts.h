@@ -30,8 +30,8 @@ inline bool PerformanceSelfTest(){
  bool curatedCoverage=true;for(int scene=0;scene<rarestage::show::SceneCount;++scene)curatedCoverage&=scenes[scene]==rarestage::show::AutoScene(scene);
  check("twenty_song_curated_scene_coverage",curatedCoverage,std::count(scenes.begin(),scenes.end(),true));check("twenty_song_route_variety",distinctRoutes>=70,distinctRoutes);
 
- for(int i=0;i<rarestage::show::SceneCount;++i)check("catalog_key_"+std::to_string(i),(i>=24||rarestage::show::Scenes[i].key!=0)&&(rarestage::show::Scenes[i].key?rarestage::show::SceneForKey(rarestage::show::Scenes[i].key)==i:rarestage::show::SceneForKey(0)==-1));
- check("legacy_scene_keys",rarestage::show::SceneForKey('U')==14&&rarestage::show::SceneForKey('I')==15);
+ for(int i=0;i<rarestage::show::SceneCount;++i)check("catalog_key_"+std::to_string(i),rarestage::show::Retired(i)?rarestage::show::SceneForKey(rarestage::show::Scenes[i].key)==-1:(i>=24||rarestage::show::Scenes[i].key!=0)&&(rarestage::show::Scenes[i].key?rarestage::show::SceneForKey(rarestage::show::Scenes[i].key)==i:rarestage::show::SceneForKey(0)==-1));
+ check("legacy_scene_keys",rarestage::show::SceneForKey('U')==-1&&rarestage::show::SceneForKey('I')==15);
  // Composer routes must be conditional, fresh, category-safe and canceled by intervention.
  using namespace rarestage::show;
  Composer composer;context.current=3;context.section=1;context.category=0;context.energy=.45f;

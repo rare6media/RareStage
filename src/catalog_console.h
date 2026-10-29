@@ -7,7 +7,7 @@ void paintCatalog(HDC dc,RECT body){
  const int pad=scale(14),gap=scale(8),leftWidth=int((body.right-body.left)*.51f);
  RECT left{body.left,body.top,body.left+leftWidth,body.bottom},right{left.right+scale(12),body.top,body.right,body.bottom};
  fillRound(dc,left,11,Panel,Line);fillRound(dc,right,11,Panel,Line);
- sectionLabel(dc,L"CATALOG / "+std::to_wstring(SceneCount)+L" SCENES / "+std::to_wstring(NamedProgramCount())+L" NAMED PROGRAMS",left.left+pad,left.top+scale(8),leftWidth-2*pad);
+ sectionLabel(dc,L"CATALOG / "+std::to_wstring(ActiveSceneCount())+L" SCENES / "+std::to_wstring(NamedProgramCount())+L" NAMED PROGRAMS",left.left+pad,left.top+scale(8),leftWidth-2*pad);
  int y=left.top+scale(38);
  addButton(dc,RECT{left.left+pad,y,left.right-pad-scale(112),y+scale(32)},(catalogEditing_?L"TYPE: ":L"SEARCH: ")+(catalogQuery_.empty()?L"scene or pattern":catalogQuery_),Action::CatalogSearch,0,catalogEditing_,Cyan);
  addButton(dc,RECT{left.right-pad-scale(104),y,left.right-pad,y+scale(32)},L"CLEAR",Action::CatalogClear,0);

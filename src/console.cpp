@@ -221,7 +221,7 @@ public:
         if (!RegisterClassW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) return false;
 
         window_ = CreateWindowExW(
-            0, windowClass.lpszClassName, L"RareStage Console 0.29.0",
+            0, windowClass.lpszClassName, L"RareStage Console 0.31.0",
             WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
             CW_USEDEFAULT, CW_USEDEFAULT, 1380, 900,
             nullptr, nullptr, instance, this);
@@ -281,7 +281,7 @@ public:
           for(int page=0;page<pagesAll;++page){showCategory_=0;showPage_=page;showFollow_=false;fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();
            for(const auto&target:targets_)if(target.action==Action::World){++worldButtons;if(target.value<0||target.value>=int(WorldNames.size())||target.rect.bottom>628||target.rect.top<12||target.rect.right>1268||target.rect.bottom<=target.rect.top)ok=false;}}
           showPage_=0;showFollow_=true;fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintShow(dc,RECT{12,12,1268,628});GdiFlush();}
-        ok=ok&&worldButtons==int(WorldNames.size());std::ofstream showOutput("RareStage-worlds-ui.bmp",std::ios::binary);showOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));showOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));showOutput.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&showOutput.good();
+        ok=ok&&worldButtons==rarestage::show::ActiveSceneCount();std::ofstream showOutput("RareStage-worlds-ui.bmp",std::ios::binary);showOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));showOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));showOutput.write(static_cast<const char*>(pixels),1280*640*4);ok=ok&&showOutput.good();
         fillRect(dc,RECT{0,0,1280,640},Background);targets_.clear();paintCatalog(dc,RECT{12,12,1268,628});GdiFlush();
         for(const auto& target:targets_)if(target.rect.left<12||target.rect.right>1268||target.rect.top<12||target.rect.bottom>628||target.rect.bottom<=target.rect.top)ok=false;
         std::ofstream catalogOutput("RareStage-catalog-ui.bmp",std::ios::binary);catalogOutput.write(reinterpret_cast<const char*>(&file),sizeof(file));catalogOutput.write(reinterpret_cast<const char*>(&info.bmiHeader),sizeof(BITMAPINFOHEADER));catalogOutput.write(static_cast<const char*>(pixels),1280*640*4);ok&=catalogOutput.good();
@@ -1327,6 +1327,7 @@ private:
 
 #include "catalog_console.h"
     bool inShowCategory(int scene, int category) const {
+        if (rarestage::show::Retired(scene)) return false;
         const int family = rarestage::show::Scenes[scene].category;
         return category == 0 || (category <= 4 && family == category - 1) || (category == 5 && catalogFavorites_[scene]);
     }
@@ -1342,7 +1343,7 @@ private:
         const int leftWidth = static_cast<int>((body.right - body.left) * 0.63f);
         RECT worlds{body.left, body.top, body.left + leftWidth, body.bottom};
         fillRound(dc, worlds, 11, Panel, Line);
-        sectionLabel(dc, L"WORLD CUES / "+std::to_wstring(WorldNames.size())+L" SCENES",
+        sectionLabel(dc, L"WORLD CUES / "+std::to_wstring(rarestage::show::ActiveSceneCount())+L" SCENES",
                      worlds.left + scale(14), worlds.top + scale(9), worlds.right - worlds.left - scale(28));
 
         const int themeY=worlds.top+scale(35);

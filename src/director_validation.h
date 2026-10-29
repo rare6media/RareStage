@@ -78,7 +78,7 @@ int runDirectorValidation(){
   serviceQueuedWorld();cornerMotion_.update(seconds,false,0,dropCount_);servicePixelExit(audio,seconds);updateTimedDirector(audio,seconds);updateWorldProgression();
   const bool changed=from!=world_;holds&=!(changed&&(frozen_||programHeld_));
   if(changed){++visits;setScenes[world_]=true;lastVisit=seconds;deadlines&=from==5||tempoPhase_+.001f>=required;schedule<<seconds<<','<<tempoPhase_<<','<<section<<','<<from<<','<<world_<<','<<required<<','<<identity<<'\n';}
-  progress&=seconds-lastVisit<180&&AutoScene(world_);
+  progress&=seconds-lastVisit<180&&(AutoScene(world_)||visits==0);// the fixture starts on a retired scene; it must leave it, never return
  }
  check("one_hour_prescribed_set_finishes_program_payoffs",deadlines);
  check("one_hour_prescribed_set_respects_operator_holds",holds);

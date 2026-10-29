@@ -13,8 +13,11 @@ inline constexpr auto Scenes=std::array{
 #undef RS_WIDE
 #undef RS_WIDE_IMPL
 inline constexpr int SceneCount=int(Scenes.size());
-inline constexpr bool AutoScene(int id){return id>=0&&id<SceneCount&&!(id>=28&&id<=34);}
-inline int SceneForKey(int key){for(int i=0;i<SceneCount;++i)if(key!=0&&Scenes[i].key==key)return i;return -1;}
+// Retired scenes keep their ids and shader code but are unselectable and never scheduled.
+inline constexpr bool Retired(int id){return id==14||id==17||id==20||id==23||id==28||id==30||id==31||id==32||id==34||id==37||id==38;}
+inline constexpr int ActiveSceneCount(){int n=0;for(int i=0;i<SceneCount;++i)n+=Retired(i)?0:1;return n;}
+inline constexpr bool AutoScene(int id){return id>=0&&id<SceneCount&&!Retired(id)&&!(id>=28&&id<=34);}
+inline int SceneForKey(int key){for(int i=0;i<SceneCount;++i)if(key!=0&&!Retired(i)&&Scenes[i].key==key)return i;return -1;}
 inline bool SurfaceWall(int id){return id>=0&&id<SceneCount&&Scenes[id].bridge==1;}
 inline bool NativeBridge(int a,int b){if((a==11&&b>=24&&b<=25)||(b==11&&a>=24&&a<=25))return false;return a>=0&&b>=0&&a<SceneCount&&b<SceneCount&&Scenes[a].bridge!=0&&Scenes[a].bridge==Scenes[b].bridge;}
 }
