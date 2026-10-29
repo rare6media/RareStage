@@ -22,9 +22,10 @@
 #include "world_spec.h"
 #include "world_qualifier.h"
 #include "console_splash.h"
+#include "console_updater.h"
 
 #ifndef RARESTAGE_VERSION
-#define RARESTAGE_VERSION "0.31.0"
+#define RARESTAGE_VERSION "0.31.1"
 #endif
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
@@ -77,7 +78,7 @@ ImVec4 FamilyColor(int family) {
 
 class Console {
 public:
-    bool init(HINSTANCE instance, int show, bool withSplash = false) {
+    bool init(HINSTANCE instance, int show, bool withSplash = false, bool checkForUpdates = false) {
         WNDCLASSW wc{};
         wc.hInstance = instance;
         wc.lpfnWndProc = WndProc;
@@ -85,7 +86,7 @@ public:
         wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
         wc.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(2));
         RegisterClassW(&wc);
-        window_ = CreateWindowExW(0, wc.lpszClassName, L"RareStage Console", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
+        window_ = CreateWindowExW(0, wc.lpszClassName, (std::wstring(L"RareStage Console ") + std::wstring(std::string(RARESTAGE_VERSION).begin(), std::string(RARESTAGE_VERSION).end())).c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
                                   CW_USEDEFAULT, 1400, 860, nullptr, nullptr, instance, this);
         if (!window_) return false;
         if (!createDevice()) return false;
@@ -103,6 +104,7 @@ public:
         applyStyle(dpi);
         ImGui_ImplWin32_Init(window_);
         ImGui_ImplDX11_Init(device_, context_);
+        if (checkForUpdates && rarestage::update::AutoCheck()) updater_.check(false);
         if (withSplash) {
             wchar_t exe[MAX_PATH]{};
             GetModuleFileNameW(nullptr, exe, MAX_PATH);
@@ -492,6 +494,7 @@ private:
             ImGui::SameLine();
             if (mapped_ && !compatible_) ImGui::TextDisabled("  version mismatch: run the matching Stage and Console pair");
             if (ImGui::Button("Launch RareStage")) launchRenderer();
+            updateBanner();
             ImGui::Separator();
             return;
         }
@@ -508,7 +511,66 @@ private:
         ImGui::TextDisabled("   %s  |  %s  |  %.0f BPM  |  %.0f FPS  |  GPU %.1f / %.1f ms",
                             SectionNames[size_t(std::clamp(s.songSection, 0, 4))], flag(rarestage::control::Automatic) ? "AUTO" : "MANUAL",
                             s.bpm, s.fps, s.gpuFrameMs, s.gpuBudgetMs);
+        updateBanner();
         ImGui::Separator();
+    }
+
+    // ---- updates -----------------------------------------------------------------------------
+    // Nothing is downloaded until the operator presses Install, and the renderer is never closed or replaced while it
+    // runs: an installed update is picked up the next time the console starts.
+    void restartConsole() {
+        if (rarestage::update::LaunchNewerIfAny(RARESTAGE_VERSION, L"--no-splash")) PostMessageW(window_, WM_CLOSE, 0, 0);
+        else status_ = "No newer version is installed.";
+    }
+    void updateBanner() {
+        using State = rarestage::update::Updater::State;
+        const State st = updater_.state();
+        const ImVec4 accent{0.42f, 0.90f, 1.f, 1.f};
+        if (st == State::Available) {
+            const auto feed = updater_.available();
+            ImGui::TextColored(accent, "UPDATE AVAILABLE  %s -> %s", RARESTAGE_VERSION, feed.version.c_str());
+            ImGui::SameLine();
+            if (ImGui::Button("Install update##upd")) updater_.install();
+            ImGui::SameLine();
+            if (ImGui::Button("Skip this version##upd")) updater_.skipThisVersion();
+            if (!feed.notes.empty()) ImGui::TextDisabled("%s", feed.notes.substr(0, 220).c_str());
+        } else if (st == State::Downloading || st == State::Installing) {
+            ImGui::TextColored(accent, "%s", updater_.message().c_str());
+            ImGui::ProgressBar(st == State::Downloading ? updater_.progress() : 1.f, {260.f, 0.f});
+        } else if (st == State::Ready) {
+            ImGui::TextColored({0.55f, 1.f, 0.55f, 1.f}, "%s", updater_.message().c_str());
+            ImGui::SameLine();
+            if (ImGui::Button("Restart console now##upd")) restartConsole();
+            if (connected_) ImGui::TextDisabled("RareStage (the renderer) is running the old version. Close it and launch it again from the new console to finish the update.");
+        } else if (st == State::Failed) {
+            ImGui::TextColored({1.f, 0.6f, 0.3f, 1.f}, "%s", updater_.message().c_str());
+        }
+    }
+    void updatesSection() {
+        using State = rarestage::update::Updater::State;
+        ImGui::SeparatorText("UPDATES");
+        ImGui::Text("RareStage Console %s", RARESTAGE_VERSION);
+        ImGui::SameLine();
+        if (ImGui::Button("Check for updates##upd")) updater_.check(true);
+        bool autoCheck = rarestage::update::AutoCheck();
+        if (ImGui::Checkbox("Check for updates when the console starts", &autoCheck)) rarestage::update::SetAutoCheck(autoCheck);
+        const std::string message = updater_.message();
+        if (!message.empty() && updater_.state() != State::Available) ImGui::TextDisabled("%s", message.c_str());
+        const std::string feedUrl = rarestage::update::FeedUrl();
+        if (feedUrl != rarestage::update::DefaultFeed) ImGui::TextDisabled("Feed override: %s", feedUrl.c_str());
+        const auto targets = rarestage::update::RollbackTargets(rarestage::update::UpdatesRoot(), RARESTAGE_VERSION);
+        if (!targets.empty()) {
+            ImGui::TextDisabled("Older versions kept on this computer: go back if a release misbehaves.");
+            for (const auto& version : targets) {
+                if (ImGui::Button(("Go back to " + version + "##rb" + version).c_str())) {
+                    std::string error;
+                    if (rarestage::update::Rollback(RARESTAGE_VERSION, version, error)) PostMessageW(window_, WM_CLOSE, 0, 0);
+                    else status_ = error;
+                }
+                ImGui::SameLine();
+            }
+            ImGui::NewLine();
+        }
     }
 
     void footer() {
@@ -873,6 +935,7 @@ private:
                 send(Command::SetMirrorMask, int((s.mirrorMask & ~(1u << i)) | (mirrored ? (1u << i) : 0u)), "Mirror");
         }
         ImGui::Text("Output status: %s", s.displayOutputStatus > 0 ? "OK" : s.displayOutputStatus < 0 ? "FAILED" : "idle");
+        updatesSection();
         ImGui::SeparatorText("CAPTURE");
         if (ImGui::Button("CAPTURE FRAME")) send(Command::CaptureFrame, 0, "Capture");
         ImGui::SameLine();
@@ -933,6 +996,7 @@ private:
     bool connected_{}, compatible_{}, djLoaded_{};
     std::uint32_t serial_{}, pendingSerial_{}, previewSeed_{1};
     rarestage::console::Splash splash_;
+    rarestage::update::Updater updater_{RARESTAGE_VERSION};
     std::uint64_t lastRevision_{};
     std::string status_ = "Waiting for RareStage...";
     std::string pendingText_;
@@ -952,9 +1016,12 @@ private:
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR commandLine, int show) {
     const bool startupTest = commandLine && std::wcsstr(commandLine, L"--startup-test") != nullptr;
+    // The console is its own launcher: an installed update runs instead of this copy (--no-update-launch opts out).
+    const bool noLaunch = commandLine && std::wcsstr(commandLine, L"--no-update-launch") != nullptr;
+    if (!startupTest && !noLaunch && rarestage::update::LaunchNewerIfAny(RARESTAGE_VERSION, commandLine ? commandLine : L"")) return 0;
     Console console;
     const bool withSplash = !startupTest && !(commandLine && std::wcsstr(commandLine, L"--no-splash"));
-    if (!console.init(instance, startupTest ? SW_HIDE : show, withSplash)) {
+    if (!console.init(instance, startupTest ? SW_HIDE : show, withSplash, !startupTest)) {
         MessageBoxW(nullptr, L"RareStage Console could not initialize DirectX.", L"RareStage Console", MB_OK | MB_ICONERROR);
         return 1;
     }

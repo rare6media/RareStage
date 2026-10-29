@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(RareStage VERSION 0.31.0 LANGUAGES CXX)
+project(RareStage VERSION 0.31.1 LANGUAGES CXX)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -41,7 +41,7 @@ add_executable(RareStageConsole WIN32 src/console_imgui.cpp src/rarestage_consol
 target_compile_features(RareStageConsole PRIVATE cxx_std_20)
 target_compile_definitions(RareStageConsole PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
 target_compile_definitions(RareStageConsole PRIVATE RARESTAGE_VERSION="${PROJECT_VERSION}")
-target_link_libraries(RareStageConsole PRIVATE RareStageImGui user32 gdi32 shell32 windowscodecs ole32)
+target_link_libraries(RareStageConsole PRIVATE RareStageImGui user32 gdi32 shell32 windowscodecs ole32 winhttp bcrypt)
 if(MSVC)
   target_compile_options(RareStageConsole PRIVATE /W4 /permissive- /EHsc /utf-8)
   target_link_options(RareStageConsole PRIVATE /MANIFEST:NO)
@@ -98,6 +98,16 @@ if(MSVC)
   target_compile_options(RareStageGenDirectorTests PRIVATE /W4 /permissive- /EHsc /utf-8)
 endif()
 add_test(NAME RareStageGenerativeDirector COMMAND RareStageGenDirectorTests)
+
+add_executable(RareStageUpdaterTests tests/updater_test.cpp)
+target_compile_features(RareStageUpdaterTests PRIVATE cxx_std_20)
+target_compile_definitions(RareStageUpdaterTests PRIVATE UNICODE _UNICODE)
+target_include_directories(RareStageUpdaterTests PRIVATE src)
+target_link_libraries(RareStageUpdaterTests PRIVATE winhttp bcrypt)
+if(MSVC)
+  target_compile_options(RareStageUpdaterTests PRIVATE /W4 /permissive- /EHsc /utf-8)
+endif()
+add_test(NAME RareStageUpdater COMMAND RareStageUpdaterTests)
 
 add_executable(RareStageWorldSpecTests tests/world_spec_test.cpp)
 target_compile_features(RareStageWorldSpecTests PRIVATE cxx_std_20)

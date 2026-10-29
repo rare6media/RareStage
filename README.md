@@ -4,9 +4,16 @@
 
 [![Windows Build](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/rare6media/RareStage/actions/workflows/windows-build.yml)
 
-[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.31.0**
+[Download the latest Windows build](https://github.com/rare6media/RareStage/releases/latest) · [View Windows builds](https://github.com/rare6media/RareStage/actions) · Current source version: **0.31.1**
 
 RareStage is a native C++20, Win32, DirectX 11 and WASAPI application. It is not a website, Electron shell, video player, or collection of prerecorded VJ loops. Every frame is produced on the GPU from live audio analysis, authored world logic, the Rare mark, and procedural 2D/2.5D stage systems.
+
+## What changed in 0.31.1
+
+* **Console updater**: the console checks GitHub for a newer release on start and offers it in a banner; installing is the
+  operator's choice, the download is verified against a SHA-256, versions are unpacked side by side, and older ones are kept
+  for **Go back to...** (Output > Updates). The renderer is never touched while it runs. See [docs/UPDATER.md](docs/UPDATER.md)
+  and [docs/RELEASE_0_31_1.md](docs/RELEASE_0_31_1.md). Versions before 0.31.1 need one manual install first.
 
 ## What changed in 0.31.0
 
